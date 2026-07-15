@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MANTUL KITCHEN - Pcs Ledger System v3.4</title>
+<style>
+:root {
+  --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; 
+  --muted: #bdbdbd; --border: #2a2a2e; --input: #202023;
+  --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08);
+}
+* { box-sizing: border-box; font-family: Arial, sans-serif; }
+body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+.container { max-width: 1100px; margin: auto; }
+
+.header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+.header h1 { color: var(--gold); margin: 0; font-size: 1.8rem; letter-spacing: 2px; }
+.header p { color: var(--muted); margin: 5px 0 0 0; font-size: 0.85rem; }
+
+/* Grid Ringkasan Atas (Responsif & Kompak) */
+.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); padding: 12px 8px; border-radius: 12px; text-align: center; }
+.stat-card h3 { margin: 0 0 6px 0; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-card .val { font-size: 1.1rem; font-weight: bold; color: var(--gold); white-space: nowrap; }
+.stat-card .val.green { color: var(--success); }
+
+@media(max-width: 600px) {
+  .summary-grid { grid-template-columns: 1fr; gap: 8px; }
+  .stat-card { padding: 15px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+  .stat-card h3 { margin: 0; }
+  .stat-card .val { font-size: 1.2rem; }
+}
+
+.main-layout { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
+@media(max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
+
+.box { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 20px; height: fit-content; }
+.box h2 { color: var(--gold); margin-top: 0; font-size: 1.1rem; border-bottom: 1px dashed var(--border); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+.form-group input, .form-group select {
+  width: 100%; padding: 12px; background: var(--input); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-size: 0.95rem; transition: all 0.3s;
+}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--gold); }
+
+/* Kotak Preview Hitungan */
+.preview-box {
+  background: var(--gold-light); border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 12px; padding: 15px; margin-bottom: 20px;
+}
+.preview-box h4 { margin: 0 0 10px 0; color: var(--gold); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.preview-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; color: var(--muted); }
+.preview-row span:last-child { color: var(--text); font-weight: 600; }
+.preview-row.total-line { border-top: 1px dashed rgba(212,175,55,0.3); margin-top: 8px; padding-top: 8px; font-size: 0.95rem; color: var(--gold); }
+.preview-row.total-line span:last-child { color: var(--gold); font-weight: bold; }
+
+.btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; transition: 0.2s; }
+.btn-gold { background: var(--gold); color: #111; }
+.btn-gold:hover { transform: scale(1.01); background: #e5bd42; }
+.btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 12px; padding: 10px; font-size: 0.85rem; }
+.btn-danger:hover { background: rgba(255, 77, 77, 0.1); }
+
+/* Tabel Jurnal */
+.table-wrapper { overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+th { color: var(--gold); font-weight: bold; background: rgba(255,255,255,0.03); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+tr:hover { background: rgba(255,255,255,0.01); }
+
+.badge-in { color: var(--success); font-weight: bold; }
+.badge-out { color: var(--danger); font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>MANTUL KITCHEN LEDGER</h1>
+    <p>Atomic Inventory Management - Satuan Pcs Eceran (v3.4)</p>
+  </div>
+
+  <div class="summary-grid">
+    <div class="stat-card">
+      <h3>Omset Bersih</h3>
+      <div class="val green" id="sumRevenue">Rp 0</div>
+    </div>
+    <div class="stat-card">
+      <h3>Total Terjual</h3>
+      <div class="val" id="sumSold">0 Pcs</div>
+    </div>
+    <div class="stat-card">
+      <h3>Total Diskon</h3>
+      <div class="val" id="sumDiscount" style="color: var(--danger)">Rp 0</div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <div class="box">
+      <h2>📥 INPUT LOG TRANSAKSI</h2>
+      
+      <div class="form-group">
+        <label>Pilih Menu Produk:</label>
+        <select id="prodSelect" onchange="syncFormAndPreview()">
+          <option value="Dimsum Premium">Dimsum Premium (Grosir Bertingkat)</option>
+          <option value="Gyoza Premium">Gyoza Premium (Grosir Bertingkat)</option>
+          <option value="Wonton Udang Premium">Wonton Udang Premium (Rp5.000/pc)</option>
+          <option value="Lumpia Kulit Tahu Ayam">Lumpia Kulit Tahu Ayam (Rp5.000/pc)</option>
+          <option value="Lumpia Kulit Tahu Udang">Lumpia Kulit Tahu Udang (Rp5.000/pc)</option>
+          <option value="Steam Ceker Lada Hitam">Steam Ceker Lada Hitam (Rp3.000/pc)</option>
+          <option value="Bakpao Karakter Premium">Bakpao Karakter Premium (Rp4.167/pc)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Jenis Aktivitas Data:</label>
+        <select id="actionType" onchange="syncFormAndPreview()">
+          <option value="JUAL">Penjualan Keluar (Pengurang Stok + Pendapatan)</option>
+          <option value="MASUK">Stok Barang Masuk (Penambah Stok)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label id="qtyLabel">Jumlah Terjual Keluar (Satuan Pcs):</label>
+        <input type="number" id="txQty" value="5" min="1" oninput="syncFormAndPreview()">
+      </div>
+
+      <div class="form-group" id="discountFormGroup">
+        <label>Potongan Diskon (Rupiah):</label>
+        <input type="number" id="txDiscount" value="0" min="0" oninput="syncFormAndPreview()">
+      </div>
+
+      <div class="preview-box">
+        <h4>👀 Live Preview Hitungan</h4>
+        <div class="preview-row" id="preBasePriceRow">
+          <span>Harga Satuan Terdeteksi:</span>
+          <span id="preBasePrice">Rp 0 /pc</span>
+        </div>
+        <div class="preview-row" id="preSubtotalRow">
+          <span>Subtotal Kotor:</span>
+          <span id="preSubtotal">Rp 0</span>
+        </div>
+        <div class="preview-row" id="preDiscountRow">
+          <span>Potongan Diskon:</span>
+          <span id="preDiscount" style="color:var(--danger)">-Rp 0</span>
+        </div>
+        <div class="preview-row total-line">
+          <span id="preTotalLabel">Total Pendapatan Bersih:</span>
+          <span id="preTotalNominal">Rp 0</span>
+        </div>
+      </div>
+
+      <button class="btn btn-gold" onclick="submitTransaction()">Catat ke Data Base 💾</button>
+      <button class="btn btn-danger" onclick="resetSystemData()">Reset Semua Data Master</button>
+    </div>
+
+    <div class="box">
+      <h2>📊 DATA STOK & JURNAL TRANSAKSI</h2>
+      
+      <h3>Status Sisa Stok Gudang (Real-Time Pcs):</h3>
+      <div class="table-wrapper" style="margin-bottom: 25px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Nama Produk</th>
+              <th>Sisa Stok Fisik</th>
+            </tr>
+          </thead>
+          <tbody id="stockTableBody"></tbody>
+        </table>
+      </div>
+
+      <h3>Jurnal Riwayat Aktivitas Keluar Masuk:</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Waktu Log</th>
+              <th>Produk</th>
+              <th>Aktivitas</th>
+              <th>Qty (Pcs)</th>
+              <th>Diskon</th>
+              <th>Nominal Akhir</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function getUnitPrice(product, qty) {
+  if (product === "Dimsum Premium" || product === "Gyoza Premium") {
+    if (qty >= 20) return 3250;
+    if (qty >= 10) return 3300;
+    return 3500;
+  }
+  if (product === "Wonton Udang Premium" || product === "Lumpia Kulit Tahu Ayam" || product === "Lumpia Kulit Tahu Udang") {
+    return 5000;
+  }
+  if (product === "Steam Ceker Lada Hitam") {
+    return 3000;
+  }
+  if (product === "Bakpao Karakter Premium") {
+    return 25000 / 6;
+  }
+  return 0;
+}
+
+// DATABASE KUNCI DITINGKATKAN KE V6 AGAR BEBAS CACHE LAMA HP
+let inventory = JSON.parse(localStorage.getItem('mantul_stock_pcs_v6')) || {
+  "Dimsum Premium": 160, "Gyoza Premium": 85, "Wonton Udang Premium": 30,
+  "Lumpia Kulit Tahu Ayam": 45, "Lumpia Kulit Tahu Udang": 40,
+  "Steam Ceker Lada Hitam": 30, "Bakpao Karakter Premium": 0
+};
+
+let logs = JSON.parse(localStorage.getItem('mantul_logs_pcs_v6')) || [
+  // Wonton: 1 + 1 + 1 + 1 = 20 pcs
+  { date: "15/07/2026, 10:25:00", product: "Wonton Udang Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 25000 },
+  { date: "15/07/2026, 10:23:00", product: "Wonton Udang Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 25000 },
+  { date: "15/07/2026, 10:21:00", product: "Wonton Udang Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 25000 },
+  { date: "15/07/2026, 10:19:00", product: "Wonton Udang Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 25000 },
+  
+  // Dimsum: 1 + 1 + 1 = 15 pcs
+  { date: "15/07/2026, 10:17:00", product: "Dimsum Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 17500 },
+  { date: "15/07/2026, 10:15:00", product: "Dimsum Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 17500 },
+  { date: "15/07/2026, 10:13:00", product: "Dimsum Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 17500 },
+  
+  // Gyoza: 1 + 1 + 1 = 15 pcs
+  { date: "15/07/2026, 10:11:00", product: "Gyoza Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 17500 },
+  { date: "15/07/2026, 10:09:00", product: "Gyoza Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 17500 },
+  { date: "15/07/2026, 10:07:00", product: "Gyoza Premium", type: "JUAL", qty: 5, discount: 0, finalNominal: 17500 },
+  
+  // Lumpia Udang: 1 + 1 = 10 pcs
+  { date: "15/07/2026, 10:05:00", product: "Lumpia Kulit Tahu Udang", type: "JUAL", qty: 5, discount: 0, finalNominal: 25000 },
+  { date: "15/07/2026, 10:04:00", product: "Lumpia Kulit Tahu Udang", type: "JUAL", qty: 5, discount: 0, finalNominal: 25000 },
+  
+  // Ceker: 5 + 5 = 10 pcs
+  { date: "15/07/2026, 10:03:00", product: "Steam Ceker Lada Hitam", type: "JUAL", qty: 5, discount: 0, finalNominal: 15000 },
+  { date: "15/07/2026, 10:02:00", product: "Steam Ceker Lada Hitam", type: "JUAL", qty: 5, discount: 0, finalNominal: 15000 },
+  
+  // Lumpia Ayam: 1 = 5 pcs
+  { date: "15/07/2026, 10:01:00", product: "Lumpia Kulit Tahu Ayam", type: "JUAL", qty: 5, discount: 0, finalNominal: 25000 }
+];
+
+function formatRupiah(num) {
+  return "Rp " + Math.round(num).toLocaleString('id-ID');
+}
+
+function syncFormAndPreview() {
+  const product = document.getElementById('prodSelect').value;
+  const type = document.getElementById('actionType').value;
+  const qty = parseInt(document.getElementById('txQty').value) || 0;
+  const discount = parseInt(document.getElementById('txDiscount').value) || 0;
+  
+  const labelQty = document.getElementById('qtyLabel');
+  const groupDisc = document.getElementById('discountFormGroup');
+  
+  const preBasePrice = document.getElementById('preBasePrice');
+  const preSubtotal = document.getElementById('preSubtotal');
+  const preDiscount = document.getElementById('preDiscount');
+  const preTotalLabel = document.getElementById('preTotalLabel');
+  const preTotalNominal = document.getElementById('preTotalNominal');
+  
+  const rowBase = document.getElementById('preBasePriceRow');
+  const rowSub = document.getElementById('preSubtotalRow');
+  const rowDisc = document.getElementById('preDiscountRow');
+
+  const unitPrice = getUnitPrice(product, qty);
+  const subtotal = unitPrice * qty;
+
+  if (type === "MASUK") {
+    labelQty.innerText = "Jumlah Stok Masuk (Satuan Pcs):";
+    groupDisc.style.display = "none";
+    rowBase.style.display = "none";
+    rowSub.style.display = "none";
+    rowDisc.style.display = "none";
+    
+    preTotalLabel.innerText = "Status Perubahan Stok:";
+    preTotalNominal.innerText = `+${qty} Pcs Baru`;
+    preTotalNominal.style.color = "var(--gold)";
+  } else {
+    labelQty.innerText = "Jumlah Terjual Keluar (Satuan Pcs):";
+    groupDisc.style.display = "block";
+    rowBase.style.display = "flex";
+    rowSub.style.display = "flex";
+    rowDisc.style.display = "flex";
+    
+    preBasePrice.innerText = formatRupiah(unitPrice) + " /pc";
+    preSubtotal.innerText = formatRupiah(subtotal);
+    preDiscount.innerText = "-" + formatRupiah(discount);
+    
+    let totalBersih = Math.max(0, subtotal - discount);
+    preTotalLabel.innerText = "Total Pendapatan Bersih:";
+    preTotalNominal.innerText = formatRupiah(totalBersih);
+    preTotalNominal.style.color = "var(--success)";
+  }
+}
+
+function renderDashboard() {
+  const stockBody = document.getElementById('stockTableBody');
+  const logBody = document.getElementById('logTableBody');
+  
+  stockBody.innerHTML = "";
+  for(let item in inventory) {
+    stockBody.innerHTML += `<tr><td><b>${item}</b></td><td>${inventory[item]} Pcs</td></tr>`;
+  }
+
+  let totalRevenue = 0; let totalSold = 0; let totalDiscount = 0;
+  logBody.innerHTML = "";
+  
+  logs.forEach(log => {
+    if(log.type === "JUAL") {
+      totalRevenue += log.finalNominal; totalSold += log.qty; totalDiscount += log.discount;
+    }
+    let typeBadge = log.type === "JUAL" ? `<span class="badge-out">KELUAR (JUAL)</span>` : `<span class="badge-in">MASUK</span>`;
+    logBody.innerHTML += `
+      <tr>
+        <td>${log.date}</td><td>${log.product}</td><td>${typeBadge}</td><td>${log.qty}</td>
+        <td>${log.discount > 0 ? formatRupiah(log.discount) : "-"}</td><td><b>${log.type === "JUAL" ? formatRupiah(log.finalNominal) : "-"}</b></td>
+      </tr>`;
+  });
+
+  document.getElementById('sumRevenue').innerText = formatRupiah(totalRevenue);
+  document.getElementById('sumSold').innerText = totalSold + " Pcs";
+  document.getElementById('sumDiscount').innerText = formatRupiah(totalDiscount);
+}
+
+function submitTransaction() {
+  const product = document.getElementById('prodSelect').value;
+  const type = document.getElementById('actionType').value;
+  const qty = parseInt(document.getElementById('txQty').value) || 0;
+  const discount = parseInt(document.getElementById('txDiscount').value) || 0;
+
+  if(qty <= 0) { alert("Jumlah Qty tidak boleh kosong!"); return; }
+
+  if(type === "JUAL") {
+    if(inventory[product] < qty) {
+      alert(`Transaksi Ditolak! Stok ${product} tidak mencukupi. Sisa stok saat ini hanya ${inventory[product]} pcs.`);
+      return;
+    }
+    inventory[product] -= qty;
+    let finalNominal = Math.max(0, (getUnitPrice(product, qty) * qty) - discount);
+    logs.unshift({ date: new Date().toLocaleString('id-ID'), product, type, qty, discount, finalNominal });
+  } else {
+    inventory[product] += qty;
+    logs.unshift({ date: new Date().toLocaleString('id-ID'), product, type, qty, discount: 0, finalNominal: 0 });
+  }
+
+  localStorage.setItem('mantul_stock_pcs_v6', JSON.stringify(inventory));
+  localStorage.setItem('mantul_logs_pcs_v6', JSON.stringify(logs));
+  
+  renderDashboard();
+  document.getElementById('txQty').value = "5";
+  document.getElementById('txDiscount').value = "0";
+  syncFormAndPreview();
+}
+
+function resetSystemData() {
+  if(confirm("Kosongkan riwayat berbasis Pcs secara total?")) {
+    localStorage.removeItem('mantul_stock_pcs_v6'); localStorage.removeItem('mantul_logs_pcs_v6');
+    inventory = { "Dimsum Premium": 0, "Gyoza Premium": 0, "Wonton Udang Premium": 0, "Lumpia Kulit Tahu Ayam": 0, "Lumpia Kulit Tahu Udang": 0, "Steam Ceker Lada Hitam": 0, "Bakpao Karakter Premium": 0 };
+    logs = []; 
+    renderDashboard(); 
+    syncFormAndPreview();
+  }
+}
+
+window.onload = function() {
+  renderDashboard();
+  syncFormAndPreview();
+};
+</script>
+</body>
+  </html>
+  
