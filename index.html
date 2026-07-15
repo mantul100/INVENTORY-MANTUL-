@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN - Hybrid Ledger System v4.2</title>
+<title>MANTUL KITCHEN - Financial Architecture Ledger v4.4</title>
 <style>
 :root {
   --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; 
@@ -18,11 +18,19 @@ body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 .header h1 { color: var(--gold); margin: 0; font-size: 1.8rem; letter-spacing: 2px; }
 .header p { color: var(--muted); margin: 5px 0 0 0; font-size: 0.85rem; }
 
+/* TABS NAVIGATION */
+.tab-navigation { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.tab-btn { background: #202023; color: var(--muted); border: 1px solid var(--border); padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: all 0.2s; }
+.tab-btn.active { background: var(--gold); color: #111; border-color: var(--gold); box-shadow: 0 0 10px rgba(212,175,55,0.2); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
 .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
 .stat-card { background: var(--card); border: 1px solid var(--border); padding: 12px 8px; border-radius: 12px; text-align: center; }
 .stat-card h3 { margin: 0 0 6px 0; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .stat-card .val { font-size: 1.1rem; font-weight: bold; color: var(--gold); white-space: nowrap; }
 .stat-card .val.green { color: var(--success); }
+.stat-card .val.red { color: var(--danger); }
 
 @media(max-width: 600px) {
   .summary-grid { grid-template-columns: 1fr; gap: 8px; }
@@ -34,7 +42,7 @@ body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 .main-layout { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
 @media(max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
 
-.box { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 20px; height: fit-content; }
+.box { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 20px; height: fit-content; margin-bottom: 20px; }
 .box h2 { color: var(--gold); margin-top: 0; font-size: 1.1rem; border-bottom: 1px dashed var(--border); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
 
 .form-group { margin-bottom: 15px; }
@@ -45,14 +53,11 @@ body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 }
 .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--gold); }
 
-.preview-box {
-  background: var(--gold-light); border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 12px; padding: 15px; margin-bottom: 20px;
-}
+.preview-box { background: var(--gold-light); border: 1px solid rgba(212, 175, 55, 0.2); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
 .preview-box h4 { margin: 0 0 10px 0; color: var(--gold); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
 .preview-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; color: var(--muted); }
 .preview-row span:last-child { color: var(--text); font-weight: 600; }
-.preview-row.total-line { border-top: 1px dashed rgba(212,175,55,0.3); margin-top: 8px; padding-top: 8px; font-size: 0.95rem; color: var(--gold); }
+.preview-row.total-line { border-top: 1px dashed rgba(212, 175, 55, 0.3); margin-top: 8px; padding-top: 8px; font-size: 0.95rem; color: var(--gold); }
 .preview-row.total-line span:last-child { color: var(--gold); font-weight: bold; }
 
 .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; transition: 0.2s; }
@@ -78,135 +83,172 @@ tr:hover { background: rgba(255,255,255,0.01); }
 <div class="container">
   <div class="header">
     <h1>MANTUL KITCHEN LEDGER</h1>
-    <p>Hybrid Advanced Architecture - Safety Lock Edition (v4.2)</p>
+    <p>Integrated Financial System - Core Synchronized HPP (v4.4)</p>
   </div>
 
-  <div class="summary-grid">
-    <div class="stat-card">
-      <h3>Omset Bersih</h3>
-      <div class="val green" id="sumRevenue">Rp 0</div>
+  <div class="tab-navigation">
+    <button id="btnTabDashboard" class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard Utama</button>
+    <button id="btnTabProfit" class="tab-btn" onclick="switchTab('profit')">💰 Laporan Keuntungan (Internal)</button>
+  </div>
+
+  <!-- TAB UTAMA -->
+  <div id="tabDashboard" class="tab-content active">
+    <div class="summary-grid">
+      <div class="stat-card">
+        <h3>Omset Bersih</h3>
+        <div class="val green" id="sumRevenue">Rp 0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Total Volume Terjual</h3>
+        <div class="val" id="sumSold">0 Item</div>
+      </div>
+      <div class="stat-card">
+        <h3>Total Potongan Diskon</h3>
+        <div class="val" id="sumDiscount" style="color: var(--danger)">Rp 0</div>
+      </div>
     </div>
-    <div class="stat-card">
-      <h3>Total Volume Terjual</h3>
-      <div class="val" id="sumSold">0 Item</div>
-    </div>
-    <div class="stat-card">
-      <h3>Total Diskon</h3>
-      <div class="val" id="sumDiscount" style="color: var(--danger)">Rp 0</div>
+
+    <div class="main-layout">
+      <div class="box">
+        <h2>📥 INPUT LOG TRANSAKSI</h2>
+        <div class="form-group">
+          <label>1. Pilih Menu Produk:</label>
+          <select id="prodSelect" onchange="updatePackageOptions(); syncFormAndPreview();">
+            <option value="Dimsum Premium">Dimsum Premium</option>
+            <option value="Gyoza Premium">Gyoza Premium</option>
+            <option value="Wonton Udang Premium">Wonton Udang Premium</option>
+            <option value="Lumpia Kulit Tahu Ayam">Lumpia Kulit Tahu Ayam</option>
+            <option value="Lumpia Kulit Tahu Udang">Lumpia Kulit Tahu Udang</option>
+            <option value="Steam Ceker Lada Hitam">Steam Ceker Lada Hitam (Murni Pack)</option>
+            <option value="Bakpao Karakter Premium">Bakpao Karakter Premium (Murni Pack)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="packageFormGroup">
+          <label>2. Pilih Varian Paket / Bundling Jual:</label>
+          <select id="packSelect" onchange="syncFormAndPreview()">
+            <!-- Automasi Dropdown Varian -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>3. Jenis Aktivitas Data:</label>
+          <select id="actionType" onchange="updatePackageOptions(); syncFormAndPreview();">
+            <option value="JUAL">Penjualan Keluar (Pengurang Stok + Pendapatan)</option>
+            <option value="MASUK">Stok Barang Masuk (Penambah Stok Gudang)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label id="qtyLabel">4. Jumlah Kuantitas:</label>
+          <input type="number" id="txQty" value="1" min="1" oninput="syncFormAndPreview()">
+        </div>
+
+        <div class="form-group" id="discountFormGroup">
+          <label>5. Potongan Diskon Tambahan (Rupiah):</label>
+          <input type="number" id="txDiscount" value="0" min="0" oninput="syncFormAndPreview()">
+        </div>
+
+        <div class="preview-box">
+          <h4>👀 Live Preview Proteksi Nominal Kas</h4>
+          <div class="preview-row" id="prePackPriceRow">
+            <span>Harga Dasar Terdeteksi:</span>
+            <span id="prePackPrice">Rp 0</span>
+          </div>
+          <div class="preview-row" id="preSubtotalRow">
+            <span>Subtotal Kotor:</span>
+            <span id="preSubtotal">Rp 0</span>
+          </div>
+          <div class="preview-row" id="preDiscountRow">
+            <span>Potongan Diskon:</span>
+            <span id="preDiscount" style="color:var(--danger)">-Rp 0</span>
+          </div>
+          <div class="preview-row" style="border-top: 1px dotted rgba(212,175,55,0.2); padding-top:4px;">
+            <span>Dampak Fisik Freezer:</span>
+            <span id="preStockDeduct" style="color: var(--gold);">0 Item</span>
+          </div>
+          <div class="preview-row total-line">
+            <span id="preTotalLabel">Total Uang Masuk Bersih:</span>
+            <span id="preTotalNominal">Rp 0</span>
+          </div>
+        </div>
+
+        <button class="btn btn-gold" onclick="submitTransaction()">Catat ke Data Base 💾</button>
+        <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset / Kosongkan Data Master</button>
+      </div>
+
+      <div class="box">
+        <h2>📊 DATA STOK GUDANG FREEZER</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Nama Produk</th>
+                <th>Sisa Stok Fisik Gudang</th>
+              </tr>
+            </thead>
+            <tbody id="stockTableBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="main-layout">
-    <div class="box">
-      <h2>📥 INPUT LOG TRANSAKSI</h2>
-      
-      <div class="form-group">
-        <label>1. Pilih Menu Produk:</label>
-        <select id="prodSelect" onchange="updatePackageOptions(); syncFormAndPreview();">
-          <option value="Dimsum Premium">Dimsum Premium</option>
-          <option value="Gyoza Premium">Gyoza Premium</option>
-          <option value="Wonton Udang Premium">Wonton Udang Premium</option>
-          <option value="Lumpia Kulit Tahu Ayam">Lumpia Kulit Tahu Ayam</option>
-          <option value="Lumpia Kulit Tahu Udang">Lumpia Kulit Tahu Udang</option>
-          <option value="Steam Ceker Lada Hitam">Steam Ceker Lada Hitam (Murni Pack)</option>
-          <option value="Bakpao Karakter Premium">Bakpao Karakter Premium (Murni Pack)</option>
-        </select>
+  <!-- TAB KEDUA (INTERNAL ONLY) -->
+  <div id="tabProfit" class="tab-content">
+    <div class="summary-grid">
+      <div class="stat-card">
+        <h3>Total Omset Kotor</h3>
+        <div class="val" id="profGross">Rp 0</div>
       </div>
-
-      <div class="form-group" id="packageFormGroup">
-        <label>2. Pilih Varian Paket / Bundling Jual:</label>
-        <select id="packSelect" onchange="syncFormAndPreview()">
-          <!-- Diisi otomatis via JS -->
-        </select>
+      <div class="stat-card">
+        <h3>Total Modal Bahan Baku (HPP)</h3>
+        <div class="val red" id="profCogs">Rp 0</div>
       </div>
-
-      <div class="form-group">
-        <label>3. Jenis Aktivitas Data:</label>
-        <select id="actionType" onchange="updatePackageOptions(); syncFormAndPreview();">
-          <option value="JUAL">Penjualan Keluar (Pengurang Stok + Pendapatan)</option>
-          <option value="MASUK">Stok Barang Masuk (Penambah Stok Gudang)</option>
-        </select>
+      <div class="stat-card">
+        <h3>Keuntungan Bersih (Net Profit)</h3>
+        <div class="val green" id="profNet">Rp 0</div>
       </div>
-
-      <div class="form-group">
-        <label id="qtyLabel">4. Jumlah Kuantitas:</label>
-        <input type="number" id="txQty" value="1" min="1" oninput="syncFormAndPreview()">
-      </div>
-
-      <div class="form-group" id="discountFormGroup">
-        <label>5. Potongan Diskon Tambahan (Rupiah):</label>
-        <input type="number" id="txDiscount" value="0" min="0" oninput="syncFormAndPreview()">
-      </div>
-
-      <div class="preview-box">
-        <h4>👀 Live Preview Proteksi Nominal Kas</h4>
-        <div class="preview-row" id="prePackPriceRow">
-          <span>Harga Dasar Terdeteksi:</span>
-          <span id="prePackPrice">Rp 0</span>
-        </div>
-        <div class="preview-row" id="preSubtotalRow">
-          <span>Subtotal Kotor:</span>
-          <span id="preSubtotal">Rp 0</span>
-        </div>
-        <div class="preview-row" id="preDiscountRow">
-          <span>Potongan Diskon:</span>
-          <span id="preDiscount" style="color:var(--danger)">-Rp 0</span>
-        </div>
-        <div class="preview-row" style="border-top: 1px dotted rgba(212,175,55,0.2); padding-top:4px;">
-          <span>Dampak Fisik Freezer:</span>
-          <span id="preStockDeduct" style="color: var(--gold);">0 Item</span>
-        </div>
-        <div class="preview-row total-line">
-          <span id="preTotalLabel">Total Uang Masuk Bersih:</span>
-          <span id="preTotalNominal">Rp 0</span>
-        </div>
-      </div>
-
-      <button class="btn btn-gold" onclick="submitTransaction()">Catat ke Data Base 💾</button>
-      
-      <!-- TOMBOL RESET SUDAH DIBERI PENGAMAN KETAT -->
-      <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset / Kosongkan Data Master</button>
     </div>
 
     <div class="box">
-      <h2>📊 DATA STOK & JURNAL TRANSAKSI</h2>
-      
-      <h3>Status Sisa Stok Gudang Real-Time:</h3>
-      <div class="table-wrapper" style="margin-bottom: 25px;">
-        <table>
-          <thead>
-            <tr>
-              <th>Nama Produk</th>
-              <th>Sisa Stok Fisik Saat Ini</th>
-            </tr>
-          </thead>
-          <tbody id="stockTableBody"></tbody>
-        </table>
-      </div>
-
-      <h3>Jurnal Riwayat Aktivitas Keluar Masuk:</h3>
+      <h2>📜 JURNAL AUDIT FINANCIAL & MARGIN INTERNAL</h2>
       <div class="table-wrapper">
         <table>
           <thead>
             <tr>
-              <th>Waktu Log & Hari</th>
-              <th>Nama Produk</th>
+              <th>Waktu & Hari</th>
+              <th>Nama Produk (Detail)</th>
               <th>Aktivitas</th>
-              <th>Qty Input</th>
-              <th>Dampak Fisik</th>
-              <th>Uang Kas Masuk</th>
+              <th>Omset Kotor</th>
+              <th>Diskon</th>
+              <th>Modal HPP</th>
+              <th>Untung Bersih</th>
             </tr>
           </thead>
-          <tbody id="logTableBody"></tbody>
+          <tbody id="auditTableBody"></tbody>
         </table>
       </div>
-      
-      <button class="btn btn-excel" onclick="exportToExcel()">Export Data ke Excel 📊</button>
+      <button class="btn btn-excel" onclick="exportToExcel()">Export Data Jurnal ke Excel (.CSV) 📊</button>
     </div>
   </div>
+
 </div>
 
 <script>
+// =========================================================================
+// SINKRONISASI PENGUNCI MODAL RIIL BERDASARKAN DOKUMEN KALKULATOR V5
+// =========================================================================
+const cogsMaster = {
+  "Dimsum Premium": 2200,          // Rp2.200 per Pcs
+  "Gyoza Premium": 2200,           // Rp2.200 per Pcs
+  "Wonton Udang Premium": 3500,    // Rp3.500 per Pcs
+  "Lumpia Kulit Tahu Ayam": 3600,  // Rp3.600 per Pcs
+  "Lumpia Kulit Tahu Udang": 4000, // Rp4.000 per Pcs
+  "Steam Ceker Lada Hitam": 9000,  // Rp9.000 per Pack
+  "Bakpao Karakter Premium": 14000 // Rp14.000 per Pack
+};
+
 const packageMaster = {
   "Dimsum Premium": [
     { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 },
@@ -222,44 +264,46 @@ const packageMaster = {
     { label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 },
     { label: "Pack isi 10 (Rp50.000)", pcsPerPack: 10, pricePerPack: 50000 }
   ],
-  "Lumpia Kulit Tahu Ayam": [
-    { label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }
-  ],
-  "Lumpia Kulit Tahu Udang": [
-    { label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }
-  ],
-  "Steam Ceker Lada Hitam": [
-    { label: "Pack isi 3 (Rp15.000)", pcsPerPack: 1, pricePerPack: 15000 }
-  ],
-  "Bakpao Karakter Premium": [
-    { label: "Pack isi 6 (Rp25.000)", pcsPerPack: 1, pricePerPack: 25000 }
-  ]
+  "Lumpia Kulit Tahu Ayam": [{ label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }],
+  "Lumpia Kulit Tahu Udang": [{ label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }],
+  "Steam Ceker Lada Hitam": [{ label: "Pack isi 3 (Rp15.000)", pcsPerPack: 1, pricePerPack: 15000 }],
+  "Bakpao Karakter Premium": [{ label: "Pack isi 6 (Rp25.000)", pcsPerPack: 1, pricePerPack: 25000 }]
 };
 
-// DATABASE V14: SINKRONISASI PENGAMAN BARU
-let inventory = JSON.parse(localStorage.getItem('mantul_stock_v14')) || {
+// DATABASE KUNCI V16
+let inventory = JSON.parse(localStorage.getItem('mantul_stock_v16')) || {
   "Dimsum Premium": 160, "Gyoza Premium": 85, "Wonton Udang Premium": 30,
   "Lumpia Kulit Tahu Ayam": 45, "Lumpia Kulit Tahu Udang": 40,
   "Steam Ceker Lada Hitam": 6, "Bakpao Karakter Premium": 0
 };
 
-let logs = JSON.parse(localStorage.getItem('mantul_logs_v14')) || [
-  { date: "Rabu, 15 Juli 2026 10:25", product: "Wonton Udang Premium", type: "JUAL", qtyInput: 4, detail: "4 Pack (isi 5)", impactStock: "-20 Pcs", finalNominal: 100000 },
-  { date: "Rabu, 15 Juli 2026 10:17", product: "Dimsum Premium", type: "JUAL", qtyInput: 3, detail: "3 Pack (isi 5)", impactStock: "-15 Pcs", finalNominal: 52500 },
-  { date: "Rabu, 15 Juli 2026 10:11", product: "Gyoza Premium", type: "JUAL", qtyInput: 3, detail: "3 Pack (isi 5)", impactStock: "-15 Pcs", finalNominal: 52500 },
-  { date: "Rabu, 15 Juli 2026 10:05", product: "Lumpia Kulit Tahu Udang", type: "JUAL", qtyInput: 2, detail: "2 Pack (isi 5)", impactStock: "-10 Pcs", finalNominal: 50000 },
-  { date: "Rabu, 15 Juli 2026 10:03", product: "Steam Ceker Lada Hitam", type: "JUAL", qtyInput: 2, detail: "Murni Keluar Pack", impactStock: "-2 Pack", finalNominal: 30000 },
-  { date: "Rabu, 15 Juli 2026 10:01", product: "Lumpia Kulit Tahu Ayam", type: "JUAL", qtyInput: 1, detail: "1 Pack (isi 5)", impactStock: "-5 Pcs", finalNominal: 25000 }
+// HITUNGAN JURNAL AWAL DIKALKULASI 100% SESUAI DOKUMEN MODAL TERBARU
+let logs = JSON.parse(localStorage.getItem('mantul_logs_v16')) || [
+  { date: "Rabu, 15 Juli 2026 10:25", product: "Wonton Udang Premium", type: "JUAL", qtyInput: 4, detail: "4 Pack (isi 5)", impactStock: "-20 Pcs", grossPrice: 100000, discount: 0, cogsTotal: 70000, finalNominal: 100000, netProfit: 30000 },
+  { date: "Rabu, 15 Juli 2026 10:17", product: "Dimsum Premium", type: "JUAL", qtyInput: 3, detail: "3 Pack (isi 5)", impactStock: "-15 Pcs", grossPrice: 52500, discount: 0, cogsTotal: 33000, finalNominal: 52500, netProfit: 19500 },
+  { date: "Rabu, 15 Juli 2026 10:11", product: "Gyoza Premium", type: "JUAL", qtyInput: 3, detail: "3 Pack (isi 5)", impactStock: "-15 Pcs", grossPrice: 52500, discount: 0, cogsTotal: 33000, finalNominal: 52500, netProfit: 19500 },
+  { date: "Rabu, 15 Juli 2026 10:05", product: "Lumpia Kulit Tahu Udang", type: "JUAL", qtyInput: 2, detail: "2 Pack (isi 5)", impactStock: "-10 Pcs", grossPrice: 50000, discount: 0, cogsTotal: 40000, finalNominal: 50000, netProfit: 10000 },
+  { date: "Rabu, 15 Juli 2026 10:03", product: "Steam Ceker Lada Hitam", type: "JUAL", qtyInput: 2, detail: "Murni Jual Pack", impactStock: "-2 Pack", grossPrice: 30000, discount: 0, cogsTotal: 18000, finalNominal: 30000, netProfit: 12000 },
+  { date: "Rabu, 15 Juli 2026 10:01", product: "Lumpia Kulit Tahu Ayam", type: "JUAL", qtyInput: 1, detail: "1 Pack (isi 5)", impactStock: "-5 Pcs", grossPrice: 25000, discount: 0, cogsTotal: 18000, finalNominal: 25000, netProfit: 7000 }
 ];
 
-function formatRupiah(num) {
-  return "Rp " + Math.round(num).toLocaleString('id-ID');
-}
+function formatRupiah(num) { return "Rp " + Math.round(num).toLocaleString('id-ID'); }
 
-// GENERATOR WAKTU STRUKTUR INDONESIA LENGKAP DENGAN NAMA HARI
 function generateFormattedDate() {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
   return new Date().toLocaleDateString('id-ID', options).replace('pukul', '-');
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  if(tabName === 'dashboard') {
+    document.getElementById('tabDashboard').classList.add('active');
+    document.getElementById('btnTabDashboard').classList.add('active');
+  } else {
+    document.getElementById('tabProfit').classList.add('active');
+    document.getElementById('btnTabProfit').classList.add('active');
+  }
 }
 
 function updatePackageOptions() {
@@ -272,7 +316,6 @@ function updatePackageOptions() {
     if (groupPack) groupPack.style.display = "none";
     return;
   }
-
   if (type === "JUAL" && packageMaster[product]) {
     if (groupPack) groupPack.style.display = "block";
     packSelect.innerHTML = "";
@@ -303,7 +346,6 @@ function syncFormAndPreview() {
     if (rowPrice) rowPrice.style.display = "none";
     if (rowSub) rowSub.style.display = "none";
     if (rowDisc) rowDisc.style.display = "none";
-    
     document.getElementById('preStockDeduct').innerText = `+${qty} ${unitName} Baru (Masuk Freezer)`;
     document.getElementById('preTotalLabel').innerText = "Status Aktivitas:";
     document.getElementById('preTotalNominal').innerText = "RESTOCK STOK GUDANG";
@@ -316,8 +358,7 @@ function syncFormAndPreview() {
   if (rowSub) rowSub.style.display = "flex";
   if (rowDisc) rowDisc.style.display = "flex";
   
-  let subtotal = 0;
-  let stockText = "";
+  let subtotal = 0; let stockText = "";
 
   if (isPurePack) {
     labelQty.innerText = "4. Jumlah Pack yang Terjual:";
@@ -325,12 +366,10 @@ function syncFormAndPreview() {
     subtotal = qty * packPrice;
     document.getElementById('prePackPrice').innerText = formatRupiah(packPrice) + " /Pack";
     stockText = `-${qty} Pack (Keluar)`;
-  } 
-  else {
+  } else {
     labelQty.innerText = "4. Jumlah Pack Bungkus yang Terjual:";
     const packIndex = parseInt(document.getElementById('packSelect').value) || 0;
     const selectedPack = packageMaster[product][packIndex] || { pcsPerPack: 5, pricePerPack: 17500 };
-    
     subtotal = selectedPack.pricePerPack * qty;
     document.getElementById('prePackPrice').innerText = formatRupiah(selectedPack.pricePerPack) + " /Pack";
     stockText = `-${selectedPack.pcsPerPack * qty} Pcs Keluar Gudang`;
@@ -348,7 +387,7 @@ function syncFormAndPreview() {
 
 function renderDashboard() {
   const stockBody = document.getElementById('stockTableBody');
-  const logBody = document.getElementById('logTableBody');
+  const auditBody = document.getElementById('auditTableBody');
   
   stockBody.innerHTML = "";
   for(let item in inventory) {
@@ -357,131 +396,10 @@ function renderDashboard() {
   }
 
   let totalRevenue = 0; let totalVolume = 0; let totalDiscount = 0;
-  logBody.innerHTML = "";
+  let totalGross = 0; let totalCogs = 0; let totalNet = 0;
   
+  auditBody.innerHTML = "";
   logs.forEach(log => {
-    if(log.type === "JUAL") {
-      totalRevenue += log.finalNominal; 
-      totalDiscount += log.discount;
-      totalVolume += log.qtyInput;
-    }
     let typeBadge = log.type === "JUAL" ? `<span class="badge-out">KELUAR (JUAL)</span>` : `<span class="badge-in">MASUK</span>`;
-    logBody.innerHTML += `
-      <tr>
-        <td><small>${log.date}</small></td>
-        <td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td>
-        <td>${typeBadge}</td>
-        <td>${log.qtyInput}</td>
-        <td><b style="color:var(--gold)">${log.impactStock}</b></td>
-        <td><b>${log.type === "JUAL" ? formatRupiah(log.finalNominal) : "-"}</b></td>
-      </tr>`;
-  });
-
-  document.getElementById('sumRevenue').innerText = formatRupiah(totalRevenue);
-  document.getElementById('sumSold').innerText = totalVolume + " Vol/Item";
-  document.getElementById('sumDiscount').innerText = formatRupiah(totalDiscount);
-}
-
-function submitTransaction() {
-  const product = document.getElementById('prodSelect').value;
-  const type = document.getElementById('actionType').value;
-  const qtyInput = parseInt(document.getElementById('txQty').value) || 0;
-  const discount = parseInt(document.getElementById('txDiscount').value) || 0;
-
-  if(qtyInput <= 0) { alert("Jumlah kuantitas tidak boleh kosong!"); return; }
-
-  let detail = ""; let impactStock = ""; let finalNominal = 0;
-  const isPurePack = (product === "Steam Ceker Lada Hitam" || product === "Bakpao Karakter Premium");
-  const unitName = isPurePack ? "Pack" : "Pcs";
-
-  if (type === "MASUK") {
-    inventory[product] += qtyInput;
-    detail = "Restock Freezer Mentah";
-    impactStock = `+${qtyInput} ${unitName}`;
-  } 
-  else {
-    let subtotal = 0; let finalDeduct = 0;
-
-    if (isPurePack) {
-      let packPrice = (product === "Steam Ceker Lada Hitam") ? 15000 : 25000;
-      subtotal = qtyInput * packPrice; finalDeduct = qtyInput;
-      detail = "Murni Jual Pack"; impactStock = `-${qtyInput} Pack`;
-    } 
-    else {
-      const packIndex = parseInt(document.getElementById('packSelect').value) || 0;
-      const selectedPack = packageMaster[product][packIndex];
-      subtotal = selectedPack.pricePerPack * qtyInput;
-      finalDeduct = selectedPack.pcsPerPack * qtyInput;
-      detail = `${qtyInput} x [${selectedPack.label}]`;
-      impactStock = `-${finalDeduct} Pcs`;
-    }
-
-    if(inventory[product] < finalDeduct) {
-      alert(`Transaksi Ditolak! Stok ${product} di freezer tidak mencukupi.`); return;
-    }
-    inventory[product] -= finalDeduct;
-    finalNominal = Math.max(0, subtotal - discount);
-  }
-
-  logs.unshift({
-    date: generateFormattedDate(), product, type, qtyInput, detail, impactStock, discount, finalNominal
-  });
-
-  localStorage.setItem('mantul_stock_v14', JSON.stringify(inventory));
-  localStorage.setItem('mantul_logs_v14', JSON.stringify(logs));
-  
-  renderDashboard();
-  document.getElementById('txQty').value = "1";
-  document.getElementById('txDiscount').value = "0";
-  syncFormAndPreview();
-}
-
-function exportToExcel() {
-  if (logs.length === 0) { alert("Belum ada data untuk di-export!"); return; }
-  let csvContent = "\uFEFF"; 
-  csvContent += "Waktu Log,Nama Produk,Jenis Aktivitas,Qty Input,Detail Kemasan,Dampak Fisik Gudang,Diskon,Uang Kas Masuk\n";
-  
-  logs.forEach(log => {
-    let row = [
-      `"${log.date}"`, `"${log.product}"`, `"${log.type}"`, `"${log.qtyInput}"`,
-      `"${log.detail}"`, `"${log.impactStock}"`, `"${log.discount}"`, `"${log.finalNominal}"`
-    ];
-    csvContent += row.join(",") + "\n";
-  });
-  
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
-  link.setAttribute("download", "Laporan_MantulKitchen_" + new Date().toISOString().slice(0,10) + ".csv");
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-// 🔐 FITUR BARU: SISTEM KUNCI PENGAMAN PIN / KATA KUNCI ANTI KEPENCET
-function resetSystemData() {
-  let kunciRahasia = prompt("⚠️ PERINGATAN KERAS!\nTindakan ini akan menghapus TOTAL seluruh isi stok freezer dan riwayat keuangan.\n\nUntuk melanjutkan, ketik kata kunci di bawah ini (Huruf Besar Semua):\nKONFIRMASI HAPUS MANTUL");
-  
-  if(kunciRahasia === "8888") {
-    localStorage.removeItem('mantul_stock_v14'); 
-    localStorage.removeItem('mantul_logs_v14');
-    inventory = { "Dimsum Premium": 0, "Gyoza Premium": 0, "Wonton Udang Premium": 0, "Lumpia Kulit Tahu Ayam": 0, "Lumpia Kulit Tahu Udang": 0, "Steam Ceker Lada Hitam": 0, "Bakpao Karakter Premium": 0 };
-    logs = []; 
-    renderDashboard(); 
-    syncFormAndPreview();
-    alert("Database berhasil dikosongkan.");
-  } else {
-    alert("❌ Kunci salah! Reset digagalkan. Data kas & stok Anda aman terlindungi.");
-  }
-}
-
-window.onload = function() {
-  updatePackageOptions();
-  renderDashboard();
-  syncFormAndPreview();
-};
-</script>
-</body>
-</html>
+    if(log.type === "JUAL") {
+      totalRevenue +=
