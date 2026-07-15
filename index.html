@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN - Hybrid Ledger System v3.5</title>
+<title>MANTUL KITCHEN - Hybrid Ledger System v3.6</title>
 <style>
 :root {
   --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; 
@@ -76,7 +76,7 @@ tr:hover { background: rgba(255,255,255,0.01); }
 <div class="container">
   <div class="header">
     <h1>MANTUL KITCHEN LEDGER</h1>
-    <p>Hybrid Inventory Management - Input Pack, Potong Pcs (v3.5)</p>
+    <p>Hybrid Inventory Management - Smart Form Protection (v3.6)</p>
   </div>
 
   <div class="summary-grid">
@@ -111,8 +111,8 @@ tr:hover { background: rgba(255,255,255,0.01); }
         </select>
       </div>
 
-      <!-- KOLOM BARU: PILIHAN PAKET BUNDLING KONSUMEN -->
-      <div class="form-group">
+      <!-- KOREKSI: DIBERI ID AGAR BISA HILANG OTOMATIS SAAT RESTOCK -->
+      <div class="form-group" id="packageFormGroup">
         <label>2. Pilih Varian Paket / Bundling Jual:</label>
         <select id="packSelect" onchange="syncFormAndPreview()">
           <!-- Diisi otomatis oleh JavaScript -->
@@ -128,7 +128,7 @@ tr:hover { background: rgba(255,255,255,0.01); }
       </div>
 
       <div class="form-group">
-        <label id="qtyLabel">4. Jumlah Kuantitas (Pack / Porsi):</label>
+        <label id="qtyLabel">4. Jumlah Kuantitas:</label>
         <input type="number" id="txQty" value="1" min="1" oninput="syncFormAndPreview()">
       </div>
 
@@ -139,7 +139,7 @@ tr:hover { background: rgba(255,255,255,0.01); }
 
       <div class="preview-box">
         <h4>👀 Live Preview Hitungan Akurat</h4>
-        <div class="preview-row">
+        <div class="preview-row" id="prePriceRow">
           <span>Harga Per Pack/Porsi:</span>
           <span id="prePackPrice">Rp 0</span>
         </div>
@@ -202,7 +202,6 @@ tr:hover { background: rgba(255,255,255,0.01); }
 </div>
 
 <script>
-// MASTER DATA STRUKTUR HARGA BUNDLING YANG DIKUNCI MATEMATIKA NYA
 const packageMaster = {
   "Dimsum Premium": [
     { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 },
@@ -232,14 +231,14 @@ const packageMaster = {
   ]
 };
 
-let inventory = JSON.parse(localStorage.getItem('mantul_stock_pcs_v7')) || {
+// DATABASE RESET KE V8 UNTUK MEMBUNUH CACHE LAMA
+let inventory = JSON.parse(localStorage.getItem('mantul_stock_pcs_v8')) || {
   "Dimsum Premium": 160, "Gyoza Premium": 85, "Wonton Udang Premium": 30,
   "Lumpia Kulit Tahu Ayam": 45, "Lumpia Kulit Tahu Udang": 40,
   "Steam Ceker Lada Hitam": 30, "Bakpao Karakter Premium": 0
 };
 
-let logs = JSON.parse(localStorage.getItem('mantul_logs_pcs_v7')) || [
-  // LOG AWAL DIBUAT BERDASARKAN EXPANSION DARI BUKU CATATAN FISIK ANDA SECARA PAS RP310.000
+let logs = JSON.parse(localStorage.getItem('mantul_logs_pcs_v8')) || [
   { date: "15/07/2026, 10:25:00", product: "Wonton Udang Premium", packLabel: "Pack isi 5 (Rp25.000)", type: "JUAL", qtyPack: 4, totalPcs: 20, discount: 0, finalNominal: 100000 },
   { date: "15/07/2026, 10:17:00", product: "Dimsum Premium", packLabel: "Pack isi 5 (Rp17.500)", type: "JUAL", qtyPack: 3, totalPcs: 15, discount: 0, finalNominal: 52500 },
   { date: "15/07/2026, 10:11:00", product: "Gyoza Premium", packLabel: "Pack isi 5 (Rp17.500)", type: "JUAL", qtyPack: 3, totalPcs: 15, discount: 0, finalNominal: 52500 },
@@ -266,37 +265,47 @@ function syncFormAndPreview() {
   const product = document.getElementById('prodSelect').value;
   const packIndex = parseInt(document.getElementById('packSelect').value) || 0;
   const type = document.getElementById('actionType').value;
-  const qtyPack = parseInt(document.getElementById('txQty').value) || 0;
+  const qty = parseInt(document.getElementById('txQty').value) || 0;
   const discount = parseInt(document.getElementById('txDiscount').value) || 0;
   
-  const selectedPack = packageMaster[product][packIndex] || { pcsPerPack: 0, pricePerPack: 0 };
+  const selectedPack = packageMaster[product][packIndex] || { pcsPerPack: 1, pricePerPack: 0 };
   
-  const totalPcs = selectedPack.pcsPerPack * qtyPack;
-  const subtotal = selectedPack.pricePerPack * qtyPack;
-
   const labelQty = document.getElementById('qtyLabel');
   const groupDisc = document.getElementById('discountFormGroup');
+  const groupPack = document.getElementById('packageFormGroup');
+  
+  const rowPrice = document.getElementById('prePriceRow');
   const rowSub = document.getElementById('preSubtotalRow');
   const rowDisc = document.getElementById('preDiscountRow');
 
-  document.getElementById('prePackPrice').innerText = formatRupiah(selectedPack.pricePerPack);
-
   if (type === "MASUK") {
-    labelQty.innerText = "Jumlah Stok Masuk (Satuan Pack):";
-    groupDisc.style.display = "none";
-    rowSub.style.display = "none";
-    rowDisc.style.display = "none";
+    // KONDISI INPUT BARANG MASUK: Paket bundling & Diskon disembunyikan total
+    labelQty.innerText = "4. Jumlah Stok Masuk (Satuan Biji / Pcs):";
+    if (groupPack) groupPack.style.display = "none";
+    if (groupDisc) groupDisc.style.display = "none";
     
-    document.getElementById('prePcsCut').innerText = `+${totalPcs} Pcs (Masuk ke Gudang)`;
+    if (rowPrice) rowPrice.style.display = "none";
+    if (rowSub) rowSub.style.display = "none";
+    if (rowDisc) rowDisc.style.display = "none";
+    
+    document.getElementById('prePcsCut').innerText = `+${qty} Pcs (Masuk ke Gudang)`;
     document.getElementById('preTotalLabel').innerText = "Status Mutasi:";
     document.getElementById('preTotalNominal').innerText = "RESTOCK BARANG";
     document.getElementById('preTotalNominal').style.color = "var(--gold)";
   } else {
-    labelQty.innerText = "Jumlah Kuantitas Terjual Keluar (Pack / Porsi):";
-    groupDisc.style.display = "block";
-    rowSub.style.display = "flex";
-    rowDisc.style.display = "flex";
+    // KONDISI PENJUALAN KELUAR: Kolom bundling muncul kembali
+    labelQty.innerText = "4. Jumlah Kuantitas Terjual Keluar (Pack / Porsi):";
+    if (groupPack) groupPack.style.display = "block";
+    if (groupDisc) groupDisc.style.display = "block";
     
+    if (rowPrice) rowPrice.style.display = "flex";
+    if (rowSub) rowSub.style.display = "flex";
+    if (rowDisc) rowDisc.style.display = "flex";
+    
+    const totalPcs = selectedPack.pcsPerPack * qty;
+    const subtotal = selectedPack.pricePerPack * qty;
+    
+    document.getElementById('prePackPrice').innerText = formatRupiah(selectedPack.pricePerPack);
     document.getElementById('preSubtotal').innerText = formatRupiah(subtotal);
     document.getElementById('preDiscount').innerText = "-" + formatRupiah(discount);
     document.getElementById('prePcsCut').innerText = `-${totalPcs} Pcs (Berkurang dari Freezer)`;
@@ -330,7 +339,7 @@ function renderDashboard() {
         <td>${log.date}</td>
         <td><b>${log.product}</b><br><small style="color:var(--muted)">${log.packLabel}</small></td>
         <td>${typeBadge}</td>
-        <td>${log.qtyPack} Pack</td>
+        <td>${log.qtyPack}</td>
         <td>${log.totalPcs} Pcs</td>
         <td><b>${log.type === "JUAL" ? formatRupiah(log.finalNominal) : "-"}</b></td>
       </tr>`;
@@ -345,35 +354,36 @@ function submitTransaction() {
   const product = document.getElementById('prodSelect').value;
   const packIndex = parseInt(document.getElementById('packSelect').value) || 0;
   const type = document.getElementById('actionType').value;
-  const qtyPack = parseInt(document.getElementById('txQty').value) || 0;
+  const qtyInput = parseInt(document.getElementById('txQty').value) || 0;
   const discount = parseInt(document.getElementById('txDiscount').value) || 0;
 
-  if(qtyPack <= 0) { alert("Jumlah kuantitas tidak boleh kosong!"); return; }
-
-  const selectedPack = packageMaster[product][packIndex];
-  const totalPcs = selectedPack.pcsPerPack * qtyPack;
+  if(qtyInput <= 0) { alert("Jumlah kuantitas tidak boleh kosong!"); return; }
 
   if(type === "JUAL") {
+    const selectedPack = packageMaster[product][packIndex];
+    const totalPcs = selectedPack.pcsPerPack * qtyInput;
+    
     if(inventory[product] < totalPcs) {
       alert(`Transaksi Ditolak! Stok ${product} tidak mencukupi. Sisa stok saat ini hanya ${inventory[product]} pcs.`);
       return;
     }
     inventory[product] -= totalPcs;
-    let subtotal = selectedPack.pricePerPack * qtyPack;
+    let subtotal = selectedPack.pricePerPack * qtyInput;
     let finalNominal = Math.max(0, subtotal - discount);
     
     logs.unshift({
-      date: new Date().toLocaleString('id-ID'), product, packLabel: selectedPack.label, type, qtyPack, totalPcs, discount, finalNominal
+      date: new Date().toLocaleString('id-ID'), product, packLabel: selectedPack.label, type, qtyPack: qtyInput + " Pack", totalPcs, discount, finalNominal
     });
   } else {
-    inventory[product] += totalPcs;
+    // JIKA MASUK: Langsung hitung sebagai bijian pcs
+    inventory[product] += qtyInput;
     logs.unshift({
-      date: new Date().toLocaleString('id-ID'), product, packLabel: selectedPack.label, type, qtyPack, totalPcs, discount: 0, finalNominal: 0
+      date: new Date().toLocaleString('id-ID'), product, packLabel: "Restock Gudang (Biji)", type, qtyPack: "-", totalPcs: qtyInput, discount: 0, finalNominal: 0
     });
   }
 
-  localStorage.setItem('mantul_stock_pcs_v7', JSON.stringify(inventory));
-  localStorage.setItem('mantul_logs_pcs_v7', JSON.stringify(logs));
+  localStorage.setItem('mantul_stock_pcs_v8', JSON.stringify(inventory));
+  localStorage.setItem('mantul_logs_pcs_v8', JSON.stringify(logs));
   
   renderDashboard();
   document.getElementById('txQty').value = "1";
@@ -383,7 +393,7 @@ function submitTransaction() {
 
 function resetSystemData() {
   if(confirm("Kosongkan seluruh riwayat penjualan dan stok gudang?")) {
-    localStorage.removeItem('mantul_stock_pcs_v7'); localStorage.removeItem('mantul_logs_pcs_v7');
+    localStorage.removeItem('mantul_stock_pcs_v8'); localStorage.removeItem('mantul_logs_pcs_v8');
     inventory = { "Dimsum Premium": 0, "Gyoza Premium": 0, "Wonton Udang Premium": 0, "Lumpia Kulit Tahu Ayam": 0, "Lumpia Kulit Tahu Udang": 0, "Steam Ceker Lada Hitam": 0, "Bakpao Karakter Premium": 0 };
     logs = []; 
     renderDashboard(); 
