@@ -225,6 +225,7 @@ function renderDashboard() {
   });
   document.getElementById('sumRevenue').innerText = formatRupiah(totalRevenue); document.getElementById('sumSold').innerText = totalVolume + " Vol/Item"; document.getElementById('sumDiscount').innerText = formatRupiah(totalDiscount);
   document.getElementById('profGross').innerText = formatRupiah(totalGross); document.getElementById('profCogs').innerText = formatRupiah(totalCogs); document.getElementById('profNet').innerText = formatRupiah(totalNet);
+checkStockAlerts();
 }
 
 function submitTransaction() {
@@ -268,6 +269,39 @@ function resetSystemData() {
     inventory = { "Dimsum Premium": 0, "Gyoza Premium": 0, "Wonton Udang Premium": 0, "Lumpia Kulit Tahu Ayam": 0, "Lumpia Kulit Tahu Udang": 0, "Steam Ceker Lada Hitam": 0, "Bakpao Karakter Premium": 0 };
     logs = []; saveToCloud(); alert("Database cloud dikosongkan.");
   } else { alert("❌ Kunci salah! Reset digagalkan."); }
+}
+
+// MODUL PATCH #1: SMART STOCK ALERT
+const STOCK_THRESHOLDS = { 
+  "Dimsum Premium": 20, "Gyoza Premium": 20, "Wonton Udang Premium": 10, 
+  "Lumpia Kulit Tahu Ayam": 10, "Lumpia Kulit Tahu Udang": 10, 
+  "Steam Ceker Lada Hitam": 5, "Bakpao Karakter Premium": 3 
+};
+
+function checkStockAlerts() {
+  let warnings = [];
+  for (let item in inventory) {
+    if (STOCK_THRESHOLDS[item] && inventory[item] <= STOCK_THRESHOLDS[item]) {
+      warnings.push(`⚠️ Stok ${item} menipis! Sisa: ${inventory[item]}`);
+    }
+  }
+  if (warnings.length > 0) {
+    // Menampilkan peringatan di dashboard
+    const alertBox = document.createElement('div');
+    alertBox.style.background = "#ff4d4d";
+    alertBox.style.color = "white";
+    alertBox.style.padding = "10px";
+    alertBox.style.margin = "10px 0";
+    alertBox.style.borderRadius = "8px";
+    alertBox.innerHTML = "<strong>PERINGATAN STOK:</strong><br>" + warnings.join("<br>");
+    
+    // Menyisipkan alert sebelum tabel stok
+    const target = document.getElementById('stockTableBody').parentNode.parentNode;
+    target.insertBefore(alertBox, target.firstChild);
+    
+    // Menghapus alert setelah 10 detik agar tidak mengganggu
+    setTimeout(() => alertBox.remove(), 10000);
+  }
 }
 
 window.onload = function() { updatePackageOptions(); loadFromCloud(); };
