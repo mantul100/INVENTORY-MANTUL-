@@ -160,7 +160,7 @@ function saveToCloud() {
   fetch(CLOUD_URL, {
     method: "POST",
     mode: "no-cors",
-    body: JSON.stringify({ type: 'SALE', inventory: inventory, logs: logs }).then(() => {
+    body: JSON.stringify({ inventory, logs }).then(() => {
     renderDashboard(); syncFormAndPreview(); hideLoading();
   }).catch(err => { alert("Gagal sinkronisasi data ke cloud!"); hideLoading(); });
 }
