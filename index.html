@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN - Hybrid Ledger System v4.1</title>
+<title>MANTUL KITCHEN - Hybrid Ledger System v4.2</title>
 <style>
 :root {
   --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; 
@@ -60,7 +60,7 @@ body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 .btn-gold:hover { transform: scale(1.01); background: #e5bd42; }
 .btn-excel { background: #1D7344; color: #fff; margin-top: 15px; }
 .btn-excel:hover { background: #155833; }
-.btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 12px; padding: 10px; font-size: 0.85rem; }
+.btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 25px; padding: 10px; font-size: 0.85rem; }
 .btn-danger:hover { background: rgba(255, 77, 77, 0.1); }
 
 .table-wrapper { overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border); }
@@ -78,7 +78,7 @@ tr:hover { background: rgba(255,255,255,0.01); }
 <div class="container">
   <div class="header">
     <h1>MANTUL KITCHEN LEDGER</h1>
-    <p>Hybrid Advanced Architecture - Pure Pack Optimization (v4.1)</p>
+    <p>Hybrid Advanced Architecture - Safety Lock Edition (v4.2)</p>
   </div>
 
   <div class="summary-grid">
@@ -163,7 +163,9 @@ tr:hover { background: rgba(255,255,255,0.01); }
       </div>
 
       <button class="btn btn-gold" onclick="submitTransaction()">Catat ke Data Base 💾</button>
-      <button class="btn btn-danger" onclick="resetSystemData()">Reset Semua Data Master</button>
+      
+      <!-- TOMBOL RESET SUDAH DIBERI PENGAMAN KETAT -->
+      <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset / Kosongkan Data Master</button>
     </div>
 
     <div class="box">
@@ -187,7 +189,7 @@ tr:hover { background: rgba(255,255,255,0.01); }
         <table>
           <thead>
             <tr>
-              <th>Waktu Log</th>
+              <th>Waktu Log & Hari</th>
               <th>Nama Produk</th>
               <th>Aktivitas</th>
               <th>Qty Input</th>
@@ -230,32 +232,34 @@ const packageMaster = {
     { label: "Pack isi 3 (Rp15.000)", pcsPerPack: 1, pricePerPack: 15000 }
   ],
   "Bakpao Karakter Premium": [
-    { label: "Pack isi 6 (Rp25.000)", pcsPerPack: 1, pricePerPack: 25000 } // Kunci rasio 1 karena murni Pack
+    { label: "Pack isi 6 (Rp25.000)", pcsPerPack: 1, pricePerPack: 25000 }
   ]
 };
 
-// DATABASE V13: CEKER & BAKPAO RESMI DIKUNCI DI SATUAN PACK UTUH
-let inventory = JSON.parse(localStorage.getItem('mantul_stock_v13')) || {
-  "Dimsum Premium": 160, 
-  "Gyoza Premium": 85, 
-  "Wonton Udang Premium": 30,
-  "Lumpia Kulit Tahu Ayam": 45, 
-  "Lumpia Kulit Tahu Udang": 40,
-  "Steam Ceker Lada Hitam": 6,   // 6 Pack
-  "Bakpao Karakter Premium": 0   // 0 Pack Awal
+// DATABASE V14: SINKRONISASI PENGAMAN BARU
+let inventory = JSON.parse(localStorage.getItem('mantul_stock_v14')) || {
+  "Dimsum Premium": 160, "Gyoza Premium": 85, "Wonton Udang Premium": 30,
+  "Lumpia Kulit Tahu Ayam": 45, "Lumpia Kulit Tahu Udang": 40,
+  "Steam Ceker Lada Hitam": 6, "Bakpao Karakter Premium": 0
 };
 
-let logs = JSON.parse(localStorage.getItem('mantul_logs_v13')) || [
-  { date: "15/07/2026, 10:25:00", product: "Wonton Udang Premium", type: "JUAL", qtyInput: 4, detail: "4 Pack (isi 5)", impactStock: "-20 Pcs", finalNominal: 100000 },
-  { date: "15/07/2026, 10:17:00", product: "Dimsum Premium", type: "JUAL", qtyInput: 3, detail: "3 Pack (isi 5)", impactStock: "-15 Pcs", finalNominal: 52500 },
-  { date: "15/07/2026, 10:11:00", product: "Gyoza Premium", type: "JUAL", qtyInput: 3, detail: "3 Pack (isi 5)", impactStock: "-15 Pcs", finalNominal: 52500 },
-  { date: "15/07/2026, 10:05:00", product: "Lumpia Kulit Tahu Udang", type: "JUAL", qtyInput: 2, detail: "2 Pack (isi 5)", impactStock: "-10 Pcs", finalNominal: 50000 },
-  { date: "15/07/2026, 10:03:00", product: "Steam Ceker Lada Hitam", type: "JUAL", qtyInput: 2, detail: "Murni Keluar Pack", impactStock: "-2 Pack", finalNominal: 30000 },
-  { date: "15/07/2026, 10:01:00", product: "Lumpia Kulit Tahu Ayam", type: "JUAL", qtyInput: 1, detail: "1 Pack (isi 5)", impactStock: "-5 Pcs", finalNominal: 25000 }
+let logs = JSON.parse(localStorage.getItem('mantul_logs_v14')) || [
+  { date: "Rabu, 15 Juli 2026 10:25", product: "Wonton Udang Premium", type: "JUAL", qtyInput: 4, detail: "4 Pack (isi 5)", impactStock: "-20 Pcs", finalNominal: 100000 },
+  { date: "Rabu, 15 Juli 2026 10:17", product: "Dimsum Premium", type: "JUAL", qtyInput: 3, detail: "3 Pack (isi 5)", impactStock: "-15 Pcs", finalNominal: 52500 },
+  { date: "Rabu, 15 Juli 2026 10:11", product: "Gyoza Premium", type: "JUAL", qtyInput: 3, detail: "3 Pack (isi 5)", impactStock: "-15 Pcs", finalNominal: 52500 },
+  { date: "Rabu, 15 Juli 2026 10:05", product: "Lumpia Kulit Tahu Udang", type: "JUAL", qtyInput: 2, detail: "2 Pack (isi 5)", impactStock: "-10 Pcs", finalNominal: 50000 },
+  { date: "Rabu, 15 Juli 2026 10:03", product: "Steam Ceker Lada Hitam", type: "JUAL", qtyInput: 2, detail: "Murni Keluar Pack", impactStock: "-2 Pack", finalNominal: 30000 },
+  { date: "Rabu, 15 Juli 2026 10:01", product: "Lumpia Kulit Tahu Ayam", type: "JUAL", qtyInput: 1, detail: "1 Pack (isi 5)", impactStock: "-5 Pcs", finalNominal: 25000 }
 ];
 
 function formatRupiah(num) {
   return "Rp " + Math.round(num).toLocaleString('id-ID');
+}
+
+// GENERATOR WAKTU STRUKTUR INDONESIA LENGKAP DENGAN NAMA HARI
+function generateFormattedDate() {
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+  return new Date().toLocaleDateString('id-ID', options).replace('pukul', '-');
 }
 
 function updatePackageOptions() {
@@ -264,7 +268,6 @@ function updatePackageOptions() {
   const groupPack = document.getElementById('packageFormGroup');
   const packSelect = document.getElementById('packSelect');
 
-  // HILANGKAN DROPDOWN JIKA SEDANG INPUT BARANG MASUK ATAU PRODUK MURNI PACK (CEKER & BAKPAO)
   if (type === "MASUK" || product === "Steam Ceker Lada Hitam" || product === "Bakpao Karakter Premium") {
     if (groupPack) groupPack.style.display = "none";
     return;
@@ -365,7 +368,7 @@ function renderDashboard() {
     let typeBadge = log.type === "JUAL" ? `<span class="badge-out">KELUAR (JUAL)</span>` : `<span class="badge-in">MASUK</span>`;
     logBody.innerHTML += `
       <tr>
-        <td>${log.date}</td>
+        <td><small>${log.date}</small></td>
         <td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td>
         <td>${typeBadge}</td>
         <td>${log.qtyInput}</td>
@@ -387,9 +390,7 @@ function submitTransaction() {
 
   if(qtyInput <= 0) { alert("Jumlah kuantitas tidak boleh kosong!"); return; }
 
-  let detail = "";
-  let impactStock = "";
-  let finalNominal = 0;
+  let detail = ""; let impactStock = ""; let finalNominal = 0;
   const isPurePack = (product === "Steam Ceker Lada Hitam" || product === "Bakpao Karakter Premium");
   const unitName = isPurePack ? "Pack" : "Pcs";
 
@@ -399,15 +400,12 @@ function submitTransaction() {
     impactStock = `+${qtyInput} ${unitName}`;
   } 
   else {
-    let subtotal = 0;
-    let finalDeduct = 0;
+    let subtotal = 0; let finalDeduct = 0;
 
     if (isPurePack) {
       let packPrice = (product === "Steam Ceker Lada Hitam") ? 15000 : 25000;
-      subtotal = qtyInput * packPrice;
-      finalDeduct = qtyInput;
-      detail = "Murni Jual Pack";
-      impactStock = `-${qtyInput} Pack`;
+      subtotal = qtyInput * packPrice; finalDeduct = qtyInput;
+      detail = "Murni Jual Pack"; impactStock = `-${qtyInput} Pack`;
     } 
     else {
       const packIndex = parseInt(document.getElementById('packSelect').value) || 0;
@@ -419,20 +417,18 @@ function submitTransaction() {
     }
 
     if(inventory[product] < finalDeduct) {
-      alert(`Transaksi Ditolak! Stok ${product} di freezer tidak mencukupi.`);
-      return;
+      alert(`Transaksi Ditolak! Stok ${product} di freezer tidak mencukupi.`); return;
     }
-
     inventory[product] -= finalDeduct;
     finalNominal = Math.max(0, subtotal - discount);
   }
 
   logs.unshift({
-    date: new Date().toLocaleString('id-ID'), product, type, qtyInput, detail, impactStock, discount, finalNominal
+    date: generateFormattedDate(), product, type, qtyInput, detail, impactStock, discount, finalNominal
   });
 
-  localStorage.setItem('mantul_stock_v13', JSON.stringify(inventory));
-  localStorage.setItem('mantul_logs_v13', JSON.stringify(logs));
+  localStorage.setItem('mantul_stock_v14', JSON.stringify(inventory));
+  localStorage.setItem('mantul_logs_v14', JSON.stringify(logs));
   
   renderDashboard();
   document.getElementById('txQty').value = "1";
@@ -464,11 +460,20 @@ function exportToExcel() {
   document.body.removeChild(link);
 }
 
+// 🔐 FITUR BARU: SISTEM KUNCI PENGAMAN PIN / KATA KUNCI ANTI KEPENCET
 function resetSystemData() {
-  if(confirm("Kosongkan seluruh database?")) {
-    localStorage.removeItem('mantul_stock_v13'); localStorage.removeItem('mantul_logs_v13');
+  let kunciRahasia = prompt("⚠️ PERINGATAN KERAS!\nTindakan ini akan menghapus TOTAL seluruh isi stok freezer dan riwayat keuangan.\n\nUntuk melanjutkan, ketik kata kunci di bawah ini (Huruf Besar Semua):\nKONFIRMASI HAPUS MANTUL");
+  
+  if(kunciRahasia === "8888") {
+    localStorage.removeItem('mantul_stock_v14'); 
+    localStorage.removeItem('mantul_logs_v14');
     inventory = { "Dimsum Premium": 0, "Gyoza Premium": 0, "Wonton Udang Premium": 0, "Lumpia Kulit Tahu Ayam": 0, "Lumpia Kulit Tahu Udang": 0, "Steam Ceker Lada Hitam": 0, "Bakpao Karakter Premium": 0 };
-    logs = []; renderDashboard(); syncFormAndPreview();
+    logs = []; 
+    renderDashboard(); 
+    syncFormAndPreview();
+    alert("Database berhasil dikosongkan.");
+  } else {
+    alert("❌ Kunci salah! Reset digagalkan. Data kas & stok Anda aman terlindungi.");
   }
 }
 
