@@ -120,7 +120,7 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
   </div>
 </div>
 <script>
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwu79toR75kpy6mjX_usiKxehCnX1XZhZ_OgU4-ewL5XBUDhK_UynuGg3fAjq-T3gAe/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzzZUgQoIrN6f0-HodkkH36b6SIyGWZ549Ys0u6jEcFruP-RwVdoAzgehcAYucAV8-T/exec";
 
 const cogsMaster = { "Dimsum Premium": 2200, "Gyoza Premium": 2200, "Wonton Udang Premium": 3500, "Lumpia Kulit Tahu Ayam": 3600, "Lumpia Kulit Tahu Udang": 4000, "Steam Ceker Lada Hitam": 9000, "Bakpao Karakter Premium": 14000 };
 const packageMaster = {
@@ -160,8 +160,7 @@ function saveToCloud() {
   fetch(CLOUD_URL, {
     method: "POST",
     mode: "no-cors",
-    body: JSON.stringify({ inventory, logs })
-  }).then(() => {
+    body: JSON.stringify({ type: 'SALE', inventory: inventory, logs: logs }).then(() => {
     renderDashboard(); syncFormAndPreview(); hideLoading();
   }).catch(err => { alert("Gagal sinkronisasi data ke cloud!"); hideLoading(); });
 }
