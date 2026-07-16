@@ -104,7 +104,8 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
           
           <button class="btn btn-gold" onclick="submitTransaction()">Catat ke Database 💾</button>
           <button class="btn btn-undo" onclick="undoLastTransaction()">↩️ Undo Transaksi Terakhir</button>
-          <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>
+          <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>\
+          <button onclick="addMenuModal()">Tambah Menu Baru ➕</button>
         </div>
 
         <!-- KALKULATOR INTEGRASI -->
@@ -164,80 +165,45 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 // --- CONFIG DATA BARU ---
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzI6-_z0LtWs6hC9M0oSak_DdYLtTHBAQqZsQV4CIYAbCmMeW_t3y8yLULYiQZuDiav/exec";
 
-// HPP MASTER TERBARU
-const cogsMaster = { 
-    "Dimsum Premium": 2200, 
-    "Dimsum Jumbo": 2500, // HPP Dimsum Jumbo 35gr
-    "Dimsum Goreng Lumer": 2500, // HPP Dimsum Goreng Jumbo Lumer
-    "Gyoza Premium": 2200, 
-    "Wonton Udang Premium": 3500, 
-    "Lumpia Kulit Tahu Ayam": 3600, 
-    "Lumpia Kulit Tahu Udang": 4000, 
-    "Steam Ceker Lada Hitam": 9000, 
-    "Bakpao Karakter Premium": 14000 
-};
+// Hapus const cogsMaster & packageMaster lama
+let cogsMaster = {}; 
+let packageMaster = {};
 
-// VARIAN HARGA JUAL TERBARU
-const packageMaster = {
-  "Dimsum Premium": [
-      { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, 
-      { label: "Pack isi 10 (Rp35.000)", pcsPerPack: 10, pricePerPack: 35000 } // Update harga 10pcs
-  ],
-  "Dimsum Jumbo": [
-      { label: "Pack isi 16 (Rp60.000)", pcsPerPack: 16, pricePerPack: 60000 } // Menu Baru
-  ],
-  "Dimsum Goreng Lumer": [
-      { label: "Pack isi 3 (Rp25.000)", pcsPerPack: 3, pricePerPack: 25000 } // Menu Baru
-  ],
-  "Gyoza Premium": [
-      { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, 
-      { label: "Pack isi 10 (Rp33.000)", pcsPerPack: 10, pricePerPack: 33000 }, 
-      { label: "Pack isi 20 (Rp65.000)", pcsPerPack: 20, pricePerPack: 65000 }
-  ],
-  "Wonton Udang Premium": [{ label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }, { label: "Pack isi 10 (Rp50.000)", pcsPerPack: 10, pricePerPack: 50000 }],
-  "Lumpia Kulit Tahu Ayam": [{ label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }],
-  "Lumpia Kulit Tahu Udang": [{ label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }],
-  "Steam Ceker Lada Hitam": [{ label: "Pack", pcsPerPack: 1, pricePerPack: 15000 }],
-  "Bakpao Karakter Premium": [{ label: "Pack", pcsPerPack: 1, pricePerPack: 25000 }]
-};
-
-// DATABASE GUDANG (INVENTORY)
-let inventory = { 
-    "Dimsum Premium": 160, 
-    "Dimsum Jumbo": 0, 
-    "Dimsum Goreng Lumer": 0, 
-    "Gyoza Premium": 85, 
-    "Wonton Udang Premium": 30, 
-    "Lumpia Kulit Tahu Ayam": 45, 
-    "Lumpia Kulit Tahu Udang": 40, 
-    "Steam Ceker Lada Hitam": 6, 
-    "Bakpao Karakter Premium": 0 
-};
-let logs = [];
-let salesChartInstance = null;
-
-// --- UTILS ---
-function formatRupiah(num) { return "Rp " + Math.round(num).toLocaleString('id-ID'); }
-function generateFormattedDate() { return new Date().toLocaleString('id-ID'); }
-function showLoading(txt) { const el = document.getElementById('syncIndicator'); el.innerText = txt; el.style.display = "block"; }
-function hideLoading() { document.getElementById('syncIndicator').style.display = "none"; }
-function switchTab(t) {
-  document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById(t === 'dashboard' ? 'tabDashboard' : 'tabProfit').classList.add('active');
-  document.getElementById(t === 'dashboard' ? 'btnTabDashboard' : 'btnTabProfit').classList.add('active');
-}
-
-// --- CLOUD ENGINE ---
+// Tambahkan Fungsi Load Config
 function loadFromCloud() {
   showLoading("🔄 Menyelaraskan Data...");
   fetch(CLOUD_URL).then(res => res.json()).then(data => {
-    if (data.inventory) { 
-        // Menggabungkan data cloud agar menu baru tidak hilang jika belum ada di cloud
-        inventory = { ...inventory, ...data.inventory }; 
-        logs = data.logs; 
-    }
+    // Masukkan data config dari Google Sheet ke sistem
+    data.config.forEach(item => {
+        cogsMaster[item.name] = item.hpp;
+        packageMaster[item.name] = item.variants;
+    });
+    
+    if (data.inventory) { inventory = data.inventory; logs = data.logs; }
+    
+    // Update Select Box Produk
+    const prodSelect = document.getElementById('prodSelect');
+    prodSelect.innerHTML = "";
+    data.config.forEach(item => {
+        prodSelect.innerHTML += `<option value="${item.name}">${item.name}</option>`;
+    });
+    
     updatePackageOptions(); renderDashboard(); hideLoading();
-  }).catch(() => { updatePackageOptions(); renderDashboard(); hideLoading(); });
+  });
+}
+
+// Tambahkan fungsi Tambah Menu
+function addMenuModal() {
+    let name = prompt("Nama Menu Baru:");
+    let hpp = prompt("Modal HPP per Pcs/Pack:");
+    let label = prompt("Contoh Label Paket (misal: Pack isi 5):");
+    let price = prompt("Harga Jual Paket:");
+    
+    if(name && hpp && label && price) {
+        let newMenu = { type: 'ADD_MENU', name: name, hpp: hpp, variants: [{label: label, pcsPerPack: 1, pricePerPack: price}] };
+        fetch(CLOUD_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(newMenu) })
+        .then(() => { alert("Menu tersimpan, refresh halaman!"); loadFromCloud(); });
+    }
 }
 
 function saveToCloud() {
