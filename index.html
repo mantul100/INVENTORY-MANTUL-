@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN - Ultimate Ledger v5.0 (Add Menu Manual)</title>
+<title>MANTUL KITCHEN - Ultimate Ledger v5.0 (Add + Hapus Menu)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08); }
@@ -52,11 +52,13 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 .variant-row input:nth-child(2) { flex: 1; }
 .variant-row input:nth-child(3) { flex: 1; }
 .variant-row button { background: var(--danger); color: white; border: none; border-radius: 4px; padding: 0 12px; cursor: pointer; }
+.btn-trash { background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; }
+.btn-trash:hover { color: #ff6666; }
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="header"><h1>MANTUL KITCHEN LEDGER v5.0</h1><p>Integrated POS, Inventory & Smart Kalkulator + Add Menu Manual</p></div>
+  <div class="header"><h1>MANTUL KITCHEN LEDGER v5.0</h1><p>Integrated POS, Inventory & Smart Kalkulator + Add / Hapus Menu</p></div>
   <div id="syncIndicator" class="loading-status">🔄 Sedang Menghubungkan ke Server Cloud...</div>
   
   <div class="tab-navigation">
@@ -156,7 +158,18 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
         <div class="box">
           <h2>📊 DATA STOK & PERINGATAN</h2>
           <div id="stockAlerts"></div>
-          <div class="table-wrapper"><table><thead><tr><th>Nama Produk</th><th>Sisa Stok</th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nama Produk</th>
+                  <th>Sisa Stok</th>
+                  <th style="text-align:center;">Aksi</th> <!-- KOLOM BARU UNTUK HAPUS -->
+                </tr>
+              </thead>
+              <tbody id="stockTableBody"></tbody>
+            </table>
+          </div>
         </div>
         <div class="box">
           <h2>📈 ANALISIS PENJUALAN</h2>
@@ -280,7 +293,6 @@ function loadProductCatalog() {
   // inisialisasi inventory dari productCatalog (tapi jangan timpa yang sudah ada)
   for (let key in productCatalog) {
     if (!(key in inventory)) {
-      // jika belum ada di inventory, set stok 0 (kecuali produk default yang sudah punya stok awal)
       inventory[key] = 0;
     }
   }
@@ -325,7 +337,6 @@ function populateProductDropdown() {
     opt.textContent = key;
     select.appendChild(opt);
   }
-  // pilih produk pertama jika ada
   if (select.options.length > 0) select.selectedIndex = 0;
 }
 
@@ -339,7 +350,7 @@ function toggleAddMenuForm() {
     document.getElementById('newProductStock').value = '0';
     variantRows = [];
     renderVariantRows();
-    addVariantRow(); // tambahkan satu baris default
+    addVariantRow();
   }
 }
 
@@ -387,7 +398,6 @@ function saveNewProduct() {
   if (productCatalog[name]) {
     if (!confirm(`Produk "${name}" sudah ada. Ingin mengganti data?`)) return;
   }
-  // simpan ke catalog
   productCatalog[name] = {
     cogs: cogs,
     variants: variantRows.map(v => ({ label: v.label.trim(), pcsPerPack: v.pcsPerPack, pricePerPack: v.pricePerPack }))
@@ -395,12 +405,42 @@ function saveNewProduct() {
   inventory[name] = stock;
   saveProductCatalog();
   saveToCloud();
-  // refresh UI
   populateProductDropdown();
   updatePackageOptions();
   renderDashboard();
   toggleAddMenuForm();
   alert(`Produk "${name}" berhasil ditambahkan!`);
+}
+
+// ============ FITUR HAPUS MENU (BARU) ============
+function deleteProduct(productName) {
+  if (!productName) return;
+  
+  // Cek apakah produk punya riwayat transaksi
+  const hasLog = logs.some(l => l.product === productName);
+  let warningMsg = `Yakin ingin menghapus menu "${productName}" dari katalog?\n\n`;
+  if (hasLog) {
+    warningMsg += `⚠️ Produk ini memiliki riwayat transaksi (${logs.filter(l => l.product === productName).length} transaksi).\n`;
+    warningMsg += `Data log akan tetap tersimpan di Jurnal sebagai arsip.\n\n`;
+  }
+  warningMsg += `Stok dan varian akan dihapus dari sistem aktif.`;
+  
+  if (!confirm(warningMsg)) return;
+  
+  // Hapus dari catalog dan inventory
+  delete productCatalog[productName];
+  delete inventory[productName];
+  
+  // Simpan ke LocalStorage & Cloud
+  saveProductCatalog();
+  saveToCloud();
+  
+  // Refresh UI
+  populateProductDropdown();
+  updatePackageOptions();
+  renderDashboard();
+  
+  alert(`✅ Menu "${productName}" berhasil dihapus.`);
 }
 
 // ============ FUNGSI UTAMA (dengan adaptasi productCatalog) ============
@@ -419,21 +459,17 @@ function loadFromCloud() {
   showLoading("🔄 Menyelaraskan Data...");
   fetch(CLOUD_URL).then(res => res.json()).then(data => {
     if (data.inventory) {
-      // gabungkan dengan inventory lokal (tapi jangan timpa produk baru yang belum di cloud)
       for (let key in data.inventory) {
         inventory[key] = data.inventory[key];
       }
     }
     if (data.logs) logs = data.logs;
     if (data.productCatalog) {
-      // timpa katalog dengan yang dari cloud (biar sinkron)
       productCatalog = data.productCatalog;
       saveProductCatalog();
     } else {
-      // jika cloud tidak kirim katalog, pakai lokal
       loadProductCatalog();
     }
-    // pastikan semua produk di catalog ada di inventory
     for (let key in productCatalog) {
       if (!(key in inventory)) inventory[key] = 0;
     }
@@ -464,7 +500,6 @@ function saveToCloud() {
   }).then(() => {
     renderDashboard();
     hideLoading();
-    // simpan lokal juga
     saveProductCatalog();
   });
 }
@@ -477,7 +512,6 @@ function updatePackageOptions() {
   const select = document.getElementById('packSelect');
 
   const variants = getVariants(prod);
-  // Tampilkan pilihan varian hanya jika bukan MASUK/TESTER dan varian ada lebih dari 1
   if (type === "MASUK" || type === "TESTER" || variants.length <= 1) {
     group.style.display = "none";
     return;
@@ -499,7 +533,7 @@ function syncFormAndPreview() {
   const qty = parseInt(document.getElementById('txQty').value) || 0;
   const disc = parseInt(document.getElementById('txDiscount').value) || 0;
   const variants = getVariants(prod);
-  const isPure = (variants.length === 1 && variants[0].pcsPerPack === 1); // produk yang hanya 1 pcs per pack (seperti ceker, bakpao)
+  const isPure = (variants.length === 1 && variants[0].pcsPerPack === 1);
   const unit = isPure ? "Pack" : "Pcs";
   const qtyLabel = document.getElementById('qtyLabel');
 
@@ -529,7 +563,6 @@ function syncFormAndPreview() {
 
   let subtotal = 0;
   if (isPure || variants.length === 0) {
-    // fallback: ambil harga dari varian pertama
     let price = variants.length > 0 ? variants[0].pricePerPack : 0;
     subtotal = qty * price;
     document.getElementById('prePackPrice').innerText = formatRupiah(price);
@@ -578,14 +611,23 @@ function runCalculator() {
 
 // ============ RENDER DASHBOARD ============
 function renderDashboard() {
-  // Tabel Stok
+  // Tabel Stok (ditambah kolom Aksi untuk hapus)
   const stockBody = document.getElementById('stockTableBody');
   stockBody.innerHTML = "";
   for (let item in inventory) {
     let unit = "Pcs";
     const variants = getVariants(item);
     if (variants.length === 1 && variants[0].pcsPerPack === 1) unit = "Pack";
-    stockBody.innerHTML += `<tr><td><b>${item}</b></td><td>${inventory[item] || 0} ${unit}</td></tr>`;
+    // Escape single quote untuk keamanan onclick
+    const safeItem = item.replace(/'/g, "\\'");
+    stockBody.innerHTML += `
+      <tr>
+        <td><b>${item}</b></td>
+        <td>${inventory[item] || 0} ${unit}</td>
+        <td style="text-align:center;">
+          <button class="btn-trash" onclick="deleteProduct('${safeItem}')" title="Hapus Menu dari Katalog">🗑️</button>
+        </td>
+      </tr>`;
   }
 
   // Audit & Rekap
@@ -654,7 +696,6 @@ function submitTransaction() {
     impact = `-${qty} ${unit}`;
     net = -cogs;
   } else {
-    // JUAL
     if (isPure || variants.length === 0) {
       let price = variants.length > 0 ? variants[0].pricePerPack : 0;
       gross = qty * price;
@@ -712,7 +753,6 @@ function undoLastTransaction() {
 
 function resetSystemData() {
   if (prompt("Ketik 8888 untuk HAPUS SEMUA DATA CLOUD:") === "8888") {
-    // reset inventory untuk semua produk di catalog
     for (let key in productCatalog) inventory[key] = 0;
     logs = [];
     saveToCloud();
@@ -735,10 +775,8 @@ function checkAlertsAndChart() {
   let alertBox = document.getElementById('stockAlerts');
   alertBox.innerHTML = "";
 
-  // Threshold berdasarkan produk (default 5)
   for (let item in inventory) {
     const stok = inventory[item] || 0;
-    // threshold: jika stok <= 5 atau 10% dari stok awal (jika stok awal > 0)
     let threshold = 5;
     if (item === "Dimsum Premium") threshold = 20;
     else if (item === "Dimsum Jumbo") threshold = 16;
@@ -749,14 +787,13 @@ function checkAlertsAndChart() {
     else if (item === "Lumpia Kulit Tahu Udang") threshold = 10;
     else if (item === "Steam Ceker Lada Hitam") threshold = 5;
     else if (item === "Bakpao Karakter Premium") threshold = 3;
-    else threshold = 5; // default
+    else threshold = 5;
 
     if (stok <= threshold) {
       alertBox.innerHTML += `<div class="alert-box">⚠️ Stok <b>${item}</b> menipis (Sisa: ${stok})</div>`;
     }
   }
 
-  // Dead stock (produk dengan stok >0 tapi tidak ada log penjualan)
   let salesCount = {};
   for (let item in inventory) salesCount[item] = 0;
   logs.forEach(l => {
@@ -768,7 +805,6 @@ function checkAlertsAndChart() {
     }
   }
 
-  // Chart
   const ctx = document.getElementById('salesChart').getContext('2d');
   if (salesChartInstance) salesChartInstance.destroy();
   const labels = Object.keys(salesCount);
@@ -797,7 +833,7 @@ window.onload = function() {
   populateProductDropdown();
   updatePackageOptions();
   renderDashboard();
-  loadFromCloud(); // sync dengan cloud (tapi tidak menimpa catalog lokal jika cloud tidak punya)
+  loadFromCloud();
 };
 </script>
 </body>
