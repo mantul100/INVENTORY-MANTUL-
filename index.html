@@ -86,7 +86,7 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
               <option value="TESTER">TESTER / PROMOSI (Pengurang Stok, Omset Rp0)</option>
             </select>
           </div>
-          <div class="form-group"><label id="qtyLabel">4. Kuantitas:</label><input type="number" id="txQty" value="1" min="1" oninput="syncFormAndPreview()"></div>
+          <div class="form-group"><label id="qtyLabel">4. Kuantitas Jual:</label><input type="number" id="txQty" value="1" min="1" oninput="syncFormAndPreview()"></div>
           <div class="form-group" id="discountFormGroup"><label>5. Diskon / Potongan (Rp):</label><input type="number" id="txDiscount" value="0" min="0" oninput="syncFormAndPreview()"></div>
           
           <div class="preview-box">
@@ -201,28 +201,54 @@ function saveToCloud() {
 
 // --- FORM UI & PREVIEW ---
 function updatePackageOptions() {
-  const prod = document.getElementById('prodSelect').value; const type = document.getElementById('actionType').value;
-  const group = document.getElementById('packageFormGroup'); const select = document.getElementById('packSelect');
-  if (type === "MASUK" || prod === "Steam Ceker Lada Hitam" || prod === "Bakpao Karakter Premium") { group.style.display = "none"; return; }
-  group.style.display = "block"; select.innerHTML = "";
+  const prod = document.getElementById('prodSelect').value; 
+  const type = document.getElementById('actionType').value;
+  const group = document.getElementById('packageFormGroup'); 
+  const select = document.getElementById('packSelect');
+  
+  if (type === "MASUK" || type === "TESTER" || prod === "Steam Ceker Lada Hitam" || prod === "Bakpao Karakter Premium") { 
+      group.style.display = "none"; 
+      return; 
+  }
+  
+  group.style.display = "block"; 
+  select.innerHTML = "";
   packageMaster[prod].forEach((p, i) => select.innerHTML += `<option value="${i}">${p.label}</option>`);
   runCalculator();
 }
 
 function syncFormAndPreview() {
-  const prod = document.getElementById('prodSelect').value; const type = document.getElementById('actionType').value;
-  const qty = parseInt(document.getElementById('txQty').value) || 0; const disc = parseInt(document.getElementById('txDiscount').value) || 0;
-  const isPure = (prod === "Steam Ceker Lada Hitam" || prod === "Bakpao Karakter Premium"); const unit = isPure ? "Pack" : "Pcs";
+  const prod = document.getElementById('prodSelect').value; 
+  const type = document.getElementById('actionType').value;
+  const qty = parseInt(document.getElementById('txQty').value) || 0; 
+  const disc = parseInt(document.getElementById('txDiscount').value) || 0;
+  const isPure = (prod === "Steam Ceker Lada Hitam" || prod === "Bakpao Karakter Premium"); 
+  const unit = isPure ? "Pack" : "Pcs";
+  const qtyLabel = document.getElementById('qtyLabel');
   
-  if (type === "MASUK") {
-    document.getElementById('discountFormGroup').style.display = "none";
-    document.getElementById('preSubtotalRow').style.display = "none"; document.getElementById('preDiscountRow').style.display = "none";
-    document.getElementById('preTotalLabel').innerText = "Status:"; document.getElementById('preTotalNominal').innerText = `+${qty} ${unit} Masuk`;
-    return;
+  if (type === "TESTER") {
+      qtyLabel.innerText = `4. Kuantitas Tester (${unit}):`;
+      document.getElementById('discountFormGroup').style.display = "none";
+      document.getElementById('preSubtotalRow').style.display = "none"; 
+      document.getElementById('preDiscountRow').style.display = "none";
+      document.getElementById('preSubtotal').innerText = "PROMOSI";
+      document.getElementById('preTotalLabel').innerText = "Total Omset:"; 
+      document.getElementById('preTotalNominal').innerText = "Rp 0";
+      return;
+  } else if (type === "MASUK") {
+      qtyLabel.innerText = `4. Kuantitas Masuk (${unit}):`;
+      document.getElementById('discountFormGroup').style.display = "none";
+      document.getElementById('preSubtotalRow').style.display = "none"; 
+      document.getElementById('preDiscountRow').style.display = "none";
+      document.getElementById('preTotalLabel').innerText = "Status:"; 
+      document.getElementById('preTotalNominal').innerText = `+${qty} ${unit} Masuk`;
+      return;
   }
   
+  qtyLabel.innerText = "4. Kuantitas Jual:";
   document.getElementById('discountFormGroup').style.display = "block";
-  document.getElementById('preSubtotalRow').style.display = "flex"; document.getElementById('preDiscountRow').style.display = "flex";
+  document.getElementById('preSubtotalRow').style.display = "flex"; 
+  document.getElementById('preDiscountRow').style.display = "flex";
   
   let subtotal = 0;
   if (isPure) {
@@ -230,17 +256,16 @@ function syncFormAndPreview() {
     subtotal = qty * price; document.getElementById('prePackPrice').innerText = formatRupiah(price);
   } else {
     let pack = packageMaster[prod][parseInt(document.getElementById('packSelect').value) || 0];
-    subtotal = pack.pricePerPack * qty; document.getElementById('prePackPrice').innerText = formatRupiah(pack.pricePerPack);
+    if(pack) {
+        subtotal = pack.pricePerPack * qty; document.getElementById('prePackPrice').innerText = formatRupiah(pack.pricePerPack);
+    }
   }
   
-  if (type === "TESTER") {
-      document.getElementById('preSubtotal').innerText = "PROMOSI";
-      document.getElementById('preTotalLabel').innerText = "Total Omset:"; document.getElementById('preTotalNominal').innerText = "Rp 0";
-  } else {
-      document.getElementById('preSubtotal').innerText = formatRupiah(subtotal);
-      document.getElementById('preDiscount').innerText = "-" + formatRupiah(disc);
-      document.getElementById('preTotalLabel').innerText = "Total Omset:"; document.getElementById('preTotalNominal').innerText = formatRupiah(Math.max(0, subtotal - disc));
-  }
+  document.getElementById('preSubtotal').innerText = formatRupiah(subtotal);
+  document.getElementById('preDiscount').innerText = "-" + formatRupiah(disc);
+  document.getElementById('preTotalLabel').innerText = "Total Omset:"; 
+  document.getElementById('preTotalNominal').innerText = formatRupiah(Math.max(0, subtotal - disc));
+  
   runCalculator();
 }
 
@@ -251,7 +276,7 @@ function runCalculator() {
     const isPure = (prod === "Steam Ceker Lada Hitam" || prod === "Bakpao Karakter Premium");
     
     let totalPcs = qty;
-    if(!isPure && document.getElementById('actionType').value !== "MASUK") {
+    if(!isPure && document.getElementById('actionType').value !== "MASUK" && document.getElementById('actionType').value !== "TESTER") {
         const packIdx = parseInt(document.getElementById('packSelect').value) || 0;
         if(packageMaster[prod][packIdx]) totalPcs = packageMaster[prod][packIdx].pcsPerPack * qty;
     }
@@ -273,7 +298,10 @@ function runCalculator() {
 function renderDashboard() {
   // 1. Render Tabel Stok
   const stockBody = document.getElementById('stockTableBody'); stockBody.innerHTML = "";
-  for(let item in inventory) { stockBody.innerHTML += `<tr><td><b>${item}</b></td><td>${inventory[item]}</td></tr>`; }
+  for(let item in inventory) { 
+      let unit = (item === "Steam Ceker Lada Hitam" || item === "Bakpao Karakter Premium") ? "Pack" : "Pcs";
+      stockBody.innerHTML += `<tr><td><b>${item}</b></td><td>${inventory[item]} ${unit}</td></tr>`; 
+  }
   
   // 2. Render Tabel Audit & Rekap
   let tRev=0, tVol=0, tDisc=0, tGross=0, tCogs=0, tNet=0;
@@ -282,7 +310,7 @@ function renderDashboard() {
   logs.forEach((log, i) => {
     let typeBadge = log.type === "JUAL" ? `<span class="badge-out">JUAL</span>` : log.type === "TESTER" ? `<span class="badge-tester">TESTER</span>` : `<span class="badge-in">MASUK</span>`;
     if(log.type === "JUAL") { tRev += log.finalNominal; tDisc += log.discount; tVol += log.qtyInput; tGross += log.grossPrice; tCogs += log.cogsTotal; tNet += log.netProfit; }
-    if(log.type === "TESTER") { tCogs += log.cogsTotal; tNet += log.netProfit; } // Tester berdampak pada COGS dan NetProfit (minus)
+    if(log.type === "TESTER") { tCogs += log.cogsTotal; tNet += log.netProfit; } 
     
     auditBody.innerHTML += `<tr>
       <td><small>${log.date}</small></td>
@@ -290,7 +318,7 @@ function renderDashboard() {
       <td>${typeBadge}</td>
       <td>${(log.type === "JUAL") ? formatRupiah(log.grossPrice) : (log.type==="TESTER"? "PROMOSI" : "-")}</td>
       <td>
-        ${log.type === "JUAL" ? `<input type="number" value="${log.discount}" onblur="updateManualDiscount(this, ${i})" style="width:75px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:5px;">` : "-"}
+        ${log.type === "JUAL" ? `<input type="number" value="${log.discount}" onblur="updateManualDiscount(this, ${i})" style="width:75px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:4px;">` : "-"}
       </td>
       <td><span style="color:var(--danger)">${(log.type === "JUAL" || log.type === "TESTER") ? formatRupiah(log.cogsTotal) : "-"}</span></td>
       <td><b style="${log.netProfit < 0 ? 'color:var(--danger)' : 'color:var(--success)'}">${(log.type === "JUAL" || log.type === "TESTER") ? formatRupiah(log.netProfit) : "-"}</b></td>
@@ -312,17 +340,20 @@ function updateManualDiscount(el, idx) {
 }
 
 function submitTransaction() {
-  const prod = document.getElementById('prodSelect').value; const type = document.getElementById('actionType').value;
-  const qty = parseInt(document.getElementById('txQty').value) || 0; const disc = parseInt(document.getElementById('txDiscount').value) || 0;
+  const prod = document.getElementById('prodSelect').value; 
+  const type = document.getElementById('actionType').value;
+  const qty = parseInt(document.getElementById('txQty').value) || 0; 
+  const disc = parseInt(document.getElementById('txDiscount').value) || 0;
   if(qty <= 0) return;
   
-  const isPure = (prod === "Steam Ceker Lada Hitam" || prod === "Bakpao Karakter Premium"); const unit = isPure ? "Pack" : "Pcs";
+  const isPure = (prod === "Steam Ceker Lada Hitam" || prod === "Bakpao Karakter Premium"); 
+  const unit = isPure ? "Pack" : "Pcs";
   let detail="", impact="", deduct=qty, gross=0, cogs=0, finalNom=0, net=0;
 
   if (type === "MASUK") { 
     inventory[prod] += qty; detail = "Restock Freezer"; impact = `+${qty} ${unit}`; 
   } else if (type === "TESTER") { 
-    if(inventory[prod] < qty) { alert("Stok kurang!"); return; }
+    if(inventory[prod] < qty) { alert("Stok tidak mencukupi untuk Tester!"); return; }
     inventory[prod] -= qty; cogs = qty * cogsMaster[prod]; detail = "Tester/Promosi"; impact = `-${qty} ${unit}`;
     net = -cogs; // Biaya promosi
   } else {
@@ -363,30 +394,27 @@ function exportToExcel() {
 
 // --- FITUR BARU: CHART & DEAD STOCK ---
 function checkAlertsAndChart() {
-  // 1. Dead Stock & Low Stock Alert
   let alertBox = document.getElementById('stockAlerts'); alertBox.innerHTML = "";
   const thresholds = { "Dimsum Premium": 20, "Gyoza Premium": 20, "Wonton Udang Premium": 10, "Lumpia Kulit Tahu Ayam": 10, "Lumpia Kulit Tahu Udang": 10, "Steam Ceker Lada Hitam": 5, "Bakpao Karakter Premium": 3 };
   
   let salesCount = {};
   for(let item in inventory) {
       if(inventory[item] <= thresholds[item]) alertBox.innerHTML += `<div class="alert-box">⚠️ Stok <b>${item}</b> menipis (Sisa: ${inventory[item]})</div>`;
-      salesCount[item] = 0; // Initialize for chart
+      salesCount[item] = 0; 
   }
   
   let stagnantCheck = {};
   logs.forEach(l => {
       if(l.type === "JUAL") salesCount[l.product] += l.qtyInput;
-      if(!stagnantCheck[l.product]) stagnantCheck[l.product] = l.date; // Record last movement
+      if(!stagnantCheck[l.product]) stagnantCheck[l.product] = l.date; 
   });
 
-  // Simple Dead Stock: If inventory > 0 but not in logs (or last log is old, though parsing string dates is tricky, we check existence)
   for(let item in inventory) {
       if(inventory[item] > 0 && !stagnantCheck[item]) {
           alertBox.innerHTML += `<div class="alert-box" style="border-color:#ff9800; color:#e68a00;">💤 <b>${item}</b> belum ada pergerakan (Dead Stock).</div>`;
       }
   }
 
-  // 2. Render Chart
   const ctx = document.getElementById('salesChart').getContext('2d');
   if (salesChartInstance) salesChartInstance.destroy();
   salesChartInstance = new Chart(ctx, {
