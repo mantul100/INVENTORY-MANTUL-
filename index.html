@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN - Ultimate Ledger v5.0 (Full CRUD Menu)</title>
+<title>MANTUL KITCHEN - Ultimate Ledger v5.0 (Full CRUD + Smart Filter)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08); }
@@ -56,11 +56,14 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 .btn-edit:hover { color: #fff5b0; }
 .btn-trash { background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; }
 .btn-trash:hover { color: #ff6666; }
+.sort-controls { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap; }
+.sort-controls label { color: var(--muted); font-size: 0.8rem; font-weight: bold; }
+.sort-controls select { background: var(--input); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; flex: 1; min-width: 180px; }
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="header"><h1>MANTUL KITCHEN LEDGER v5.0</h1><p>Integrated POS + Full CRUD Menu (Tambah / Edit / Hapus)</p></div>
+  <div class="header"><h1>MANTUL KITCHEN LEDGER v5.0</h1><p>Integrated POS + Full CRUD + Smart Filter (Abjad/Qty/Tanggal)</p></div>
   <div id="syncIndicator" class="loading-status">🔄 Sedang Menghubungkan ke Server Cloud...</div>
   
   <div class="tab-navigation">
@@ -124,14 +127,6 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
             <div class="form-group">
               <label>Stok Awal / Koreksi Stok (dalam Pcs untuk multi-pack, atau Pack untuk pure-pack):</label>
               <input type="number" id="newProductStock" value="0">
-           </div>
-            <div class="form-group">
-              <label>Biaya Packing Khusus (Rp) <small style="color:var(--muted);">(Kosongkan = pakai global)</small>:</label>
-              <input type="number" id="newProductPackCost" placeholder="800" value="0">
-            </div>
-            <div class="form-group">
-              <label>Biaya Operasional / Listrik Khusus (Rp) <small style="color:var(--muted);">(Kosongkan = pakai global)</small>:</label>
-                <input type="number" id="newProductOprCost" placeholder="1000" value="0">
             </div>
             <div class="form-group">
               <label>Varian Paket (Kemasan yang dijual):</label>
@@ -168,6 +163,20 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
         <div class="box">
           <h2>📊 DATA STOK & PERINGATAN</h2>
           <div id="stockAlerts"></div>
+          
+          <!-- ========== FITUR FILTER SORTING BARU ========== -->
+          <div class="sort-controls">
+            <label for="sortSelect">🔽 Urutkan berdasarkan:</label>
+            <select id="sortSelect" onchange="changeSortMode(this.value)">
+              <option value="az">A-Z (Nama)</option>
+              <option value="za">Z-A (Nama)</option>
+              <option value="qty_asc">Stok Terendah (Kritis)</option>
+              <option value="qty_desc">Stok Tertinggi</option>
+              <option value="date_desc">📅 Terbaru Dimodifikasi</option>
+              <option value="date_asc">📅 Terlama Dimodifikasi</option>
+            </select>
+          </div>
+
           <div class="table-wrapper">
             <table>
               <thead>
@@ -210,20 +219,22 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 // 1. KONFIGURASI
 // ============================================================
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzI6-_z0LtWs6hC9M0oSak_DdYLtTHBAQqZsQV4CIYAbCmMeW_t3y8yLULYiQZuDiav/exec"; // GANTI DENGAN URL DEPLOY ANDA
+let currentSortMode = 'az'; // Default sorting A-Z
 
 // ============================================================
-// 2. DATA DEFAULT (Inisialisasi Awal)
+// 2. DATA DEFAULT (Inisialisasi Awal + TIMESTAMP)
 // ============================================================
+const NOW = Date.now();
 const DEFAULT_PRODUCTS = {
-  "Dimsum Premium": { cogs: 2200, variants: [ { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, { label: "Pack isi 10 (Rp35.000)", pcsPerPack: 10, pricePerPack: 35000 } ] },
-  "Dimsum Jumbo": { cogs: 2500, variants: [ { label: "Pack isi 16 (Rp60.000)", pcsPerPack: 16, pricePerPack: 60000 } ] },
-  "Dimsum Goreng Lumer": { cogs: 2500, variants: [ { label: "Pack isi 3 (Rp25.000)", pcsPerPack: 3, pricePerPack: 25000 } ] },
-  "Gyoza Premium": { cogs: 2200, variants: [ { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, { label: "Pack isi 10 (Rp33.000)", pcsPerPack: 10, pricePerPack: 33000 }, { label: "Pack isi 20 (Rp65.000)", pcsPerPack: 20, pricePerPack: 65000 } ] },
-  "Wonton Udang Premium": { cogs: 3500, variants: [ { label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }, { label: "Pack isi 10 (Rp50.000)", pcsPerPack: 10, pricePerPack: 50000 } ] },
-  "Lumpia Kulit Tahu Ayam": { cogs: 3600, variants: [ { label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 } ] },
-  "Lumpia Kulit Tahu Udang": { cogs: 4000, variants: [ { label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 } ] },
-  "Steam Ceker Lada Hitam": { cogs: 9000, variants: [ { label: "Pack", pcsPerPack: 1, pricePerPack: 15000 } ] },
-  "Bakpao Karakter Premium": { cogs: 14000, variants: [ { label: "Pack", pcsPerPack: 1, pricePerPack: 25000 } ] }
+  "Dimsum Premium": { cogs: 2200, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, { label: "Pack isi 10 (Rp35.000)", pcsPerPack: 10, pricePerPack: 35000 } ] },
+  "Dimsum Jumbo": { cogs: 2500, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack isi 16 (Rp60.000)", pcsPerPack: 16, pricePerPack: 60000 } ] },
+  "Dimsum Goreng Lumer": { cogs: 2500, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack isi 3 (Rp25.000)", pcsPerPack: 3, pricePerPack: 25000 } ] },
+  "Gyoza Premium": { cogs: 2200, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, { label: "Pack isi 10 (Rp33.000)", pcsPerPack: 10, pricePerPack: 33000 }, { label: "Pack isi 20 (Rp65.000)", pcsPerPack: 20, pricePerPack: 65000 } ] },
+  "Wonton Udang Premium": { cogs: 3500, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }, { label: "Pack isi 10 (Rp50.000)", pcsPerPack: 10, pricePerPack: 50000 } ] },
+  "Lumpia Kulit Tahu Ayam": { cogs: 3600, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 } ] },
+  "Lumpia Kulit Tahu Udang": { cogs: 4000, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 } ] },
+  "Steam Ceker Lada Hitam": { cogs: 9000, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack", pcsPerPack: 1, pricePerPack: 15000 } ] },
+  "Bakpao Karakter Premium": { cogs: 14000, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack", pcsPerPack: 1, pricePerPack: 25000 } ] }
 };
 
 // ============================================================
@@ -234,7 +245,7 @@ let inventory = {};
 let logs = [];
 let salesChartInstance = null;
 let variantRows = [];
-let editingProductName = null; // null = mode tambah, string = mode edit
+let editingProductName = null;
 
 // ============================================================
 // 4. MANAJEMEN KATALOG & INVENTORY
@@ -258,10 +269,38 @@ function saveProductCatalog() { localStorage.setItem('productCatalog', JSON.stri
 function getCogs(name) { return productCatalog[name] ? productCatalog[name].cogs : 0; }
 function getVariants(name) { return productCatalog[name] ? productCatalog[name].variants : []; }
 
+// ========== FUNGSI SORTING CERDAS ==========
+function changeSortMode(mode) {
+  currentSortMode = mode;
+  renderDashboard(); // Render ulang tabel dengan sorting baru
+}
+
+function getSortedProductKeys() {
+  const keys = Object.keys(productCatalog);
+  switch(currentSortMode) {
+    case 'az':
+      return keys.sort((a, b) => a.localeCompare(b));
+    case 'za':
+      return keys.sort((a, b) => b.localeCompare(a));
+    case 'qty_asc':
+      return keys.sort((a, b) => (inventory[a] || 0) - (inventory[b] || 0));
+    case 'qty_desc':
+      return keys.sort((a, b) => (inventory[b] || 0) - (inventory[a] || 0));
+    case 'date_desc': // Terbaru dulu
+      return keys.sort((a, b) => (productCatalog[b].updatedAt || 0) - (productCatalog[a].updatedAt || 0));
+    case 'date_asc': // Terlama dulu
+      return keys.sort((a, b) => (productCatalog[a].updatedAt || 0) - (productCatalog[b].updatedAt || 0));
+    default:
+      return keys.sort((a, b) => a.localeCompare(b));
+  }
+}
+
 function populateProductDropdown() {
   const select = document.getElementById('prodSelect');
   select.innerHTML = '';
-  for (let key in productCatalog) {
+  // Dropdown selalu diurutkan secara alfabetis (A-Z) biar gampang dicari
+  const sortedKeys = Object.keys(productCatalog).sort((a, b) => a.localeCompare(b));
+  for (let key of sortedKeys) {
     const opt = document.createElement('option');
     opt.value = key;
     opt.textContent = key;
@@ -271,7 +310,7 @@ function populateProductDropdown() {
 }
 
 // ============================================================
-// 5. UI FORM (ADD / EDIT)
+// 5. UI FORM (ADD / EDIT) + TIMESTAMP
 // ============================================================
 function toggleAddMenuForm() {
   const form = document.getElementById('addMenuForm');
@@ -340,8 +379,6 @@ function editProduct(productName) {
   document.getElementById('newProductName').value = productName;
   document.getElementById('newProductCogs').value = prod.cogs;
   document.getElementById('newProductStock').value = inventory[productName] || 0;
-  document.getElementById('newProductPackCost').value = prod.packCost || 0;
-  document.getElementById('newProductOprCost').value = prod.oprCost || 0;
   variantRows = prod.variants.map(v => ({ ...v }));
   renderVariantRows();
   document.getElementById('addMenuForm').style.display = 'block';
@@ -349,7 +386,7 @@ function editProduct(productName) {
 }
 
 // ============================================================
-// 7. SIMPAN / UPDATE PRODUK
+// 7. SIMPAN / UPDATE PRODUK (DENGAN TIMESTAMP)
 // ============================================================
 function saveNewProduct() {
   const name = document.getElementById('newProductName').value.trim();
@@ -364,6 +401,8 @@ function saveNewProduct() {
     if (v.pcsPerPack <= 0 || v.pricePerPack <= 0) { alert('Isi Pcs/Pack dan Harga dengan benar!'); return; }
   }
 
+  const currentTime = Date.now();
+
   // ---- MODE EDIT ----
   if (editingProductName) {
     const oldName = editingProductName;
@@ -376,7 +415,14 @@ function saveNewProduct() {
       inventory[name] = inventory[oldName] || 0;
       delete inventory[oldName];
     }
-    productCatalog[name] = { cogs: cogs, variants: variantRows.map(v => ({ label: v.label.trim(), pcsPerPack: v.pcsPerPack, pricePerPack: v.pricePerPack })) };
+    // Update data, JANGAN ubah createdAt, tapi updatedAt diisi sekarang
+    const oldData = productCatalog[name] || {};
+    productCatalog[name] = {
+      cogs: cogs,
+      createdAt: oldData.createdAt || currentTime,
+      updatedAt: currentTime, // <-- UPDATE TIMESTAMP MODIFIKASI
+      variants: variantRows.map(v => ({ label: v.label.trim(), pcsPerPack: v.pcsPerPack, pricePerPack: v.pricePerPack }))
+    };
     inventory[name] = stock;
     editingProductName = null;
     document.getElementById('formTitle').innerText = '➕ Tambah Produk Baru';
@@ -392,11 +438,11 @@ function saveNewProduct() {
     if (!confirm(`Produk "${name}" sudah ada. Ingin mengganti data?`)) return;
   }
   productCatalog[name] = {
-  cogs: cogs,
-  packCost: parseInt(document.getElementById('newProductPackCost').value) || 0,
-  oprCost: parseInt(document.getElementById('newProductOprCost').value) || 0,
-  variants: variantRows.map(v => ({ label: v.label.trim(), pcsPerPack: v.pcsPerPack, pricePerPack: v.pricePerPack }))
-};
+    cogs: cogs,
+    createdAt: currentTime,
+    updatedAt: currentTime, // <-- TIMESTAMP SAAT DIBUAT
+    variants: variantRows.map(v => ({ label: v.label.trim(), pcsPerPack: v.pcsPerPack, pricePerPack: v.pricePerPack }))
+  };
   inventory[name] = stock;
   saveProductCatalog(); saveToCloud(); populateProductDropdown(); updatePackageOptions(); renderDashboard();
   document.getElementById('addMenuForm').style.display = 'none';
@@ -520,46 +566,37 @@ function runCalculator() {
   const qty = parseInt(document.getElementById('txQty').value) || 1;
   const variants = getVariants(prod);
   const isPure = (variants.length === 1 && variants[0].pcsPerPack === 1);
-  
-  // HITUNG TOTAL PCS (sesuai varian)
   let totalPcs = qty;
   if (!isPure && document.getElementById('actionType').value !== "MASUK" && document.getElementById('actionType').value !== "TESTER") {
     const packIdx = parseInt(document.getElementById('packSelect').value) || 0;
     const pack = variants[packIdx];
     if (pack) totalPcs = pack.pcsPerPack * qty;
   }
-
-  // 1. MODAL BAHAN BAKU
   const modalBahan = totalPcs * getCogs(prod);
-  
-  // 2. LOGIKA CERDAS PACKING & OPERASIONAL
-  // Ambil data khusus produk, jika 0 atau null, ambil dari input global
-  const prodData = productCatalog[prod] || {};
-  const packCost = (prodData.packCost > 0) ? prodData.packCost : (parseFloat(document.getElementById('calcPack').value) || 0);
-  const oprCost = (prodData.oprCost > 0) ? prodData.oprCost : (parseFloat(document.getElementById('calcOpr').value) || 0);
-  
+  const packing = parseFloat(document.getElementById('calcPack').value) || 0;
+  const opr = parseFloat(document.getElementById('calcOpr').value) || 0;
   const mgn = parseFloat(document.getElementById('calcMargin').value) || 0;
-  const totalModalRiil = modalBahan + packCost + oprCost;
-  
-  // 3. TAMPILKAN RINCIAN DI PREVIEW
+  const totalModalRiil = modalBahan + packing + opr;
   document.getElementById('calcTotalModal').innerText = formatRupiah(totalModalRiil);
-  
-  // Tampilkan rincian tambahan (opsional, biar jelas)
-  document.getElementById('calcPack').value = packCost; // opsional: update field global biar keliatan
-  document.getElementById('calcOpr').value = oprCost;
-
   let hargaJualRaw = totalModalRiil / (1 - (mgn / 100));
   let hargaJualBulat = Math.ceil(hargaJualRaw / 1000) * 1000;
   document.getElementById('calcIdealPrice').innerText = formatRupiah(hargaJualBulat);
 }
 
 // ============================================================
-// 11. RENDER DASHBOARD & CHART
+// 11. RENDER DASHBOARD (DENGAN SORTING)
 // ============================================================
 function renderDashboard() {
   const stockBody = document.getElementById('stockTableBody');
   stockBody.innerHTML = "";
-  for (let item in inventory) {
+  
+  // Gunakan fungsi sorting untuk mengurutkan tampilan tabel
+  const sortedKeys = getSortedProductKeys();
+  
+  for (let item of sortedKeys) {
+    // Jika produk tiba-tiba hilang dari inventory (misal error), skip
+    if (!(item in inventory)) continue;
+    
     let unit = "Pcs";
     const variants = getVariants(item);
     if (variants.length === 1 && variants[0].pcsPerPack === 1) unit = "Pack";
@@ -567,6 +604,7 @@ function renderDashboard() {
     stockBody.innerHTML += `<tr><td><b>${item}</b></td><td>${inventory[item] || 0} ${unit}</td><td style="text-align:center; white-space:nowrap;"><button class="btn-edit" onclick="editProduct('${safeItem}')" title="Edit Menu">✏️</button><button class="btn-trash" onclick="deleteProduct('${safeItem}')" title="Hapus Menu">🗑️</button></td></tr>`;
   }
 
+  // Rekap & Jurnal (tidak terpengaruh sorting)
   let tRev=0, tVol=0, tDisc=0, tGross=0, tCogs=0, tNet=0;
   const auditBody = document.getElementById('auditTableBody');
   auditBody.innerHTML = "";
@@ -623,7 +661,7 @@ function checkAlertsAndChart() {
 }
 
 // ============================================================
-// 12. TRANSAKSI (IN / OUT dengan Logika Pcs vs Pack)
+// 12. TRANSAKSI (IN / OUT)
 // ============================================================
 function submitTransaction() {
   const prod = document.getElementById('prodSelect').value;
@@ -637,7 +675,6 @@ function submitTransaction() {
   let detail = "", impact = "", deduct = qty, gross = 0, cogs = 0, finalNom = 0, net = 0;
 
   if (type === "MASUK") {
-    // IN: Langsung tambah stok (dalam Pcs untuk multi, Pack untuk pure)
     inventory[prod] = (inventory[prod] || 0) + qty;
     detail = "Restock Freezer";
     impact = `+${qty} ${unit}`;
@@ -649,7 +686,6 @@ function submitTransaction() {
     impact = `-${qty} ${unit}`;
     net = -cogs;
   } else {
-    // OUT (JUAL): Gunakan varian untuk konversi ke Pcs
     if (isPure || variants.length === 0) {
       let price = variants.length > 0 ? variants[0].pricePerPack : 0;
       gross = qty * price;
@@ -663,7 +699,7 @@ function submitTransaction() {
       const pack = variants[packIdx];
       if (!pack) return;
       gross = pack.pricePerPack * qty;
-      deduct = pack.pcsPerPack * qty; // <<< KONVERSI AJAIB KE PCS
+      deduct = pack.pcsPerPack * qty;
       cogs = deduct * getCogs(prod);
       detail = `${qty} x [${pack.label}]`;
       impact = `-${deduct} Pcs`;
