@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN - Ultimate Ledger v5.0</title>
+<title>MANTUL KITCHEN - Ultimate Ledger v5.0 (Updated Menu)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08); }
@@ -47,7 +47,7 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 </head>
 <body>
 <div class="container">
-  <div class="header"><h1>MANTUL KITCHEN LEDGER v5.0</h1><p>Integrated POS, Inventory & Smart Kalkulator</p></div>
+  <div class="header"><h1>MANTUL KITCHEN LEDGER v5.0</h1><p>Integrated POS, Inventory & Smart Kalkulator (Update Menu Baru)</p></div>
   <div id="syncIndicator" class="loading-status">🔄 Sedang Menghubungkan ke Server Cloud...</div>
   
   <div class="tab-navigation">
@@ -71,9 +71,14 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
           <div class="form-group">
             <label>1. Pilih Produk:</label>
             <select id="prodSelect" onchange="updatePackageOptions(); syncFormAndPreview();">
-              <option value="Dimsum Premium">Dimsum Premium</option><option value="Gyoza Premium">Gyoza Premium</option>
-              <option value="Wonton Udang Premium">Wonton Udang Premium</option><option value="Lumpia Kulit Tahu Ayam">Lumpia Kulit Tahu Ayam</option>
-              <option value="Lumpia Kulit Tahu Udang">Lumpia Kulit Tahu Udang</option><option value="Steam Ceker Lada Hitam">Steam Ceker Lada Hitam</option>
+              <option value="Dimsum Premium">Dimsum Premium (25gr)</option>
+              <option value="Dimsum Jumbo">Dimsum Jumbo (35gr)</option>
+              <option value="Dimsum Goreng Lumer">Dimsum Goreng Jumbo Lumer</option>
+              <option value="Gyoza Premium">Gyoza Premium</option>
+              <option value="Wonton Udang Premium">Wonton Udang Premium</option>
+              <option value="Lumpia Kulit Tahu Ayam">Lumpia Kulit Tahu Ayam</option>
+              <option value="Lumpia Kulit Tahu Udang">Lumpia Kulit Tahu Udang</option>
+              <option value="Steam Ceker Lada Hitam">Steam Ceker Lada Hitam</option>
               <option value="Bakpao Karakter Premium">Bakpao Karakter Premium</option>
             </select>
           </div>
@@ -124,7 +129,7 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
       <div>
         <div class="box">
           <h2>📊 DATA STOK & PERINGATAN</h2>
-          <div id="stockAlerts"></div> <!-- Tempat memunculkan Dead Stock Alert -->
+          <div id="stockAlerts"></div>
           <div class="table-wrapper"><table><thead><tr><th>Nama Produk</th><th>Sisa Stok</th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
         </div>
         <div class="box">
@@ -156,12 +161,39 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 </div>
 
 <script>
-// --- CONFIG DATA ---
+// --- CONFIG DATA BARU ---
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzI6-_z0LtWs6hC9M0oSak_DdYLtTHBAQqZsQV4CIYAbCmMeW_t3y8yLULYiQZuDiav/exec";
-const cogsMaster = { "Dimsum Premium": 2200, "Gyoza Premium": 2200, "Wonton Udang Premium": 3500, "Lumpia Kulit Tahu Ayam": 3600, "Lumpia Kulit Tahu Udang": 4000, "Steam Ceker Lada Hitam": 9000, "Bakpao Karakter Premium": 14000 };
+
+// HPP MASTER TERBARU
+const cogsMaster = { 
+    "Dimsum Premium": 2200, 
+    "Dimsum Jumbo": 2500, // HPP Dimsum Jumbo 35gr
+    "Dimsum Goreng Lumer": 2500, // HPP Dimsum Goreng Jumbo Lumer
+    "Gyoza Premium": 2200, 
+    "Wonton Udang Premium": 3500, 
+    "Lumpia Kulit Tahu Ayam": 3600, 
+    "Lumpia Kulit Tahu Udang": 4000, 
+    "Steam Ceker Lada Hitam": 9000, 
+    "Bakpao Karakter Premium": 14000 
+};
+
+// VARIAN HARGA JUAL TERBARU
 const packageMaster = {
-  "Dimsum Premium": [{ label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, { label: "Pack isi 10 (Rp33.000)", pcsPerPack: 10, pricePerPack: 33000 }, { label: "Pack isi 20 (Rp65.000)", pcsPerPack: 20, pricePerPack: 65000 }],
-  "Gyoza Premium": [{ label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, { label: "Pack isi 10 (Rp33.000)", pcsPerPack: 10, pricePerPack: 33000 }, { label: "Pack isi 20 (Rp65.000)", pcsPerPack: 20, pricePerPack: 65000 }],
+  "Dimsum Premium": [
+      { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, 
+      { label: "Pack isi 10 (Rp35.000)", pcsPerPack: 10, pricePerPack: 35000 } // Update harga 10pcs
+  ],
+  "Dimsum Jumbo": [
+      { label: "Pack isi 16 (Rp60.000)", pcsPerPack: 16, pricePerPack: 60000 } // Menu Baru
+  ],
+  "Dimsum Goreng Lumer": [
+      { label: "Pack isi 3 (Rp25.000)", pcsPerPack: 3, pricePerPack: 25000 } // Menu Baru
+  ],
+  "Gyoza Premium": [
+      { label: "Pack isi 5 (Rp17.500)", pcsPerPack: 5, pricePerPack: 17500 }, 
+      { label: "Pack isi 10 (Rp33.000)", pcsPerPack: 10, pricePerPack: 33000 }, 
+      { label: "Pack isi 20 (Rp65.000)", pcsPerPack: 20, pricePerPack: 65000 }
+  ],
   "Wonton Udang Premium": [{ label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }, { label: "Pack isi 10 (Rp50.000)", pcsPerPack: 10, pricePerPack: 50000 }],
   "Lumpia Kulit Tahu Ayam": [{ label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }],
   "Lumpia Kulit Tahu Udang": [{ label: "Pack isi 5 (Rp25.000)", pcsPerPack: 5, pricePerPack: 25000 }],
@@ -169,7 +201,18 @@ const packageMaster = {
   "Bakpao Karakter Premium": [{ label: "Pack", pcsPerPack: 1, pricePerPack: 25000 }]
 };
 
-let inventory = { "Dimsum Premium": 160, "Gyoza Premium": 85, "Wonton Udang Premium": 30, "Lumpia Kulit Tahu Ayam": 45, "Lumpia Kulit Tahu Udang": 40, "Steam Ceker Lada Hitam": 6, "Bakpao Karakter Premium": 0 };
+// DATABASE GUDANG (INVENTORY)
+let inventory = { 
+    "Dimsum Premium": 160, 
+    "Dimsum Jumbo": 0, 
+    "Dimsum Goreng Lumer": 0, 
+    "Gyoza Premium": 85, 
+    "Wonton Udang Premium": 30, 
+    "Lumpia Kulit Tahu Ayam": 45, 
+    "Lumpia Kulit Tahu Udang": 40, 
+    "Steam Ceker Lada Hitam": 6, 
+    "Bakpao Karakter Premium": 0 
+};
 let logs = [];
 let salesChartInstance = null;
 
@@ -188,7 +231,11 @@ function switchTab(t) {
 function loadFromCloud() {
   showLoading("🔄 Menyelaraskan Data...");
   fetch(CLOUD_URL).then(res => res.json()).then(data => {
-    if (data.inventory) { inventory = data.inventory; logs = data.logs; }
+    if (data.inventory) { 
+        // Menggabungkan data cloud agar menu baru tidak hilang jika belum ada di cloud
+        inventory = { ...inventory, ...data.inventory }; 
+        logs = data.logs; 
+    }
     updatePackageOptions(); renderDashboard(); hideLoading();
   }).catch(() => { updatePackageOptions(); renderDashboard(); hideLoading(); });
 }
@@ -300,7 +347,7 @@ function renderDashboard() {
   const stockBody = document.getElementById('stockTableBody'); stockBody.innerHTML = "";
   for(let item in inventory) { 
       let unit = (item === "Steam Ceker Lada Hitam" || item === "Bakpao Karakter Premium") ? "Pack" : "Pcs";
-      stockBody.innerHTML += `<tr><td><b>${item}</b></td><td>${inventory[item]} ${unit}</td></tr>`; 
+      stockBody.innerHTML += `<tr><td><b>${item}</b></td><td>${inventory[item] || 0} ${unit}</td></tr>`; 
   }
   
   // 2. Render Tabel Audit & Rekap
@@ -355,7 +402,7 @@ function submitTransaction() {
   } else if (type === "TESTER") { 
     if(inventory[prod] < qty) { alert("Stok tidak mencukupi untuk Tester!"); return; }
     inventory[prod] -= qty; cogs = qty * cogsMaster[prod]; detail = "Tester/Promosi"; impact = `-${qty} ${unit}`;
-    net = -cogs; // Biaya promosi
+    net = -cogs;
   } else {
     if (isPure) {
         gross = qty * (prod === "Steam Ceker Lada Hitam" ? 15000 : 25000); cogs = qty * cogsMaster[prod]; detail = "Murni Jual Pack"; impact = `-${qty} Pack`;
@@ -382,7 +429,7 @@ function undoLastTransaction() {
 }
 function resetSystemData() {
   if(prompt("Ketik 8888 untuk HAPUS SEMUA DATA CLOUD:") === "8888") {
-    inventory = { "Dimsum Premium":0, "Gyoza Premium":0, "Wonton Udang Premium":0, "Lumpia Kulit Tahu Ayam":0, "Lumpia Kulit Tahu Udang":0, "Steam Ceker Lada Hitam":0, "Bakpao Karakter Premium":0 }; logs = []; saveToCloud();
+    inventory = { "Dimsum Premium":0, "Dimsum Jumbo":0, "Dimsum Goreng Lumer":0, "Gyoza Premium":0, "Wonton Udang Premium":0, "Lumpia Kulit Tahu Ayam":0, "Lumpia Kulit Tahu Udang":0, "Steam Ceker Lada Hitam":0, "Bakpao Karakter Premium":0 }; logs = []; saveToCloud();
   }
 }
 function exportToExcel() {
@@ -395,7 +442,13 @@ function exportToExcel() {
 // --- FITUR BARU: CHART & DEAD STOCK ---
 function checkAlertsAndChart() {
   let alertBox = document.getElementById('stockAlerts'); alertBox.innerHTML = "";
-  const thresholds = { "Dimsum Premium": 20, "Gyoza Premium": 20, "Wonton Udang Premium": 10, "Lumpia Kulit Tahu Ayam": 10, "Lumpia Kulit Tahu Udang": 10, "Steam Ceker Lada Hitam": 5, "Bakpao Karakter Premium": 3 };
+  
+  // Update threshold untuk produk baru
+  const thresholds = { 
+      "Dimsum Premium": 20, "Dimsum Jumbo": 16, "Dimsum Goreng Lumer": 10, 
+      "Gyoza Premium": 20, "Wonton Udang Premium": 10, "Lumpia Kulit Tahu Ayam": 10, 
+      "Lumpia Kulit Tahu Udang": 10, "Steam Ceker Lada Hitam": 5, "Bakpao Karakter Premium": 3 
+  };
   
   let salesCount = {};
   for(let item in inventory) {
@@ -421,7 +474,7 @@ function checkAlertsAndChart() {
       type: 'bar',
       data: {
           labels: Object.keys(salesCount),
-          datasets: [{ label: 'Total Pack/Pcs Terjual', data: Object.values(salesCount), backgroundColor: '#d4af37', borderRadius: 4 }]
+          datasets: [{ label: 'Total Penjualan', data: Object.values(salesCount), backgroundColor: '#d4af37', borderRadius: 4 }]
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#2a2a2e' } }, x: { grid: { display: false } } } }
   });
