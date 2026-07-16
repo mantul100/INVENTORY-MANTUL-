@@ -2,17 +2,25 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN - Ultimate Ledger v5.0 (Full CRUD + Smart Filter + Sync Alert)</title>
+<title>MANTUL KITCHEN v6.0 - ENTERPRISE (Full Features by AN)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08); }
+:root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08); --warning: #ff9800; }
 * { box-sizing: border-box; font-family: Arial, sans-serif; }
 body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-.container { max-width: 1200px; margin: auto; }
+.container { max-width: 1400px; margin: auto; }
+
+/* ========== PIN OVERLAY ========== */
+#pinOverlay { position: fixed; top:0;left:0;width:100%;height:100%;background: rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:9999;flex-direction:column; }
+#pinOverlay h1 { color: var(--gold); margin-bottom: 20px; }
+#pinOverlay input { padding: 15px; font-size: 1.5rem; text-align: center; background: var(--input); border: 2px solid var(--gold); color: white; border-radius: 12px; width: 200px; }
+#pinOverlay button { margin-top: 15px; padding: 12px 40px; background: var(--gold); color: #111; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.2rem; }
+#pinOverlay .error { color: var(--danger); margin-top: 10px; }
+
 .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
 .header h1 { color: var(--gold); margin: 0; font-size: 1.8rem; letter-spacing: 2px; }
+.user-badge { background: var(--card); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--gold); display: inline-block; margin-top: 5px; }
 
-/* ========== NOTIFIKASI & BANNER BARU ========== */
 .loading-status { background: #ff9800; color: #111; padding: 8px; text-align: center; font-weight: bold; border-radius: 8px; margin-bottom: 15px; display: none; }
 .sync-banner { padding: 12px 16px; border-radius: 10px; margin-bottom: 15px; display: none; font-weight: bold; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .sync-banner.error { background: rgba(255, 77, 77, 0.2); border: 1px solid var(--danger); color: #ff8080; display: flex; }
@@ -20,16 +28,34 @@ body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 .sync-banner .btn-retry { background: var(--gold); color: #111; border: none; padding: 6px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 .sync-banner .btn-close { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; }
 
-.tab-navigation { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.tab-navigation { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 10px; flex-wrap: wrap; }
 .tab-btn { background: #202023; color: var(--muted); border: 1px solid var(--border); padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
 .tab-btn.active { background: var(--gold); color: #111; border-color: var(--gold); }
 .tab-content { display: none; } .tab-content.active { display: block; }
+
+/* FILTER PERIODE */
+.date-filter { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+.date-filter button { background: var(--input); color: var(--muted); border: 1px solid var(--border); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+.date-filter button.active { background: var(--gold); color: #111; border-color: var(--gold); }
+.date-filter input[type="date"] { background: var(--input); color: var(--text); border: 1px solid var(--border); padding: 6px; border-radius: 6px; }
+
 .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
 .stat-card { background: var(--card); border: 1px solid var(--border); padding: 12px 8px; border-radius: 12px; text-align: center; }
 .stat-card h3 { margin: 0 0 6px 0; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; }
 .stat-card .val { font-size: 1.1rem; font-weight: bold; color: var(--gold); }
+
+/* PARETO BOX */
+.pareto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+@media(max-width: 768px) { .pareto-grid { grid-template-columns: 1fr; } }
+.pareto-box { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 12px; }
+.pareto-box h4 { margin: 0 0 8px 0; color: var(--gold); font-size: 0.9rem; border-bottom: 1px dashed var(--border); padding-bottom: 5px; }
+.pareto-item { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.pareto-item .name { color: var(--text); } .pareto-item .val { color: var(--muted); }
+.pareto-item.top { color: var(--success); } .pareto-item.bottom { color: var(--danger); }
+
 .main-layout { display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; }
 @media(max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
+
 .box { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 20px; height: fit-content; margin-bottom: 20px; }
 .box h2 { color: var(--gold); margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 1px dashed var(--border); padding-bottom: 10px; text-transform: uppercase; }
 .form-group { margin-bottom: 15px; }
@@ -52,6 +78,7 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 .badge-in { color: var(--success); font-weight: bold; } .badge-out { color: var(--danger); font-weight: bold; } .badge-tester { color: #ff9800; font-weight: bold; }
 .chart-container { position: relative; height: 300px; width: 100%; margin-top: 20px; }
 .alert-box { background: rgba(255, 77, 77, 0.1); border: 1px solid var(--danger); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; color: #ff8080; }
+
 #addMenuForm { background: var(--input); padding: 15px; border-radius: 10px; margin-top: 15px; display: none; border: 1px solid var(--gold); }
 #addMenuForm h3 { color: var(--gold); margin-top: 0; }
 .variant-row { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; }
@@ -60,20 +87,51 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 .variant-row input:nth-child(2) { flex: 1; }
 .variant-row input:nth-child(3) { flex: 1; }
 .variant-row button { background: var(--danger); color: white; border: none; border-radius: 4px; padding: 0 12px; cursor: pointer; }
+
 .btn-edit { background: transparent; border: none; color: var(--gold); cursor: pointer; font-size: 1.2rem; margin-right: 5px; }
 .btn-edit:hover { color: #fff5b0; }
 .btn-trash { background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; }
 .btn-trash:hover { color: #ff6666; }
+.btn-clone { background: transparent; border: none; color: #4fc3f7; cursor: pointer; font-size: 1.2rem; margin-right: 5px; }
+.btn-clone:hover { color: #81d4fa; }
+
 .sort-controls { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap; }
 .sort-controls label { color: var(--muted); font-size: 0.8rem; font-weight: bold; }
 .sort-controls select { background: var(--input); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; flex: 1; min-width: 180px; }
+
+/* RECEIPT MODAL */
+.receipt-modal { display: none; position: fixed; top:0;left:0;width:100%;height:100%;background: rgba(0,0,0,0.7);z-index:9998; justify-content:center; align-items:center; }
+.receipt-modal.active { display: flex; }
+.receipt-content { background: #fff; color: #111; max-width: 400px; width: 90%; padding: 25px; border-radius: 12px; max-height: 90vh; overflow-y: auto; }
+.receipt-content h2 { text-align: center; margin-top: 0; border-bottom: 2px dashed #ccc; padding-bottom: 10px; }
+.receipt-content .row { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 4px 0; }
+.receipt-content .total { font-weight: bold; font-size: 1.1rem; border-top: 2px solid #ccc; margin-top: 10px; padding-top: 10px; }
+.receipt-content .actions { margin-top: 20px; display: flex; gap: 10px; }
+.receipt-content .actions button { flex:1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+.btn-wa { background: #25D366; color: #fff; }
+.btn-copy { background: #ddd; color: #111; }
+.btn-close-modal { background: #ff4d4d; color: #fff; }
 </style>
 </head>
 <body>
+
+<!-- ========== PIN OVERLAY ========== -->
+<div id="pinOverlay">
+  <h1>🔐 MANTUL KITCHEN</h1>
+  <p style="color:var(--muted); margin-bottom:10px;">Masukkan PIN untuk melanjutkan</p>
+  <input type="password" id="pinInput" maxlength="4" placeholder="****" onkeydown="if(event.key==='Enter') verifyPin()">
+  <button onclick="verifyPin()">Buka Sistem</button>
+  <div id="pinError" class="error"></div>
+  <div style="margin-top:30px; font-size:0.7rem; color:var(--muted);">Admin: 1234 | Kasir: 0000</div>
+</div>
+
 <div class="container">
-  <div class="header"><h1>MANTUL KITCHEN LEDGER v5.0</h1><p>Integrated POS + Full CRUD + Smart Filter + Sync Alert</p></div>
+  <div class="header">
+    <h1>MANTUL KITCHEN v6.0</h1>
+    <p>Enterprise POS + Inventory + Smart Analytics</p>
+    <div class="user-badge" id="userBadge">👤 Admin Mode</div>
+  </div>
   
-  <!-- ========== BANNER NOTIFIKASI BARU ========== -->
   <div id="syncStatusBanner" class="sync-banner" style="display:none;"></div>
   <div id="syncIndicator" class="loading-status">🔄 Sedang Menghubungkan ke Server Cloud...</div>
   
@@ -84,10 +142,34 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 
   <!-- TAB 1: DASHBOARD -->
   <div id="tabDashboard" class="tab-content active">
+    <!-- Filter Periode -->
+    <div class="date-filter">
+      <span style="color:var(--muted); font-size:0.8rem; font-weight:bold;">📅 Periode:</span>
+      <button class="active" onclick="applyDateFilter('today')">Hari Ini</button>
+      <button onclick="applyDateFilter('week')">Minggu Ini</button>
+      <button onclick="applyDateFilter('month')">Bulan Ini</button>
+      <button onclick="applyDateFilter('all')">All Time</button>
+      <input type="date" id="startDate" onchange="applyDateFilter('custom')">
+      <span style="color:var(--muted); font-size:0.8rem;">s/d</span>
+      <input type="date" id="endDate" onchange="applyDateFilter('custom')">
+    </div>
+
     <div class="summary-grid">
       <div class="stat-card"><h3>Omset Bersih</h3><div class="val" id="sumRevenue" style="color:var(--success)">Rp 0</div></div>
       <div class="stat-card"><h3>Volume Terjual</h3><div class="val" id="sumSold">0 Item</div></div>
       <div class="stat-card"><h3>Total Diskon</h3><div class="val" id="sumDiscount" style="color:var(--danger)">Rp 0</div></div>
+    </div>
+
+    <!-- PARETO ANALYSIS -->
+    <div class="pareto-grid">
+      <div class="pareto-box">
+        <h4>🏆 Top 5 Best Seller</h4>
+        <div id="topProducts"><p style="color:var(--muted); font-size:0.8rem;">Loading...</p></div>
+      </div>
+      <div class="pareto-box">
+        <h4>📉 Bottom 5 (Kandidat Hapus)</h4>
+        <div id="bottomProducts"><p style="color:var(--muted); font-size:0.8rem;">Loading...</p></div>
+      </div>
     </div>
     
     <div class="main-layout">
@@ -105,42 +187,37 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
             <select id="actionType" onchange="updatePackageOptions(); syncFormAndPreview();">
               <option value="JUAL">Penjualan (Pengurang Stok + Omset)</option>
               <option value="MASUK">Stok Masuk (Penambah Stok)</option>
-              <option value="TESTER">TESTER / PROMOSI (Pengurang Stok, Omset Rp0)</option>
+              <option value="TESTER">TESTER / PROMOSI</option>
             </select>
           </div>
           <div class="form-group"><label id="qtyLabel">4. Kuantitas Jual:</label><input type="number" id="txQty" value="1" min="1" oninput="syncFormAndPreview()"></div>
           <div class="form-group" id="discountFormGroup"><label>5. Diskon / Potongan (Rp):</label><input type="number" id="txDiscount" value="0" min="0" oninput="syncFormAndPreview()"></div>
           
           <div class="preview-box">
-            <h4>👀 Live Preview Harga</h4>
-            <div class="preview-row" id="prePackPriceRow"><span>Harga Dasar:</span><span id="prePackPrice">Rp 0</span></div>
+            <h4>👀 Live Preview</h4>
+            <div class="preview-row"><span>Harga Dasar:</span><span id="prePackPrice">Rp 0</span></div>
             <div class="preview-row" id="preSubtotalRow"><span>Subtotal:</span><span id="preSubtotal">Rp 0</span></div>
             <div class="preview-row" id="preDiscountRow"><span>Diskon:</span><span id="preDiscount" style="color:var(--danger)">-Rp 0</span></div>
-            <div class="preview-row total-line"><span id="preTotalLabel">Total Omset:</span><span id="preTotalNominal">Rp 0</span></div>
+            <div class="preview-row total-line"><span>Total Omset:</span><span id="preTotalNominal">Rp 0</span></div>
           </div>
           
           <button class="btn btn-gold" onclick="submitTransaction()">Catat ke Database 💾</button>
-          <button class="btn btn-undo" onclick="undoLastTransaction()">↩️ Undo Transaksi Terakhir</button>
-          <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>
-          <button class="btn btn-secondary" onclick="toggleAddMenuForm()">➕ Tambah Menu Manual</button>
+          <button class="btn btn-undo" onclick="undoLastTransaction()">↩️ Undo Transaksi</button>
           
-          <!-- Form Tambah / Edit Menu Manual -->
+          <!-- Tombol Admin Only -->
+          <div id="adminControls">
+            <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>
+            <button class="btn btn-secondary" onclick="toggleAddMenuForm()">➕ Tambah Menu Manual</button>
+          </div>
+          
+          <!-- Form Tambah / Edit -->
           <div id="addMenuForm">
             <h3 id="formTitle">➕ Tambah Produk Baru</h3>
+            <div class="form-group"><label>Nama Produk:</label><input type="text" id="newProductName" placeholder="Contoh: Siomay Udang"></div>
+            <div class="form-group"><label>HPP per Pcs (Rp):</label><input type="number" id="newProductCogs" placeholder="5000"></div>
+            <div class="form-group"><label>Stok Awal / Koreksi:</label><input type="number" id="newProductStock" value="0"></div>
             <div class="form-group">
-              <label>Nama Produk:</label>
-              <input type="text" id="newProductName" placeholder="Contoh: Siomay Udang">
-            </div>
-            <div class="form-group">
-              <label>HPP per Pcs (Rp):</label>
-              <input type="number" id="newProductCogs" placeholder="5000">
-            </div>
-            <div class="form-group">
-              <label>Stok Awal / Koreksi Stok (dalam Pcs untuk multi-pack, atau Pack untuk pure-pack):</label>
-              <input type="number" id="newProductStock" value="0">
-            </div>
-            <div class="form-group">
-              <label>Varian Paket (Kemasan yang dijual):</label>
+              <label>Varian Paket:</label>
               <div id="variantList"></div>
               <button type="button" class="btn" style="background: var(--border); color: var(--text); margin-top:5px; padding:8px;" onclick="addVariantRow()">+ Tambah Varian</button>
             </div>
@@ -151,19 +228,15 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
           </div>
         </div>
 
-        <!-- KALKULATOR INTEGRASI -->
         <div class="box">
             <h2>🧠 SMART KALKULATOR MARGIN</h2>
-            <div class="form-group">
-                <label>Target Margin Laba (%):</label>
-                <input type="number" id="calcMargin" value="25" min="5" max="95" oninput="runCalculator()">
-            </div>
+            <div class="form-group"><label>Target Margin (%):</label><input type="number" id="calcMargin" value="25" min="5" max="95" oninput="runCalculator()"></div>
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1"><label>Biaya Packing (Rp):</label><input type="number" id="calcPack" value="800" oninput="runCalculator()"></div>
-                <div class="form-group" style="flex:1"><label>Listrik/Bensin (Rp):</label><input type="number" id="calcOpr" value="1000" oninput="runCalculator()"></div>
+                <div class="form-group" style="flex:1"><label>Biaya Packing:</label><input type="number" id="calcPack" value="800" oninput="runCalculator()"></div>
+                <div class="form-group" style="flex:1"><label>Listrik/Bensin:</label><input type="number" id="calcOpr" value="1000" oninput="runCalculator()"></div>
             </div>
             <div class="preview-box">
-                <div class="preview-row"><span>Total Modal Riil (COGS+Opr):</span><span id="calcTotalModal">Rp 0</span></div>
+                <div class="preview-row"><span>Total Modal Riil:</span><span id="calcTotalModal">Rp 0</span></div>
                 <div class="preview-row total-line"><span>Harga Jual Ideal:</span><span id="calcIdealPrice" style="color:var(--success)">Rp 0</span></div>
             </div>
         </div>
@@ -172,11 +245,11 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
       <!-- KOLOM KANAN -->
       <div>
         <div class="box">
-          <h2>📊 DATA STOK & PERINGATAN</h2>
+          <h2>📊 DATA STOK & FORECASTING</h2>
           <div id="stockAlerts"></div>
           
           <div class="sort-controls">
-            <label for="sortSelect">🔽 Urutkan berdasarkan:</label>
+            <label for="sortSelect">🔽 Urutkan:</label>
             <select id="sortSelect" onchange="changeSortMode(this.value)">
               <option value="az">A-Z (Nama)</option>
               <option value="za">Z-A (Nama)</option>
@@ -190,7 +263,7 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
           <div class="table-wrapper">
             <table>
               <thead>
-                <tr><th>Nama Produk</th><th>Sisa Stok</th><th style="text-align:center;">Aksi</th></tr>
+                <tr><th>Nama Produk</th><th>Sisa Stok</th><th>⏳ Prediksi Habis</th><th style="text-align:center;">Aksi</th></tr>
               </thead>
               <tbody id="stockTableBody"></tbody>
             </table>
@@ -204,7 +277,7 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
     </div>
   </div>
 
-  <!-- TAB 2: AUDIT & JURNAL -->
+  <!-- TAB 2: JURNAL -->
   <div id="tabProfit" class="tab-content">
     <div class="summary-grid">
       <div class="stat-card"><h3>Omset Kotor</h3><div class="val" id="profGross">Rp 0</div></div>
@@ -212,11 +285,11 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
       <div class="stat-card"><h3>Laba Bersih</h3><div class="val" id="profNet" style="color:var(--success)">Rp 0</div></div>
     </div>
     <div class="box">
-      <h2>📜 JURNAL AUDIT (Bisa Edit Diskon Langsung)</h2>
-      <button class="btn btn-excel" onclick="exportToExcel()">Export Data Jurnal (.CSV) 📊</button>
+      <h2>📜 JURNAL AUDIT</h2>
+      <button class="btn btn-excel" onclick="exportToExcel()">Export .CSV 📊</button>
       <div class="table-wrapper">
         <table>
-          <thead><tr><th>Waktu</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset Kotor</th><th>Edit Diskon (Rp)</th><th>Modal HPP</th><th>Laba Bersih</th></tr></thead>
+          <thead><tr><th>Waktu</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset</th><th>Edit Diskon</th><th>Modal</th><th>Laba</th></tr></thead>
           <tbody id="auditTableBody"></tbody>
         </table>
       </div>
@@ -224,74 +297,57 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
   </div>
 </div>
 
+<!-- ========== RECEIPT MODAL ========== -->
+<div id="receiptModal" class="receipt-modal">
+  <div class="receipt-content">
+    <h2>🧾 MANTUL KITCHEN</h2>
+    <div id="receiptBody"></div>
+    <div class="actions">
+      <button class="btn-wa" onclick="sendReceiptWA()">📱 Kirim via WA</button>
+      <button class="btn-copy" onclick="copyReceipt()">📋 Salin Struk</button>
+      <button class="btn-close-modal" onclick="closeReceipt()">✕ Tutup</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
-// 1. KONFIGURASI
+// 1. KONFIGURASI & STATE
 // ============================================================
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzI6-_z0LtWs6hC9M0oSak_DdYLtTHBAQqZsQV4CIYAbCmMeW_t3y8yLULYiQZuDiav/exec"; // GANTI DENGAN URL DEPLOY ANDA
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzI6-_z0LtWs6hC9M0oSak_DdYLtTHBAQqZsQV4CIYAbCmMeW_t3y8yLULYiQZuDiav/exec";
 let currentSortMode = 'az';
 let isSyncing = false;
+let currentPeriod = 'today';
+let currentUserRole = 'admin'; // 'admin' or 'kasir'
+let lastReceiptLog = null;
 
 // ============================================================
-// 2. FUNGSI BUNYI (BEEP) UNTUK ERROR
+// 2. PIN & AUTHENTICATION
 // ============================================================
-function playBeep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 800;
-    osc.type = 'square';
-    gain.gain.value = 0.3;
-    osc.start();
-    setTimeout(() => { 
-      try { osc.stop(); ctx.close(); } catch(e) {} 
-    }, 350);
-  } catch(e) { 
-    console.log("Audio not supported"); 
+function verifyPin() {
+  const pin = document.getElementById('pinInput').value;
+  const errorEl = document.getElementById('pinError');
+  if (pin === '1234') {
+    currentUserRole = 'admin';
+    document.getElementById('userBadge').innerText = '👤 Admin Mode (Full Access)';
+    document.getElementById('pinOverlay').style.display = 'none';
+    document.getElementById('adminControls').style.display = 'block';
+    initApp();
+  } else if (pin === '0000') {
+    currentUserRole = 'kasir';
+    document.getElementById('userBadge').innerText = '👤 Kasir Mode (Transaksi Only)';
+    document.getElementById('pinOverlay').style.display = 'none';
+    document.getElementById('adminControls').style.display = 'none';
+    initApp();
+  } else {
+    errorEl.innerText = '❌ PIN Salah! Coba 1234 (Admin) atau 0000 (Kasir)';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
   }
 }
 
 // ============================================================
-// 3. FUNGSI NOTIFIKASI BANNER
-// ============================================================
-function showSyncBanner(type, message, showRetry = false) {
-  const banner = document.getElementById('syncStatusBanner');
-  banner.className = 'sync-banner ' + type;
-  banner.style.display = 'flex';
-  
-  let btnHtml = '';
-  if (showRetry) {
-    btnHtml = `<button class="btn-retry" onclick="retrySync()">🔄 Coba Lagi</button>`;
-  }
-  btnHtml += `<button class="btn-close" onclick="dismissSyncBanner()">✕ Tutup</button>`;
-  
-  banner.innerHTML = `<span>${message}</span> <div style="display:flex; gap:8px;">${btnHtml}</div>`;
-}
-
-function dismissSyncBanner() {
-  document.getElementById('syncStatusBanner').style.display = 'none';
-}
-
-function retrySync() {
-  dismissSyncBanner();
-  saveToCloud();
-}
-
-function showLoading(txt) { 
-  const el = document.getElementById('syncIndicator'); 
-  el.innerText = txt; 
-  el.style.display = "block"; 
-}
-
-function hideLoading() { 
-  document.getElementById('syncIndicator').style.display = "none"; 
-}
-
-// ============================================================
-// 4. DATA DEFAULT
+// 3. INISIALISASI & DATA DEFAULT
 // ============================================================
 const NOW = Date.now();
 const DEFAULT_PRODUCTS = {
@@ -306,31 +362,22 @@ const DEFAULT_PRODUCTS = {
   "Bakpao Karakter Premium": { cogs: 14000, createdAt: NOW, updatedAt: NOW, variants: [ { label: "Pack", pcsPerPack: 1, pricePerPack: 25000 } ] }
 };
 
-// ============================================================
-// 5. STATE GLOBAL
-// ============================================================
 let productCatalog = {};
 let inventory = {};
 let logs = [];
 let salesChartInstance = null;
 let variantRows = [];
 let editingProductName = null;
+let filteredLogs = [];
 
 // ============================================================
-// 6. MANAJEMEN KATALOG & INVENTORY
+// 4. MANAJEMEN DATA
 // ============================================================
 function loadProductCatalog() {
   const stored = localStorage.getItem('productCatalog');
-  if (stored) {
-    try {
-      productCatalog = JSON.parse(stored);
-      for (let key in DEFAULT_PRODUCTS) if (!productCatalog[key]) productCatalog[key] = DEFAULT_PRODUCTS[key];
-    } catch(e) { productCatalog = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS)); }
-  } else {
-    productCatalog = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
-  }
+  if (stored) { try { productCatalog = JSON.parse(stored); for (let key in DEFAULT_PRODUCTS) if (!productCatalog[key]) productCatalog[key] = DEFAULT_PRODUCTS[key]; } catch(e) { productCatalog = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS)); } } 
+  else { productCatalog = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS)); }
   for (let key in productCatalog) if (!(key in inventory)) inventory[key] = 0;
-  
   const defaultStock = { "Dimsum Premium":160, "Dimsum Jumbo":0, "Dimsum Goreng Lumer":0, "Gyoza Premium":85, "Wonton Udang Premium":30, "Lumpia Kulit Tahu Ayam":45, "Lumpia Kulit Tahu Udang":40, "Steam Ceker Lada Hitam":6, "Bakpao Karakter Premium":0 };
   for (let key in defaultStock) if (key in inventory && inventory[key] === undefined) inventory[key] = defaultStock[key];
 }
@@ -338,16 +385,171 @@ function saveProductCatalog() { localStorage.setItem('productCatalog', JSON.stri
 function getCogs(name) { return productCatalog[name] ? productCatalog[name].cogs : 0; }
 function getVariants(name) { return productCatalog[name] ? productCatalog[name].variants : []; }
 
+// ============================================================
+// 5. DATE FILTER (PERIODE)
+// ============================================================
+function applyDateFilter(mode) {
+  document.querySelectorAll('.date-filter button').forEach(b => b.classList.remove('active'));
+  const today = new Date();
+  let start = new Date(), end = new Date();
+  
+  if (mode === 'today') {
+    start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    document.querySelector('.date-filter button:nth-child(2)').classList.add('active');
+  } else if (mode === 'week') {
+    const day = today.getDay() || 7;
+    start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - day + 1);
+    end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + (7 - day));
+    document.querySelector('.date-filter button:nth-child(3)').classList.add('active');
+  } else if (mode === 'month') {
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+    end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    document.querySelector('.date-filter button:nth-child(4)').classList.add('active');
+  } else if (mode === 'all') {
+    start = new Date(2000, 0, 1);
+    end = new Date(2100, 0, 1);
+    document.querySelector('.date-filter button:nth-child(5)').classList.add('active');
+  } else if (mode === 'custom') {
+    const s = document.getElementById('startDate').value;
+    const e = document.getElementById('endDate').value;
+    if (s) start = new Date(s);
+    if (e) end = new Date(e);
+    if (!s || !e) return;
+  }
+  
+  currentPeriod = mode;
+  filteredLogs = logs.filter(l => {
+    const d = new Date(l.date);
+    return d >= start && d <= end;
+  });
+  if (filteredLogs.length === 0 && mode !== 'all') {
+    // jika kosong, tampilkan data all time biar ga kosong
+    filteredLogs = [...logs];
+  }
+  renderDashboard();
+}
+
+// ============================================================
+// 6. PARETO & FORECASTING
+// ============================================================
+function calculatePareto() {
+  const sales = {};
+  filteredLogs.forEach(l => {
+    if (l.type === 'JUAL') {
+      if (!sales[l.product]) sales[l.product] = 0;
+      sales[l.product] += l.qtyInput;
+    }
+  });
+  const sorted = Object.entries(sales).sort((a, b) => b[1] - a[1]);
+  const top = sorted.slice(0, 5);
+  const bottom = sorted.slice(-5).reverse();
+  return { top, bottom };
+}
+
+function getForecastDays(item) {
+  // Hitung rata-rata penjualan 7 hari terakhir
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const recent = logs.filter(l => l.product === item && l.type === 'JUAL' && new Date(l.date) >= weekAgo);
+  if (recent.length === 0) return '-';
+  const totalQty = recent.reduce((sum, l) => sum + l.qtyInput, 0);
+  const avgDaily = totalQty / 7;
+  if (avgDaily < 0.1) return '🟢 Aman';
+  const stock = inventory[item] || 0;
+  const days = Math.floor(stock / avgDaily);
+  if (days <= 0) return '⚠️ < 1 hari';
+  if (days <= 3) return `🔴 ${days} hari`;
+  if (days <= 7) return `🟡 ${days} hari`;
+  return `🟢 ${days} hari`;
+}
+
+// ============================================================
+// 7. CLONE MENU (FITUR BARU)
+// ============================================================
+function cloneProduct(productName) {
+  if (currentUserRole !== 'admin') { alert('Hanya Admin yang bisa clone menu!'); return; }
+  const prod = productCatalog[productName];
+  if (!prod) return alert("Produk tidak ditemukan!");
+  
+  // Buka form tambah
+  toggleAddMenuForm();
+  // Set nama + " Copy"
+  document.getElementById('newProductName').value = productName + " Copy";
+  document.getElementById('newProductCogs').value = prod.cogs;
+  document.getElementById('newProductStock').value = 0;
+  variantRows = prod.variants.map(v => ({ ...v }));
+  renderVariantRows();
+  editingProductName = null;
+  document.getElementById('formTitle').innerText = '📋 Clone Produk (Edit sebelum simpan)';
+  document.getElementById('saveProductBtn').innerText = 'Simpan Clone';
+  document.getElementById('addMenuForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============================================================
+// 8. RECEIPT (STRUK)
+// ============================================================
+function showReceipt(log) {
+  lastReceiptLog = log;
+  const modal = document.getElementById('receiptModal');
+  const body = document.getElementById('receiptBody');
+  let html = `<div class="row"><span>📅</span><span>${log.date}</span></div>`;
+  html += `<div class="row"><span>Produk</span><span>${log.product}</span></div>`;
+  html += `<div class="row"><span>Detail</span><span>${log.detail}</span></div>`;
+  html += `<div class="row"><span>Qty</span><span>${log.qtyInput}</span></div>`;
+  html += `<div class="row"><span>Omset Kotor</span><span>${formatRupiah(log.grossPrice)}</span></div>`;
+  if (log.discount > 0) html += `<div class="row" style="color:var(--danger);"><span>Diskon</span><span>-${formatRupiah(log.discount)}</span></div>`;
+  html += `<div class="row total"><span>Total Bayar</span><span>${formatRupiah(log.finalNominal)}</span></div>`;
+  html += `<div style="text-align:center; margin-top:15px; font-size:0.7rem; color:#888;">Terima kasih telah berbelanja!</div>`;
+  body.innerHTML = html;
+  modal.classList.add('active');
+}
+
+function closeReceipt() { document.getElementById('receiptModal').classList.remove('active'); }
+
+function copyReceipt() {
+  const body = document.getElementById('receiptBody');
+  const text = body.innerText;
+  navigator.clipboard.writeText(text).then(() => alert('✅ Struk disalin ke clipboard!'));
+}
+
+function sendReceiptWA() {
+  if (!lastReceiptLog) return;
+  const l = lastReceiptLog;
+  let msg = `🧾 *MANTUL KITCHEN* \n`;
+  msg += `📅 ${l.date}\n`;
+  msg += `🛒 ${l.product} (${l.detail})\n`;
+  msg += `📦 ${l.qtyInput} x @${formatRupiah(l.grossPrice/l.qtyInput)}\n`;
+  if (l.discount > 0) msg += `💸 Diskon: -${formatRupiah(l.discount)}\n`;
+  msg += `💰 *Total: ${formatRupiah(l.finalNominal)}*\n`;
+  msg += `Terima kasih!`;
+  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+// ============================================================
+// 9. FUNGSI UTAMA (RENDER, SORTING, SYNC)
+// ============================================================
+function formatRupiah(num) { return "Rp " + Math.round(num).toLocaleString('id-ID'); }
+function generateFormattedDate() { return new Date().toLocaleString('id-ID'); }
+function showLoading(txt) { const el = document.getElementById('syncIndicator'); el.innerText = txt; el.style.display = "block"; }
+function hideLoading() { document.getElementById('syncIndicator').style.display = "none"; }
+function switchTab(t) {
+  document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(t === 'dashboard' ? 'tabDashboard' : 'tabProfit').classList.add('active');
+  document.getElementById(t === 'dashboard' ? 'btnTabDashboard' : 'btnTabProfit').classList.add('active');
+}
+
 function getSortedProductKeys() {
   const keys = Object.keys(productCatalog);
   switch(currentSortMode) {
-    case 'az': return keys.sort((a, b) => a.localeCompare(b));
-    case 'za': return keys.sort((a, b) => b.localeCompare(a));
-    case 'qty_asc': return keys.sort((a, b) => (inventory[a] || 0) - (inventory[b] || 0));
-    case 'qty_desc': return keys.sort((a, b) => (inventory[b] || 0) - (inventory[a] || 0));
-    case 'date_desc': return keys.sort((a, b) => (productCatalog[b].updatedAt || 0) - (productCatalog[a].updatedAt || 0));
-    case 'date_asc': return keys.sort((a, b) => (productCatalog[a].updatedAt || 0) - (productCatalog[b].updatedAt || 0));
-    default: return keys.sort((a, b) => a.localeCompare(b));
+    case 'az': return keys.sort((a,b)=>a.localeCompare(b));
+    case 'za': return keys.sort((a,b)=>b.localeCompare(a));
+    case 'qty_asc': return keys.sort((a,b)=>(inventory[a]||0)-(inventory[b]||0));
+    case 'qty_desc': return keys.sort((a,b)=>(inventory[b]||0)-(inventory[a]||0));
+    case 'date_desc': return keys.sort((a,b)=>(productCatalog[b].updatedAt||0)-(productCatalog[a].updatedAt||0));
+    case 'date_asc': return keys.sort((a,b)=>(productCatalog[a].updatedAt||0)-(productCatalog[b].updatedAt||0));
+    default: return keys.sort((a,b)=>a.localeCompare(b));
   }
 }
 function changeSortMode(mode) { currentSortMode = mode; renderDashboard(); }
@@ -355,20 +557,16 @@ function changeSortMode(mode) { currentSortMode = mode; renderDashboard(); }
 function populateProductDropdown() {
   const select = document.getElementById('prodSelect');
   select.innerHTML = '';
-  const sortedKeys = Object.keys(productCatalog).sort((a, b) => a.localeCompare(b));
-  for (let key of sortedKeys) {
-    const opt = document.createElement('option');
-    opt.value = key;
-    opt.textContent = key;
-    select.appendChild(opt);
-  }
-  if (select.options.length > 0) select.selectedIndex = 0;
+  const sortedKeys = Object.keys(productCatalog).sort((a,b)=>a.localeCompare(b));
+  for (let key of sortedKeys) { const opt = document.createElement('option'); opt.value=key; opt.textContent=key; select.appendChild(opt); }
+  if (select.options.length>0) select.selectedIndex=0;
 }
 
 // ============================================================
-// 7. UI FORM (ADD / EDIT)
+// 10. UI FORM (ADD/EDIT/CLONE)
 // ============================================================
 function toggleAddMenuForm() {
+  if (currentUserRole !== 'admin') { alert('Hanya Admin!'); return; }
   const form = document.getElementById('addMenuForm');
   if (form.style.display === 'block') { cancelEdit(); return; }
   editingProductName = null;
@@ -377,38 +575,25 @@ function toggleAddMenuForm() {
   document.getElementById('newProductName').value = '';
   document.getElementById('newProductCogs').value = '';
   document.getElementById('newProductStock').value = '0';
-  variantRows = [];
-  renderVariantRows();
-  addVariantRow();
-  form.style.display = 'block';
-  form.scrollIntoView({ behavior: 'smooth' });
+  variantRows = []; renderVariantRows(); addVariantRow();
+  form.style.display = 'block'; form.scrollIntoView({ behavior: 'smooth' });
 }
-
 function cancelEdit() {
   const form = document.getElementById('addMenuForm');
-  form.style.display = 'none';
-  editingProductName = null;
+  form.style.display = 'none'; editingProductName = null;
   document.getElementById('formTitle').innerText = '➕ Tambah Produk Baru';
   document.getElementById('saveProductBtn').innerText = 'Simpan Produk';
-  document.getElementById('newProductName').value = '';
-  document.getElementById('newProductCogs').value = '';
-  document.getElementById('newProductStock').value = '0';
-  variantRows = [];
-  renderVariantRows();
 }
-
-function addVariantRow() { variantRows.push({ label: '', pcsPerPack: 1, pricePerPack: 0 }); renderVariantRows(); }
-function removeVariantRow(index) { if (variantRows.length <= 1) { alert('Produk harus memiliki minimal 1 varian!'); return; } variantRows.splice(index, 1); renderVariantRows(); }
+function addVariantRow() { variantRows.push({ label:'', pcsPerPack:1, pricePerPack:0 }); renderVariantRows(); }
+function removeVariantRow(index) { if(variantRows.length<=1) { alert('Minimal 1 varian!'); return; } variantRows.splice(index,1); renderVariantRows(); }
 function renderVariantRows() {
-  const container = document.getElementById('variantList');
-  container.innerHTML = '';
-  variantRows.forEach((v, i) => {
-    const div = document.createElement('div');
-    div.className = 'variant-row';
+  const container = document.getElementById('variantList'); container.innerHTML = '';
+  variantRows.forEach((v,i) => {
+    const div = document.createElement('div'); div.className = 'variant-row';
     div.innerHTML = `
-      <input type="text" placeholder="Label Varian (ex: Pack isi 16)" value="${v.label}" onchange="updateVariant(${i}, 'label', this.value)">
-      <input type="number" placeholder="Isi per Pack (biji)" value="${v.pcsPerPack}" onchange="updateVariant(${i}, 'pcsPerPack', parseInt(this.value) || 0)">
-      <input type="number" placeholder="Harga Jual per Pack" value="${v.pricePerPack}" onchange="updateVariant(${i}, 'pricePerPack', parseInt(this.value) || 0)">
+      <input type="text" placeholder="Label Varian" value="${v.label}" onchange="updateVariant(${i}, 'label', this.value)">
+      <input type="number" placeholder="Isi per Pack (biji)" value="${v.pcsPerPack}" onchange="updateVariant(${i}, 'pcsPerPack', parseInt(this.value)||0)">
+      <input type="number" placeholder="Harga Jual" value="${v.pricePerPack}" onchange="updateVariant(${i}, 'pricePerPack', parseInt(this.value)||0)">
       <button onclick="removeVariantRow(${i})">✕</button>
     `;
     container.appendChild(div);
@@ -417,164 +602,198 @@ function renderVariantRows() {
 function updateVariant(index, field, value) { variantRows[index][field] = value; }
 
 function editProduct(productName) {
-  const prod = productCatalog[productName];
-  if (!prod) return alert("Produk tidak ditemukan!");
+  if (currentUserRole !== 'admin') { alert('Hanya Admin!'); return; }
+  const prod = productCatalog[productName]; if (!prod) return alert("Tidak ditemukan!");
   editingProductName = productName;
   document.getElementById('formTitle').innerText = '✏️ Edit Produk';
   document.getElementById('saveProductBtn').innerText = '🔄 Update Produk';
   document.getElementById('newProductName').value = productName;
   document.getElementById('newProductCogs').value = prod.cogs;
-  document.getElementById('newProductStock').value = inventory[productName] || 0;
-  variantRows = prod.variants.map(v => ({ ...v }));
-  renderVariantRows();
+  document.getElementById('newProductStock').value = inventory[productName]||0;
+  variantRows = prod.variants.map(v=>({...v})); renderVariantRows();
   document.getElementById('addMenuForm').style.display = 'block';
   document.getElementById('addMenuForm').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ============================================================
-// 8. SIMPAN / UPDATE PRODUK
-// ============================================================
 function saveNewProduct() {
   const name = document.getElementById('newProductName').value.trim();
-  const cogs = parseInt(document.getElementById('newProductCogs').value) || 0;
-  const stock = parseInt(document.getElementById('newProductStock').value) || 0;
-  
-  if (!name) { alert('Nama produk wajib diisi!'); return; }
-  if (cogs <= 0) { alert('HPP harus lebih dari 0!'); return; }
-  if (variantRows.length === 0) { alert('Tambahkan minimal 1 varian!'); return; }
-  for (let v of variantRows) {
-    if (!v.label.trim()) { alert('Semua varian harus memiliki label!'); return; }
-    if (v.pcsPerPack <= 0 || v.pricePerPack <= 0) { alert('Isi Pcs/Pack dan Harga dengan benar!'); return; }
-  }
-
+  const cogs = parseInt(document.getElementById('newProductCogs').value)||0;
+  const stock = parseInt(document.getElementById('newProductStock').value)||0;
+  if (!name) { alert('Nama wajib!'); return; } if (cogs<=0) { alert('HPP > 0!'); return; }
+  if (variantRows.length===0) { alert('Minimal 1 varian!'); return; }
+  for (let v of variantRows) { if(!v.label.trim() || v.pcsPerPack<=0 || v.pricePerPack<=0) { alert('Lengkapi varian!'); return; } }
   const currentTime = Date.now();
-
   if (editingProductName) {
     const oldName = editingProductName;
-    const isNameChanged = (oldName !== name);
-    if (isNameChanged && productCatalog[name] && oldName !== name) {
-      if (!confirm(`Nama "${name}" sudah ada. Ingin menimpa produk "${name}"?`)) return;
-    }
-    if (isNameChanged) {
-      delete productCatalog[oldName];
-      inventory[name] = inventory[oldName] || 0;
-      delete inventory[oldName];
-    }
+    if (oldName !== name && productCatalog[name]) { if(!confirm(`Nama "${name}" sudah ada. Timpa?`)) return; }
+    if (oldName !== name) { delete productCatalog[oldName]; inventory[name] = inventory[oldName]||0; delete inventory[oldName]; }
     const oldData = productCatalog[name] || {};
-    productCatalog[name] = {
-      cogs: cogs,
-      createdAt: oldData.createdAt || currentTime,
-      updatedAt: currentTime,
-      variants: variantRows.map(v => ({ label: v.label.trim(), pcsPerPack: v.pcsPerPack, pricePerPack: v.pricePerPack }))
-    };
+    productCatalog[name] = { cogs, createdAt: oldData.createdAt||currentTime, updatedAt: currentTime, variants: variantRows.map(v=>({label:v.label.trim(), pcsPerPack:v.pcsPerPack, pricePerPack:v.pricePerPack})) };
     inventory[name] = stock;
     editingProductName = null;
     document.getElementById('formTitle').innerText = '➕ Tambah Produk Baru';
     document.getElementById('saveProductBtn').innerText = 'Simpan Produk';
     saveProductCatalog(); saveToCloud(); populateProductDropdown(); updatePackageOptions(); renderDashboard();
     document.getElementById('addMenuForm').style.display = 'none';
-    alert(`✅ Produk "${name}" berhasil diupdate!`);
-    return;
+    alert(`✅ Produk "${name}" diupdate!`); return;
   }
-  
-  if (productCatalog[name]) {
-    if (!confirm(`Produk "${name}" sudah ada. Ingin mengganti data?`)) return;
-  }
-  productCatalog[name] = {
-    cogs: cogs,
-    createdAt: currentTime,
-    updatedAt: currentTime,
-    variants: variantRows.map(v => ({ label: v.label.trim(), pcsPerPack: v.pcsPerPack, pricePerPack: v.pricePerPack }))
-  };
+  if (productCatalog[name]) { if(!confirm(`Produk "${name}" sudah ada. Timpa?`)) return; }
+  productCatalog[name] = { cogs, createdAt: currentTime, updatedAt: currentTime, variants: variantRows.map(v=>({label:v.label.trim(), pcsPerPack:v.pcsPerPack, pricePerPack:v.pricePerPack})) };
   inventory[name] = stock;
   saveProductCatalog(); saveToCloud(); populateProductDropdown(); updatePackageOptions(); renderDashboard();
   document.getElementById('addMenuForm').style.display = 'none';
-  alert(`✅ Produk "${name}" berhasil ditambahkan!`);
+  alert(`✅ Produk "${name}" ditambahkan!`);
 }
 
-// ============================================================
-// 9. HAPUS PRODUK
-// ============================================================
 function deleteProduct(productName) {
+  if (currentUserRole !== 'admin') { alert('Hanya Admin!'); return; }
   if (!productName) return;
-  const hasLog = logs.some(l => l.product === productName);
+  const hasLog = logs.some(l=>l.product===productName);
   let msg = `Yakin hapus "${productName}"?`;
-  if (hasLog) msg += `\n⚠️ Ada ${logs.filter(l=>l.product===productName).length} transaksi historis (tetap tersimpan di Jurnal).`;
+  if (hasLog) msg += `\n⚠️ Ada ${logs.filter(l=>l.product===productName).length} transaksi historis.`;
   if (!confirm(msg)) return;
-  delete productCatalog[productName];
-  delete inventory[productName];
+  delete productCatalog[productName]; delete inventory[productName];
   saveProductCatalog(); saveToCloud(); populateProductDropdown(); updatePackageOptions(); renderDashboard();
   alert(`✅ "${productName}" dihapus.`);
 }
 
 // ============================================================
-// 10. CLOUD SYNC (DENGAN NOTIFIKASI + BUNYI + RETRY)
+// 11. CLOUD SYNC (DENGAN BUNYI & RETRY)
 // ============================================================
+function playBeep() {
+  try { const ctx = new (window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=800; osc.type='square'; gain.gain.value=0.3; osc.start(); setTimeout(()=>{ try{osc.stop(); ctx.close();}catch(e){} },350); } catch(e){}
+}
+function showSyncBanner(type, message, showRetry=false) {
+  const banner = document.getElementById('syncStatusBanner');
+  banner.className = 'sync-banner ' + type; banner.style.display = 'flex';
+  let btnHtml = '';
+  if (showRetry) btnHtml += `<button class="btn-retry" onclick="retrySync()">🔄 Coba Lagi</button>`;
+  btnHtml += `<button class="btn-close" onclick="dismissSyncBanner()">✕ Tutup</button>`;
+  banner.innerHTML = `<span>${message}</span> <div style="display:flex; gap:8px;">${btnHtml}</div>`;
+}
+function dismissSyncBanner() { document.getElementById('syncStatusBanner').style.display = 'none'; }
+function retrySync() { dismissSyncBanner(); saveToCloud(); }
+
 function loadFromCloud() {
   showLoading("🔄 Menyelaraskan Data...");
-  fetch(CLOUD_URL).then(res => res.json()).then(data => {
+  fetch(CLOUD_URL).then(res=>res.json()).then(data=>{
     if (data.inventory) for (let k in data.inventory) inventory[k] = data.inventory[k];
     if (data.logs) logs = data.logs;
     if (data.productCatalog) { productCatalog = data.productCatalog; saveProductCatalog(); } else { loadProductCatalog(); }
     for (let k in productCatalog) if (!(k in inventory)) inventory[k] = 0;
     populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading();
-    showSyncBanner('success', '✅ Data berhasil dimuat dari Cloud.', false);
-    setTimeout(dismissSyncBanner, 3000);
-  }).catch(() => {
-    loadProductCatalog();
-    populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading();
-    playBeep();
-    showSyncBanner('error', '⚠️ Gagal memuat data dari Cloud! Menampilkan data lokal.', true);
+    applyDateFilter(currentPeriod || 'today');
+    showSyncBanner('success', '✅ Data dimuat dari Cloud.', false);
+    setTimeout(dismissSyncBanner, 2000);
+  }).catch(()=>{
+    loadProductCatalog(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading();
+    applyDateFilter(currentPeriod || 'today');
+    playBeep(); showSyncBanner('error', '⚠️ Gagal konek Cloud! (Data lokal)', true);
   });
 }
 
 function saveToCloud() {
   if (isSyncing) return;
-  isSyncing = true;
-  showLoading("💾 Menyimpan ke Cloud...");
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  isSyncing = true; showLoading("💾 Menyimpan ke Cloud...");
+  const controller = new AbortController(); const timeoutId = setTimeout(()=>controller.abort(), 15000);
+  fetch(CLOUD_URL, { method:"POST", mode:"no-cors", signal:controller.signal, body:JSON.stringify({ type:'SALE', inventory, logs, productCatalog }) })
+  .then(()=>{ clearTimeout(timeoutId); hideLoading(); renderDashboard(); saveProductCatalog(); showSyncBanner('success','✅ Tersimpan ke Cloud.',false); setTimeout(dismissSyncBanner,2000); isSyncing=false; })
+  .catch((error)=>{ clearTimeout(timeoutId); console.error(error); hideLoading(); renderDashboard(); saveProductCatalog(); playBeep(); showSyncBanner('error','❌ Gagal sync! Periksa jaringan. (Data lokal)',true); isSyncing=false; });
+}
 
-  fetch(CLOUD_URL, {
-    method: "POST",
-    mode: "no-cors",
-    signal: controller.signal,
-    body: JSON.stringify({ type: 'SALE', inventory, logs, productCatalog })
-  }).then(() => {
-    clearTimeout(timeoutId);
-    // Karena mode no-cors, fetch resolve jika request terkirim (anggap sukses)
-    hideLoading();
-    renderDashboard();
-    saveProductCatalog();
-    showSyncBanner('success', '✅ Data berhasil tersimpan ke Cloud.', false);
-    setTimeout(dismissSyncBanner, 3000);
-    isSyncing = false;
-  }).catch((error) => {
-    clearTimeout(timeoutId);
-    console.error("Sync Error:", error);
-    hideLoading();
-    renderDashboard();
-    saveProductCatalog(); // Tetap simpan lokal
-        
-    // PLAY BEEP + TAMPILKAN ERROR BANNER DENGAN RETRY
-    playBeep();
-    showSyncBanner('error', '❌ Gagal terhubung ke Cloud! Periksa jaringan. (Data tersimpan di lokal)', true);
-    isSyncing = false;
+// ============================================================
+// 12. RENDER DASHBOARD (UTAMA)
+// ============================================================
+function renderDashboard() {
+  // 1. Tabel Stok + Forecasting
+  const stockBody = document.getElementById('stockTableBody');
+  stockBody.innerHTML = "";
+  const sortedKeys = getSortedProductKeys();
+  for (let item of sortedKeys) {
+    if (!(item in inventory)) continue;
+    let unit = "Pcs"; const variants = getVariants(item);
+    if (variants.length === 1 && variants[0].pcsPerPack === 1) unit = "Pack";
+    const safeItem = item.replace(/'/g, "\\'");
+    const forecast = getForecastDays(item);
+    stockBody.innerHTML += `<tr>
+      <td><b>${item}</b></td>
+      <td>${inventory[item]||0} ${unit}</td>
+      <td style="font-size:0.75rem;">${forecast}</td>
+      <td style="text-align:center; white-space:nowrap;">
+        ${currentUserRole === 'admin' ? `<button class="btn-clone" onclick="cloneProduct('${safeItem}')" title="Clone Menu">📋</button>` : ''}
+        ${currentUserRole === 'admin' ? `<button class="btn-edit" onclick="editProduct('${safeItem}')" title="Edit Menu">✏️</button>` : ''}
+        ${currentUserRole === 'admin' ? `<button class="btn-trash" onclick="deleteProduct('${safeItem}')" title="Hapus Menu">🗑️</button>` : ''}
+      </td>
+    </tr>`;
+  }
+
+  // 2. Rekap & Jurnal (berdasarkan filteredLogs)
+  let tRev=0, tVol=0, tDisc=0, tGross=0, tCogs=0, tNet=0;
+  const auditBody = document.getElementById('auditTableBody');
+  auditBody.innerHTML = "";
+  const displayLogs = filteredLogs.length > 0 ? filteredLogs : logs;
+  displayLogs.forEach((log, i) => {
+    let badge = log.type === "JUAL" ? `<span class="badge-out">JUAL</span>` : log.type === "TESTER" ? `<span class="badge-tester">TESTER</span>` : `<span class="badge-in">MASUK</span>`;
+    if (log.type === "JUAL") { tRev += log.finalNominal; tDisc += log.discount; tVol += log.qtyInput; tGross += log.grossPrice; tCogs += log.cogsTotal; tNet += log.netProfit; }
+    if (log.type === "TESTER") { tCogs += log.cogsTotal; tNet += log.netProfit; }
+    auditBody.innerHTML += `<tr><td><small>${log.date}</small></td><td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td><td>${badge}</td><td>${(log.type==="JUAL")?formatRupiah(log.grossPrice):(log.type==="TESTER"?"PROMOSI":"-")}</td><td>${log.type==="JUAL"?`<input type="number" value="${log.discount}" onblur="updateManualDiscount(this, ${i})" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">`:"-"}</td><td><span style="color:var(--danger)">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.cogsTotal):"-"}</span></td><td><b style="${log.netProfit<0?'color:var(--danger)':'color:var(--success)'}">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.netProfit):"-"}</b></td></tr>`;
+  });
+
+  document.getElementById('sumRevenue').innerText = formatRupiah(tRev);
+  document.getElementById('sumSold').innerText = tVol + " Item";
+  document.getElementById('sumDiscount').innerText = formatRupiah(tDisc);
+  document.getElementById('profGross').innerText = formatRupiah(tGross);
+  document.getElementById('profCogs').innerText = formatRupiah(tCogs);
+  document.getElementById('profNet').innerText = formatRupiah(tNet);
+
+  // 3. PARETO
+  const { top, bottom } = calculatePareto();
+  const topDiv = document.getElementById('topProducts');
+  topDiv.innerHTML = top.length === 0 ? '<p style="color:var(--muted);font-size:0.8rem;">Belum ada data penjualan.</p>' : 
+    top.map(([name, qty]) => `<div class="pareto-item top"><span class="name">${name}</span><span class="val">${qty} pcs</span></div>`).join('');
+  
+  const bottomDiv = document.getElementById('bottomProducts');
+  bottomDiv.innerHTML = bottom.length === 0 ? '<p style="color:var(--muted);font-size:0.8rem;">Data kosong.</p>' :
+    bottom.map(([name, qty]) => `<div class="pareto-item bottom"><span class="name">${name}</span><span class="val">${qty} pcs</span></div>`).join('');
+
+  // 4. CHART
+  checkAlertsAndChart(displayLogs);
+}
+
+function updateManualDiscount(el, idx) {
+  let newDisc = parseInt(el.value.replace(/[^0-9]/g, '')) || 0;
+  logs[idx].discount = newDisc;
+  logs[idx].finalNominal = Math.max(0, logs[idx].grossPrice - newDisc);
+  logs[idx].netProfit = logs[idx].finalNominal - logs[idx].cogsTotal;
+  saveToCloud();
+}
+
+function checkAlertsAndChart(filteredLogsForChart) {
+  // Alerts
+  let alertBox = document.getElementById('stockAlerts'); alertBox.innerHTML = "";
+  for (let item in inventory) {
+    const stok = inventory[item] || 0;
+    let threshold = 5; if (item === "Dimsum Premium") threshold = 20; else if (item === "Gyoza Premium") threshold = 20; else if (item.includes("Lumpia") || item.includes("Wonton")) threshold = 10; else if (item === "Steam Ceker") threshold = 5; else if (item === "Bakpao") threshold = 3;
+    if (stok <= threshold) alertBox.innerHTML += `<div class="alert-box">⚠️ Stok <b>${item}</b> menipis (Sisa: ${stok})</div>`;
+  }
+  // Chart
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  if (salesChartInstance) salesChartInstance.destroy();
+  const salesCount = {};
+  const dataLogs = filteredLogsForChart || logs;
+  dataLogs.forEach(l => { if (l.type === "JUAL") { salesCount[l.product] = (salesCount[l.product]||0) + l.qtyInput; } });
+  const labels = Object.keys(salesCount);
+  const data = labels.map(k => salesCount[k]);
+  salesChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Penjualan', data, backgroundColor: '#d4af37', borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#2a2a2e' } }, x: { grid: { display: false } } } }
   });
 }
 
 // ============================================================
-// 11. FUNGSI UTAMA (Preview, Kalkulator, dll)
+// 13. UPDATE UI & PREVIEW
 // ============================================================
-function formatRupiah(num) { return "Rp " + Math.round(num).toLocaleString('id-ID'); }
-function generateFormattedDate() { return new Date().toLocaleString('id-ID'); }
-function switchTab(t) {
-  document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById(t === 'dashboard' ? 'tabDashboard' : 'tabProfit').classList.add('active');
-  document.getElementById(t === 'dashboard' ? 'btnTabDashboard' : 'btnTabProfit').classList.add('active');
-}
-
 function updatePackageOptions() {
   const prod = document.getElementById('prodSelect').value;
   const type = document.getElementById('actionType').value;
@@ -582,12 +801,10 @@ function updatePackageOptions() {
   const select = document.getElementById('packSelect');
   const variants = getVariants(prod);
   if (type === "MASUK" || type === "TESTER" || variants.length <= 1) { group.style.display = "none"; return; }
-  group.style.display = "block";
-  select.innerHTML = "";
-  variants.forEach((p, i) => { const opt = document.createElement('option'); opt.value = i; opt.textContent = p.label; select.appendChild(opt); });
+  group.style.display = "block"; select.innerHTML = "";
+  variants.forEach((p,i) => { const opt=document.createElement('option'); opt.value=i; opt.textContent=p.label; select.appendChild(opt); });
   runCalculator();
 }
-
 function syncFormAndPreview() {
   const prod = document.getElementById('prodSelect').value;
   const type = document.getElementById('actionType').value;
@@ -604,7 +821,6 @@ function syncFormAndPreview() {
     document.getElementById('preSubtotalRow').style.display = "none";
     document.getElementById('preDiscountRow').style.display = "none";
     document.getElementById('preSubtotal').innerText = "PROMOSI";
-    document.getElementById('preTotalLabel').innerText = "Total Omset:";
     document.getElementById('preTotalNominal').innerText = "Rp 0";
     return;
   } else if (type === "MASUK") {
@@ -634,11 +850,9 @@ function syncFormAndPreview() {
   }
   document.getElementById('preSubtotal').innerText = formatRupiah(subtotal);
   document.getElementById('preDiscount').innerText = "-" + formatRupiah(disc);
-  document.getElementById('preTotalLabel').innerText = "Total Omset:";
   document.getElementById('preTotalNominal').innerText = formatRupiah(Math.max(0, subtotal - disc));
   runCalculator();
 }
-
 function runCalculator() {
   const prod = document.getElementById('prodSelect').value;
   const qty = parseInt(document.getElementById('txQty').value) || 1;
@@ -662,78 +876,7 @@ function runCalculator() {
 }
 
 // ============================================================
-// 12. RENDER DASHBOARD
-// ============================================================
-function renderDashboard() {
-  const stockBody = document.getElementById('stockTableBody');
-  stockBody.innerHTML = "";
-  const sortedKeys = getSortedProductKeys();
-  for (let item of sortedKeys) {
-    if (!(item in inventory)) continue;
-    let unit = "Pcs";
-    const variants = getVariants(item);
-    if (variants.length === 1 && variants[0].pcsPerPack === 1) unit = "Pack";
-    const safeItem = item.replace(/'/g, "\\'");
-    stockBody.innerHTML += `<tr><td><b>${item}</b></td><td>${inventory[item] || 0} ${unit}</td><td style="text-align:center; white-space:nowrap;"><button class="btn-edit" onclick="editProduct('${safeItem}')" title="Edit Menu">✏️</button><button class="btn-trash" onclick="deleteProduct('${safeItem}')" title="Hapus Menu">🗑️</button></td></tr>`;
-  }
-
-  let tRev=0, tVol=0, tDisc=0, tGross=0, tCogs=0, tNet=0;
-  const auditBody = document.getElementById('auditTableBody');
-  auditBody.innerHTML = "";
-  logs.forEach((log, i) => {
-    let badge = log.type === "JUAL" ? `<span class="badge-out">JUAL</span>` : log.type === "TESTER" ? `<span class="badge-tester">TESTER</span>` : `<span class="badge-in">MASUK</span>`;
-    if (log.type === "JUAL") { tRev += log.finalNominal; tDisc += log.discount; tVol += log.qtyInput; tGross += log.grossPrice; tCogs += log.cogsTotal; tNet += log.netProfit; }
-    if (log.type === "TESTER") { tCogs += log.cogsTotal; tNet += log.netProfit; }
-    auditBody.innerHTML += `<tr><td><small>${log.date}</small></td><td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail} (${log.impactStock})</small></td><td>${badge}</td><td>${(log.type==="JUAL")?formatRupiah(log.grossPrice):(log.type==="TESTER"?"PROMOSI":"-")}</td><td>${log.type==="JUAL"?`<input type="number" value="${log.discount}" onblur="updateManualDiscount(this, ${i})" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">`:"-"}</td><td><span style="color:var(--danger)">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.cogsTotal):"-"}</span></td><td><b style="${log.netProfit<0?'color:var(--danger)':'color:var(--success)'}">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.netProfit):"-"}</b></td></tr>`;
-  });
-  document.getElementById('sumRevenue').innerText = formatRupiah(tRev);
-  document.getElementById('sumSold').innerText = tVol + " Item";
-  document.getElementById('sumDiscount').innerText = formatRupiah(tDisc);
-  document.getElementById('profGross').innerText = formatRupiah(tGross);
-  document.getElementById('profCogs').innerText = formatRupiah(tCogs);
-  document.getElementById('profNet').innerText = formatRupiah(tNet);
-  checkAlertsAndChart();
-}
-
-function updateManualDiscount(el, idx) {
-  let newDisc = parseInt(el.value.replace(/[^0-9]/g, '')) || 0;
-  logs[idx].discount = newDisc;
-  logs[idx].finalNominal = Math.max(0, logs[idx].grossPrice - newDisc);
-  logs[idx].netProfit = logs[idx].finalNominal - logs[idx].cogsTotal;
-  saveToCloud();
-}
-
-function checkAlertsAndChart() {
-  let alertBox = document.getElementById('stockAlerts'); alertBox.innerHTML = "";
-  for (let item in inventory) {
-    const stok = inventory[item] || 0;
-    let threshold = 5;
-    if (item === "Dimsum Premium") threshold = 20;
-    else if (item === "Dimsum Jumbo" || item === "Dimsum Goreng Lumer") threshold = 10;
-    else if (item === "Gyoza Premium") threshold = 20;
-    else if (item === "Wonton Udang Premium" || item === "Lumpia Kulit Tahu Ayam" || item === "Lumpia Kulit Tahu Udang") threshold = 10;
-    else if (item === "Steam Ceker Lada Hitam") threshold = 5;
-    else if (item === "Bakpao Karakter Premium") threshold = 3;
-    if (stok <= threshold) alertBox.innerHTML += `<div class="alert-box">⚠️ Stok <b>${item}</b> menipis (Sisa: ${stok})</div>`;
-  }
-  let salesCount = {};
-  for (let item in inventory) salesCount[item] = 0;
-  logs.forEach(l => { if (l.type === "JUAL") salesCount[l.product] += l.qtyInput; });
-  for (let item in inventory) if (inventory[item] > 0 && salesCount[item] === 0) alertBox.innerHTML += `<div class="alert-box" style="border-color:#ff9800; color:#e68a00;">💤 <b>${item}</b> belum ada pergerakan (Dead Stock).</div>`;
-
-  const ctx = document.getElementById('salesChart').getContext('2d');
-  if (salesChartInstance) salesChartInstance.destroy();
-  const labels = Object.keys(salesCount);
-  const data = labels.map(k => salesCount[k]);
-  salesChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets: [{ label: 'Total Penjualan', data, backgroundColor: '#d4af37', borderRadius: 4 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#2a2a2e' } }, x: { grid: { display: false } } } }
-  });
-}
-
-// ============================================================
-// 13. TRANSAKSI
+// 14. TRANSAKSI (DENGAN RECEIPT)
 // ============================================================
 function submitTransaction() {
   const prod = document.getElementById('prodSelect').value;
@@ -769,9 +912,17 @@ function submitTransaction() {
     finalNom = Math.max(0, gross - disc); net = finalNom - cogs;
   }
 
-  logs.unshift({ date: generateFormattedDate(), product: prod, type, qtyInput: qty, detail, impactStock: impact, finalDeduct: deduct, grossPrice: gross, discount: disc, cogsTotal: cogs, finalNominal: finalNom, netProfit: net });
+  const logEntry = { date: generateFormattedDate(), product: prod, type, qtyInput: qty, detail, impactStock: impact, finalDeduct: deduct, grossPrice: gross, discount: disc, cogsTotal: cogs, finalNominal: finalNom, netProfit: net };
+  logs.unshift(logEntry);
   saveToCloud();
   document.getElementById('txQty').value = "1"; document.getElementById('txDiscount').value = "0"; syncFormAndPreview();
+  
+  // Tampilkan Struk jika JUAL
+  if (type === "JUAL") {
+    showReceipt(logEntry);
+  } else {
+    alert(`✅ ${type} berhasil dicatat!`);
+  }
 }
 
 function undoLastTransaction() {
@@ -782,35 +933,32 @@ function undoLastTransaction() {
   else inventory[last.product] += last.finalDeduct;
   logs.shift(); saveToCloud();
 }
-
 function resetSystemData() {
+  if (currentUserRole !== 'admin') { alert('Hanya Admin!'); return; }
   if (prompt("Ketik 8888 untuk HAPUS SEMUA DATA CLOUD:") === "8888") {
     for (let key in productCatalog) inventory[key] = 0;
     logs = []; saveToCloud();
   }
 }
-
 function exportToExcel() {
   let csv = "\uFEFFWaktu,Produk,Aktivitas,Detail,Dampak Stok,Omset,Diskon,Modal HPP,Laba Bersih\n";
   logs.forEach(l => csv += `"${l.date}","${l.product}","${l.type}","${l.detail}","${l.impactStock}","${l.grossPrice||0}","${l.discount}","${l.cogsTotal||0}","${l.netProfit||0}"\n`);
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
   link.download = "Audit_MantulKitchen.csv";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
 // ============================================================
-// 14. INISIALISASI
+// 15. INISIALISASI
 // ============================================================
-window.onload = function() {
+function initApp() {
   loadProductCatalog();
   populateProductDropdown();
   updatePackageOptions();
   renderDashboard();
   loadFromCloud();
-};
+}
 </script>
 </body>
 </html>
