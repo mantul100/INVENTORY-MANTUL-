@@ -320,7 +320,50 @@ let currentUserRole = 'admin';
 let lastReceiptLog = null;
 
 // ============================================================
-// 2. PIN & AUTHENTICATION
+// 2. FUNGSI TANGGAL TERSTANDARISASI (PERBAIKAN UTAMA)
+// ============================================================
+function generateFormattedDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  // Format ISO: YYYY-MM-DD HH:MM:SS (mudah di-parse dan di-sort)
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+function parseDate(dateStr) {
+  // Coba parse berbagai format:
+  // 1. Format standar: YYYY-MM-DD HH:MM:SS
+  let d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return d;
+  
+  // 2. Format "DD/MM/YYYY, HH.MM.SS" (dari toLocaleString)
+  let parts = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2})\.(\d{2})/);
+  if (parts) {
+    return new Date(parts[3], parts[2]-1, parts[1], parts[4], parts[5]);
+  }
+  
+  // 3. Format "Rabu, 15 Juli 2026 - 23.37" (coba parse dengan Date)
+  let cleaned = dateStr.replace(/[a-zA-Z]+,?\s*/g, '').replace(/[-.]/g, ':').trim();
+  d = new Date(cleaned);
+  if (!isNaN(d.getTime())) return d;
+  
+  // 4. Fallback: coba new Date langsung
+  return new Date(dateStr);
+}
+
+function formatDisplayDate(dateStr) {
+  const d = parseDate(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+  return d.toLocaleDateString('id-ID', options);
+}
+
+// ============================================================
+// 3. PIN & AUTHENTICATION
 // ============================================================
 function verifyPin() {
   const pin = document.getElementById('pinInput').value;
@@ -345,7 +388,7 @@ function verifyPin() {
 }
 
 // ============================================================
-// 3. INISIALISASI & DATA DEFAULT
+// 4. INISIALISASI & DATA DEFAULT
 // ============================================================
 const NOW = Date.now();
 const DEFAULT_PRODUCTS = {
@@ -369,7 +412,7 @@ let editingProductName = null;
 let filteredLogs = [];
 
 // ============================================================
-// 4. MANAJEMEN DATA
+// 5. MANAJEMEN DATA
 // ============================================================
 function loadProductCatalog() {
   const stored = localStorage.getItem('productCatalog');
@@ -384,7 +427,7 @@ function getCogs(name) { return productCatalog[name] ? productCatalog[name].cogs
 function getVariants(name) { return productCatalog[name] ? productCatalog[name].variants : []; }
 
 // ============================================================
-// 5. DATE FILTER (PERIODE)
+// 6. DATE FILTER (PERIODE) - DENGAN PARSE DATE
 // ============================================================
 function applyDateFilter(mode) {
   document.querySelectorAll('.date-filter button').forEach(b => b.classList.remove('active'));
@@ -418,7 +461,7 @@ function applyDateFilter(mode) {
   
   currentPeriod = mode;
   filteredLogs = logs.filter(l => {
-    const d = new Date(l.date);
+    const d = parseDate(l.date);
     return d >= start && d <= end;
   });
   if (filteredLogs.length === 0 && mode !== 'all') {
@@ -428,7 +471,7 @@ function applyDateFilter(mode) {
 }
 
 // ============================================================
-// 6. PARETO & FORECASTING
+// 7. PARETO & FORECASTING
 // ============================================================
 function calculatePareto() {
   const sales = {};
@@ -447,7 +490,7 @@ function calculatePareto() {
 function getForecastDays(item) {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const recent = logs.filter(l => l.product === item && l.type === 'JUAL' && new Date(l.date) >= weekAgo);
+  const recent = logs.filter(l => l.product === item && l.type === 'JUAL' && parseDate(l.date) >= weekAgo);
   if (recent.length === 0) return '-';
   const totalQty = recent.reduce((sum, l) => sum + l.qtyInput, 0);
   const avgDaily = totalQty / 7;
@@ -461,7 +504,7 @@ function getForecastDays(item) {
 }
 
 // ============================================================
-// 7. CLONE MENU
+// 8. CLONE MENU
 // ============================================================
 function cloneProduct(productName) {
   if (currentUserRole !== 'admin') { alert('Hanya Admin yang bisa clone menu!'); return; }
@@ -480,7 +523,7 @@ function cloneProduct(productName) {
 }
 
 // ============================================================
-// 8. RECEIPT (STRUK) - VERSI TERBARU DENGAN SLOGAN
+// 9. RECEIPT (STRUK) - DENGAN FORMAT TANGGAL BARU
 // ============================================================
 function showReceipt(log) {
   lastReceiptLog = log;
@@ -490,6 +533,7 @@ function showReceipt(log) {
   const kasir = currentUserRole === 'admin' ? 'Admin' : 'Kasir';
   const transaksiId = 'TRX-' + Date.now().toString().slice(-8);
   const hargaSatuan = log.grossPrice / log.qtyInput;
+  const displayDate = formatDisplayDate(log.date);
 
   let html = `
     <div style="text-align:center; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
@@ -503,7 +547,7 @@ function showReceipt(log) {
       <span>Kasir: ${kasir}</span>
     </div>
     <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:12px;">
-      <span>Tanggal: ${log.date}</span>
+      <span>Tanggal: ${displayDate}</span>
     </div>
     <div style="border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; padding: 8px 0; margin-bottom: 10px;">
       <div style="display:flex; font-weight:bold; font-size:0.8rem; color:#333; border-bottom: 1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
@@ -520,19 +564,18 @@ function showReceipt(log) {
       </div>
     </div>
     
-    <!-- LOGIKA SUBTOTAL & DISKON -->
-    <div style="margin-bottom:8px;">
-      ${log.discount > 0 ? `
+    ${log.discount > 0 ? `
+      <div style="margin-bottom:8px;">
         <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
           <span>Subtotal</span>
           <span>${formatRupiah(log.grossPrice)}</span>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--danger);">
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#ff4d4d;">
           <span>Diskon</span>
           <span>-${formatRupiah(log.discount)}</span>
         </div>
-      ` : ''}
-    </div>
+      </div>
+    ` : ''}
     
     <div style="border-top: ${log.discount > 0 ? '1px solid #ddd' : '2px solid #333'}; padding-top: 8px; font-weight:bold; font-size:1.2rem; display:flex; justify-content:space-between;">
       <span>TOTAL BAYAR</span>
@@ -560,9 +603,10 @@ function sendReceiptWA() {
   if (!lastReceiptLog) return;
   const l = lastReceiptLog;
   const hargaSatuan = l.grossPrice / l.qtyInput;
+  const displayDate = formatDisplayDate(l.date);
   let msg = `🧾 *MANTUL KITCHEN* - Premium Frozen Food\n`;
   msg += `"Kualitas Restoran Bintang Lima, Kini Hadir di Meja Makan Anda"\n\n`;
-  msg += `📅 ${l.date}\n`;
+  msg += `📅 ${displayDate}\n`;
   msg += `🛒 ${l.product} (${l.detail})\n`;
   msg += `📦 ${l.qtyInput} x ${formatRupiah(hargaSatuan)}\n`;
   if (l.discount > 0) msg += `💸 Diskon: -${formatRupiah(l.discount)}\n`;
@@ -574,12 +618,9 @@ function sendReceiptWA() {
 }
 
 // ============================================================
-// 9. FUNGSI UTAMA (RENDER, SORTING, SYNC)
+// 10. FUNGSI UTAMA (RENDER, SORTING, SYNC)
 // ============================================================
 function formatRupiah(num) { return "Rp " + Math.round(num).toLocaleString('id-ID'); }
-function generateFormattedDate() { return new Date().toLocaleString('id-ID'); }
-function showLoading(txt) { const el = document.getElementById('syncIndicator'); el.innerText = txt; el.style.display = "block"; }
-function hideLoading() { document.getElementById('syncIndicator').style.display = "none"; }
 function switchTab(t) {
   document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById(t === 'dashboard' ? 'tabDashboard' : 'tabProfit').classList.add('active');
@@ -609,7 +650,7 @@ function populateProductDropdown() {
 }
 
 // ============================================================
-// 10. UI FORM (ADD/EDIT/CLONE)
+// 11. UI FORM (ADD/EDIT/CLONE)
 // ============================================================
 function toggleAddMenuForm() {
   if (currentUserRole !== 'admin') { alert('Hanya Admin!'); return; }
@@ -704,7 +745,7 @@ function deleteProduct(productName) {
 }
 
 // ============================================================
-// 11. CLOUD SYNC (DENGAN BUNYI & RETRY)
+// 12. CLOUD SYNC (DENGAN BUNYI & RETRY)
 // ============================================================
 function playBeep() {
   try { const ctx = new (window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=800; osc.type='square'; gain.gain.value=0.3; osc.start(); setTimeout(()=>{ try{osc.stop(); ctx.close();} catch(e){} },350); } catch(e){}
@@ -720,11 +761,26 @@ function showSyncBanner(type, message, showRetry=false) {
 function dismissSyncBanner() { document.getElementById('syncStatusBanner').style.display = 'none'; }
 function retrySync() { dismissSyncBanner(); saveToCloud(); }
 
+function showLoading(txt) { const el = document.getElementById('syncIndicator'); el.innerText = txt; el.style.display = "block"; }
+function hideLoading() { document.getElementById('syncIndicator').style.display = "none"; }
+
 function loadFromCloud() {
   showLoading("🔄 Menyelaraskan Data...");
   fetch(CLOUD_URL).then(res=>res.json()).then(data=>{
     if (data.inventory) for (let k in data.inventory) inventory[k] = data.inventory[k];
-    if (data.logs) logs = data.logs;
+    if (data.logs) {
+      // Konversi semua tanggal di logs ke format standar jika belum
+      logs = data.logs.map(l => {
+        if (l.date && !l.date.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
+          // Coba parse dan format ulang
+          const d = parseDate(l.date);
+          if (!isNaN(d.getTime())) {
+            l.date = generateFormattedDateFromDate(d);
+          }
+        }
+        return l;
+      });
+    }
     if (data.productCatalog) { productCatalog = data.productCatalog; saveProductCatalog(); } else { loadProductCatalog(); }
     for (let k in productCatalog) if (!(k in inventory)) inventory[k] = 0;
     populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading();
@@ -738,6 +794,16 @@ function loadFromCloud() {
   });
 }
 
+function generateFormattedDateFromDate(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 function saveToCloud() {
   if (isSyncing) return;
   isSyncing = true; showLoading("💾 Menyimpan ke Cloud...");
@@ -748,7 +814,7 @@ function saveToCloud() {
 }
 
 // ============================================================
-// 12. RENDER DASHBOARD (UTAMA)
+// 13. RENDER DASHBOARD (UTAMA)
 // ============================================================
 function renderDashboard() {
   const stockBody = document.getElementById('stockTableBody');
@@ -780,7 +846,16 @@ function renderDashboard() {
     let badge = log.type === "JUAL" ? `<span class="badge-out">JUAL</span>` : log.type === "TESTER" ? `<span class="badge-tester">TESTER</span>` : `<span class="badge-in">MASUK</span>`;
     if (log.type === "JUAL") { tRev += log.finalNominal; tDisc += log.discount; tVol += log.qtyInput; tGross += log.grossPrice; tCogs += log.cogsTotal; tNet += log.netProfit; }
     if (log.type === "TESTER") { tCogs += log.cogsTotal; tNet += log.netProfit; }
-    auditBody.innerHTML += `<tr><td><small>${log.date}</small></td><td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td><td>${badge}</td><td>${(log.type==="JUAL")?formatRupiah(log.grossPrice):(log.type==="TESTER"?"PROMOSI":"-")}</td><td>${log.type==="JUAL"?`<input type="number" value="${log.discount}" onblur="updateManualDiscount(this, ${i})" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">`:"-"}</td><td><span style="color:var(--danger)">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.cogsTotal):"-"}</span></td><td><b style="${log.netProfit<0?'color:var(--danger)':'color:var(--success)'}">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.netProfit):"-"}</b></td></tr>`;
+    const displayDate = formatDisplayDate(log.date);
+    auditBody.innerHTML += `<tr>
+      <td><small>${displayDate}</small></td>
+      <td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td>
+      <td>${badge}</td>
+      <td>${(log.type==="JUAL")?formatRupiah(log.grossPrice):(log.type==="TESTER"?"PROMOSI":"-")}</td>
+      <td>${log.type==="JUAL"?`<input type="number" value="${log.discount}" onblur="updateManualDiscount(this, ${i})" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">`:"-"}</td>
+      <td><span style="color:var(--danger)">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.cogsTotal):"-"}</span></td>
+      <td><b style="${log.netProfit<0?'color:var(--danger)':'color:var(--success)'}">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.netProfit):"-"}</b></td>
+    </tr>`;
   });
 
   document.getElementById('sumRevenue').innerText = formatRupiah(tRev);
@@ -832,7 +907,7 @@ function checkAlertsAndChart(filteredLogsForChart) {
 }
 
 // ============================================================
-// 13. UPDATE UI & PREVIEW
+// 14. UPDATE UI & PREVIEW
 // ============================================================
 function updatePackageOptions() {
   const prod = document.getElementById('prodSelect').value;
@@ -916,7 +991,7 @@ function runCalculator() {
 }
 
 // ============================================================
-// 14. TRANSAKSI (DENGAN RECEIPT)
+// 15. TRANSAKSI (DENGAN RECEIPT)
 // ============================================================
 function submitTransaction() {
   const prod = document.getElementById('prodSelect').value;
@@ -952,7 +1027,20 @@ function submitTransaction() {
     finalNom = Math.max(0, gross - disc); net = finalNom - cogs;
   }
 
-  const logEntry = { date: generateFormattedDate(), product: prod, type, qtyInput: qty, detail, impactStock: impact, finalDeduct: deduct, grossPrice: gross, discount: disc, cogsTotal: cogs, finalNominal: finalNom, netProfit: net };
+  const logEntry = { 
+    date: generateFormattedDate(), 
+    product: prod, 
+    type, 
+    qtyInput: qty, 
+    detail, 
+    impactStock: impact, 
+    finalDeduct: deduct, 
+    grossPrice: gross, 
+    discount: disc, 
+    cogsTotal: cogs, 
+    finalNominal: finalNom, 
+    netProfit: net 
+  };
   logs.unshift(logEntry);
   saveToCloud();
   document.getElementById('txQty').value = "1"; document.getElementById('txDiscount').value = "0"; syncFormAndPreview();
@@ -981,7 +1069,10 @@ function resetSystemData() {
 }
 function exportToExcel() {
   let csv = "\uFEFFWaktu,Produk,Aktivitas,Detail,Dampak Stok,Omset,Diskon,Modal HPP,Laba Bersih\n";
-  logs.forEach(l => csv += `"${l.date}","${l.product}","${l.type}","${l.detail}","${l.impactStock}","${l.grossPrice||0}","${l.discount}","${l.cogsTotal||0}","${l.netProfit||0}"\n`);
+  logs.forEach(l => {
+    const displayDate = formatDisplayDate(l.date);
+    csv += `"${displayDate}","${l.product}","${l.type}","${l.detail}","${l.impactStock}","${l.grossPrice||0}","${l.discount}","${l.cogsTotal||0}","${l.netProfit||0}"\n`;
+  });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
   link.download = "Audit_MantulKitchen.csv";
@@ -989,7 +1080,7 @@ function exportToExcel() {
 }
 
 // ============================================================
-// 15. INISIALISASI
+// 16. INISIALISASI
 // ============================================================
 function initApp() {
   loadProductCatalog();
