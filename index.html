@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN v6.0 - ENTERPRISE (Full Features by AN)</title>
+<title>MANTUL KITCHEN v6.0 - ENTERPRISE (Full Features)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08); --warning: #ff9800; }
@@ -102,12 +102,11 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 /* RECEIPT MODAL */
 .receipt-modal { display: none; position: fixed; top:0;left:0;width:100%;height:100%;background: rgba(0,0,0,0.7);z-index:9998; justify-content:center; align-items:center; }
 .receipt-modal.active { display: flex; }
-.receipt-content { background: #fff; color: #111; max-width: 400px; width: 90%; padding: 25px; border-radius: 12px; max-height: 90vh; overflow-y: auto; }
-.receipt-content h2 { text-align: center; margin-top: 0; border-bottom: 2px dashed #ccc; padding-bottom: 10px; }
+.receipt-content { background: #fff; color: #111; max-width: 400px; width: 90%; padding: 25px; border-radius: 12px; max-height: 90vh; overflow-y: auto; font-family: 'Courier New', monospace; }
 .receipt-content .row { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 4px 0; }
 .receipt-content .total { font-weight: bold; font-size: 1.1rem; border-top: 2px solid #ccc; margin-top: 10px; padding-top: 10px; }
-.receipt-content .actions { margin-top: 20px; display: flex; gap: 10px; }
-.receipt-content .actions button { flex:1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+.receipt-content .actions { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+.receipt-content .actions button { flex:1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; min-width: 80px; }
 .btn-wa { background: #25D366; color: #fff; }
 .btn-copy { background: #ddd; color: #111; }
 .btn-close-modal { background: #ff4d4d; color: #fff; }
@@ -300,7 +299,6 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 <!-- ========== RECEIPT MODAL ========== -->
 <div id="receiptModal" class="receipt-modal">
   <div class="receipt-content">
-    <h2>🧾 MANTUL KITCHEN</h2>
     <div id="receiptBody"></div>
     <div class="actions">
       <button class="btn-wa" onclick="sendReceiptWA()">📱 Kirim via WA</button>
@@ -314,11 +312,11 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 // ============================================================
 // 1. KONFIGURASI & STATE
 // ============================================================
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzI6-_z0LtWs6hC9M0oSak_DdYLtTHBAQqZsQV4CIYAbCmMeW_t3y8yLULYiQZuDiav/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzI6-_z0LtWs6hC9M0oSak_DdYLtTHBAQqZsQV4CIYAbCmMeW_t3y8yLULYiQZuDiav/exec"; // GANTI DENGAN URL DEPLOY ANDA
 let currentSortMode = 'az';
 let isSyncing = false;
 let currentPeriod = 'today';
-let currentUserRole = 'admin'; // 'admin' or 'kasir'
+let currentUserRole = 'admin'; 
 let lastReceiptLog = null;
 
 // ============================================================
@@ -424,7 +422,6 @@ function applyDateFilter(mode) {
     return d >= start && d <= end;
   });
   if (filteredLogs.length === 0 && mode !== 'all') {
-    // jika kosong, tampilkan data all time biar ga kosong
     filteredLogs = [...logs];
   }
   renderDashboard();
@@ -448,7 +445,6 @@ function calculatePareto() {
 }
 
 function getForecastDays(item) {
-  // Hitung rata-rata penjualan 7 hari terakhir
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const recent = logs.filter(l => l.product === item && l.type === 'JUAL' && new Date(l.date) >= weekAgo);
@@ -465,16 +461,13 @@ function getForecastDays(item) {
 }
 
 // ============================================================
-// 7. CLONE MENU (FITUR BARU)
+// 7. CLONE MENU
 // ============================================================
 function cloneProduct(productName) {
   if (currentUserRole !== 'admin') { alert('Hanya Admin yang bisa clone menu!'); return; }
   const prod = productCatalog[productName];
   if (!prod) return alert("Produk tidak ditemukan!");
-  
-  // Buka form tambah
   toggleAddMenuForm();
-  // Set nama + " Copy"
   document.getElementById('newProductName').value = productName + " Copy";
   document.getElementById('newProductCogs').value = prod.cogs;
   document.getElementById('newProductStock').value = 0;
@@ -487,20 +480,70 @@ function cloneProduct(productName) {
 }
 
 // ============================================================
-// 8. RECEIPT (STRUK)
+// 8. RECEIPT (STRUK) - VERSI TERBARU DENGAN SLOGAN
 // ============================================================
 function showReceipt(log) {
   lastReceiptLog = log;
   const modal = document.getElementById('receiptModal');
   const body = document.getElementById('receiptBody');
-  let html = `<div class="row"><span>📅</span><span>${log.date}</span></div>`;
-  html += `<div class="row"><span>Produk</span><span>${log.product}</span></div>`;
-  html += `<div class="row"><span>Detail</span><span>${log.detail}</span></div>`;
-  html += `<div class="row"><span>Qty</span><span>${log.qtyInput}</span></div>`;
-  html += `<div class="row"><span>Omset Kotor</span><span>${formatRupiah(log.grossPrice)}</span></div>`;
-  if (log.discount > 0) html += `<div class="row" style="color:var(--danger);"><span>Diskon</span><span>-${formatRupiah(log.discount)}</span></div>`;
-  html += `<div class="row total"><span>Total Bayar</span><span>${formatRupiah(log.finalNominal)}</span></div>`;
-  html += `<div style="text-align:center; margin-top:15px; font-size:0.7rem; color:#888;">Terima kasih telah berbelanja!</div>`;
+
+  const kasir = currentUserRole === 'admin' ? 'Admin' : 'Kasir';
+  const transaksiId = 'TRX-' + Date.now().toString().slice(-8);
+  const hargaSatuan = log.grossPrice / log.qtyInput;
+
+  let html = `
+    <div style="text-align:center; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+      <h2 style="margin:0; color:#d4af37;">MANTUL KITCHEN</h2>
+      <p style="margin:2px 0; font-size:0.7rem; color:#888; font-style:italic;">- Premium Frozen Food -</p>
+      <p style="margin:2px 0; font-size:0.7rem; color:#555;">"Kualitas Restoran Bintang Lima, Kini Hadir di Meja Makan Anda"</p>
+      <p style="margin:4px 0 0 0; font-size:0.8rem; color:#555;">📱 WA: 0881-0255-32438</p>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:8px;">
+      <span>No. Transaksi: ${transaksiId}</span>
+      <span>Kasir: ${kasir}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:12px;">
+      <span>Tanggal: ${log.date}</span>
+    </div>
+    <div style="border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; padding: 8px 0; margin-bottom: 10px;">
+      <div style="display:flex; font-weight:bold; font-size:0.8rem; color:#333; border-bottom: 1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
+        <span style="flex:2;">Item</span>
+        <span style="flex:1; text-align:right;">Qty</span>
+        <span style="flex:1; text-align:right;">Harga</span>
+        <span style="flex:1; text-align:right;">Subtotal</span>
+      </div>
+      <div style="display:flex; font-size:0.85rem; padding:4px 0;">
+        <span style="flex:2;">${log.product} (${log.detail})</span>
+        <span style="flex:1; text-align:right;">${log.qtyInput}</span>
+        <span style="flex:1; text-align:right;">${formatRupiah(hargaSatuan)}</span>
+        <span style="flex:1; text-align:right;">${formatRupiah(log.grossPrice)}</span>
+      </div>
+    </div>
+    
+    <!-- LOGIKA SUBTOTAL & DISKON -->
+    <div style="margin-bottom:8px;">
+      ${log.discount > 0 ? `
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+          <span>Subtotal</span>
+          <span>${formatRupiah(log.grossPrice)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--danger);">
+          <span>Diskon</span>
+          <span>-${formatRupiah(log.discount)}</span>
+        </div>
+      ` : ''}
+    </div>
+    
+    <div style="border-top: ${log.discount > 0 ? '1px solid #ddd' : '2px solid #333'}; padding-top: 8px; font-weight:bold; font-size:1.2rem; display:flex; justify-content:space-between;">
+      <span>TOTAL BAYAR</span>
+      <span style="color:#d4af37;">${formatRupiah(log.finalNominal)}</span>
+    </div>
+    
+    <div style="text-align:center; margin-top: 15px; font-size:0.75rem; color:#888; border-top: 1px dashed #ccc; padding-top: 10px;">
+      Terima kasih telah berbelanja di MANTUL KITCHEN!<br>
+      📱 WA: 0881-0255-32438
+    </div>
+  `;
   body.innerHTML = html;
   modal.classList.add('active');
 }
@@ -516,14 +559,17 @@ function copyReceipt() {
 function sendReceiptWA() {
   if (!lastReceiptLog) return;
   const l = lastReceiptLog;
-  let msg = `🧾 *MANTUL KITCHEN* \n`;
+  const hargaSatuan = l.grossPrice / l.qtyInput;
+  let msg = `🧾 *MANTUL KITCHEN* - Premium Frozen Food\n`;
+  msg += `"Kualitas Restoran Bintang Lima, Kini Hadir di Meja Makan Anda"\n\n`;
   msg += `📅 ${l.date}\n`;
   msg += `🛒 ${l.product} (${l.detail})\n`;
-  msg += `📦 ${l.qtyInput} x @${formatRupiah(l.grossPrice/l.qtyInput)}\n`;
+  msg += `📦 ${l.qtyInput} x ${formatRupiah(hargaSatuan)}\n`;
   if (l.discount > 0) msg += `💸 Diskon: -${formatRupiah(l.discount)}\n`;
-  msg += `💰 *Total: ${formatRupiah(l.finalNominal)}*\n`;
-  msg += `Terima kasih!`;
-  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  msg += `💰 *Total: ${formatRupiah(l.finalNominal)}*\n\n`;
+  msg += `Terima kasih! 📱 WA: 0881-0255-32438`;
+  const waNumber = '62881025532438';
+  const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
 }
 
@@ -661,7 +707,7 @@ function deleteProduct(productName) {
 // 11. CLOUD SYNC (DENGAN BUNYI & RETRY)
 // ============================================================
 function playBeep() {
-  try { const ctx = new (window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=800; osc.type='square'; gain.gain.value=0.3; osc.start(); setTimeout(()=>{ try{osc.stop(); ctx.close();}catch(e){} },350); } catch(e){}
+  try { const ctx = new (window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=800; osc.type='square'; gain.gain.value=0.3; osc.start(); setTimeout(()=>{ try{osc.stop(); ctx.close();} catch(e){} },350); } catch(e){}
 }
 function showSyncBanner(type, message, showRetry=false) {
   const banner = document.getElementById('syncStatusBanner');
@@ -705,7 +751,6 @@ function saveToCloud() {
 // 12. RENDER DASHBOARD (UTAMA)
 // ============================================================
 function renderDashboard() {
-  // 1. Tabel Stok + Forecasting
   const stockBody = document.getElementById('stockTableBody');
   stockBody.innerHTML = "";
   const sortedKeys = getSortedProductKeys();
@@ -727,7 +772,6 @@ function renderDashboard() {
     </tr>`;
   }
 
-  // 2. Rekap & Jurnal (berdasarkan filteredLogs)
   let tRev=0, tVol=0, tDisc=0, tGross=0, tCogs=0, tNet=0;
   const auditBody = document.getElementById('auditTableBody');
   auditBody.innerHTML = "";
@@ -746,7 +790,6 @@ function renderDashboard() {
   document.getElementById('profCogs').innerText = formatRupiah(tCogs);
   document.getElementById('profNet').innerText = formatRupiah(tNet);
 
-  // 3. PARETO
   const { top, bottom } = calculatePareto();
   const topDiv = document.getElementById('topProducts');
   topDiv.innerHTML = top.length === 0 ? '<p style="color:var(--muted);font-size:0.8rem;">Belum ada data penjualan.</p>' : 
@@ -756,7 +799,6 @@ function renderDashboard() {
   bottomDiv.innerHTML = bottom.length === 0 ? '<p style="color:var(--muted);font-size:0.8rem;">Data kosong.</p>' :
     bottom.map(([name, qty]) => `<div class="pareto-item bottom"><span class="name">${name}</span><span class="val">${qty} pcs</span></div>`).join('');
 
-  // 4. CHART
   checkAlertsAndChart(displayLogs);
 }
 
@@ -769,14 +811,12 @@ function updateManualDiscount(el, idx) {
 }
 
 function checkAlertsAndChart(filteredLogsForChart) {
-  // Alerts
   let alertBox = document.getElementById('stockAlerts'); alertBox.innerHTML = "";
   for (let item in inventory) {
     const stok = inventory[item] || 0;
     let threshold = 5; if (item === "Dimsum Premium") threshold = 20; else if (item === "Gyoza Premium") threshold = 20; else if (item.includes("Lumpia") || item.includes("Wonton")) threshold = 10; else if (item === "Steam Ceker") threshold = 5; else if (item === "Bakpao") threshold = 3;
     if (stok <= threshold) alertBox.innerHTML += `<div class="alert-box">⚠️ Stok <b>${item}</b> menipis (Sisa: ${stok})</div>`;
   }
-  // Chart
   const ctx = document.getElementById('salesChart').getContext('2d');
   if (salesChartInstance) salesChartInstance.destroy();
   const salesCount = {};
@@ -917,7 +957,6 @@ function submitTransaction() {
   saveToCloud();
   document.getElementById('txQty').value = "1"; document.getElementById('txDiscount').value = "0"; syncFormAndPreview();
   
-  // Tampilkan Struk jika JUAL
   if (type === "JUAL") {
     showReceipt(logEntry);
   } else {
