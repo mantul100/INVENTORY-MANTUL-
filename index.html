@@ -124,6 +124,14 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
             <div class="form-group">
               <label>Stok Awal / Koreksi Stok (dalam Pcs untuk multi-pack, atau Pack untuk pure-pack):</label>
               <input type="number" id="newProductStock" value="0">
+           </div>
+            <div class="form-group">
+              <label>Biaya Packing Khusus (Rp) <small style="color:var(--muted);">(Kosongkan = pakai global)</small>:</label>
+              <input type="number" id="newProductPackCost" placeholder="800" value="0">
+            </div>
+            <div class="form-group">
+              <label>Biaya Operasional / Listrik Khusus (Rp) <small style="color:var(--muted);">(Kosongkan = pakai global)</small>:</label>
+                <input type="number" id="newProductOprCost" placeholder="1000" value="0">
             </div>
             <div class="form-group">
               <label>Varian Paket (Kemasan yang dijual):</label>
@@ -332,6 +340,8 @@ function editProduct(productName) {
   document.getElementById('newProductName').value = productName;
   document.getElementById('newProductCogs').value = prod.cogs;
   document.getElementById('newProductStock').value = inventory[productName] || 0;
+  document.getElementById('newProductPackCost').value = prod.packCost || 0;
+  document.getElementById('newProductOprCost').value = prod.oprCost || 0;
   variantRows = prod.variants.map(v => ({ ...v }));
   renderVariantRows();
   document.getElementById('addMenuForm').style.display = 'block';
@@ -381,7 +391,12 @@ function saveNewProduct() {
   if (productCatalog[name]) {
     if (!confirm(`Produk "${name}" sudah ada. Ingin mengganti data?`)) return;
   }
-  productCatalog[name] = { cogs: cogs, variants: variantRows.map(v => ({ label: v.label.trim(), pcsPerPack: v.pcsPerPack, pricePerPack: v.pricePerPack })) };
+  productCatalog[name] = {
+  cogs: cogs,
+  packCost: parseInt(document.getElementById('newProductPackCost').value) || 0,
+  oprCost: parseInt(document.getElementById('newProductOprCost').value) || 0,
+  variants: variantRows.map(v => ({ label: v.label.trim(), pcsPerPack: v.pcsPerPack, pricePerPack: v.pricePerPack }))
+};
   inventory[name] = stock;
   saveProductCatalog(); saveToCloud(); populateProductDropdown(); updatePackageOptions(); renderDashboard();
   document.getElementById('addMenuForm').style.display = 'none';
@@ -505,18 +520,34 @@ function runCalculator() {
   const qty = parseInt(document.getElementById('txQty').value) || 1;
   const variants = getVariants(prod);
   const isPure = (variants.length === 1 && variants[0].pcsPerPack === 1);
+  
+  // HITUNG TOTAL PCS (sesuai varian)
   let totalPcs = qty;
   if (!isPure && document.getElementById('actionType').value !== "MASUK" && document.getElementById('actionType').value !== "TESTER") {
     const packIdx = parseInt(document.getElementById('packSelect').value) || 0;
     const pack = variants[packIdx];
     if (pack) totalPcs = pack.pcsPerPack * qty;
   }
+
+  // 1. MODAL BAHAN BAKU
   const modalBahan = totalPcs * getCogs(prod);
-  const packing = parseFloat(document.getElementById('calcPack').value) || 0;
-  const opr = parseFloat(document.getElementById('calcOpr').value) || 0;
+  
+  // 2. LOGIKA CERDAS PACKING & OPERASIONAL
+  // Ambil data khusus produk, jika 0 atau null, ambil dari input global
+  const prodData = productCatalog[prod] || {};
+  const packCost = (prodData.packCost > 0) ? prodData.packCost : (parseFloat(document.getElementById('calcPack').value) || 0);
+  const oprCost = (prodData.oprCost > 0) ? prodData.oprCost : (parseFloat(document.getElementById('calcOpr').value) || 0);
+  
   const mgn = parseFloat(document.getElementById('calcMargin').value) || 0;
-  const totalModalRiil = modalBahan + packing + opr;
+  const totalModalRiil = modalBahan + packCost + oprCost;
+  
+  // 3. TAMPILKAN RINCIAN DI PREVIEW
   document.getElementById('calcTotalModal').innerText = formatRupiah(totalModalRiil);
+  
+  // Tampilkan rincian tambahan (opsional, biar jelas)
+  document.getElementById('calcPack').value = packCost; // opsional: update field global biar keliatan
+  document.getElementById('calcOpr').value = oprCost;
+
   let hargaJualRaw = totalModalRiil / (1 - (mgn / 100));
   let hargaJualBulat = Math.ceil(hargaJualRaw / 1000) * 1000;
   document.getElementById('calcIdealPrice').innerText = formatRupiah(hargaJualBulat);
