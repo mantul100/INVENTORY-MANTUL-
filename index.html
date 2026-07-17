@@ -125,6 +125,40 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 .receipt-slogan { text-align:center; font-size:0.7rem; color:#888; margin:0 0 10px 0; }
 .receipt-divider { border-top:1px dashed #ccc; margin:8px 0; }
 .receipt-info { display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:4px; }
+/* ========== KASIR MODE (UI BERBEDA) ========== */
+body.kasir-mode {
+  --bg: #f5f7fa;           /* Background putih kebiruan (cerah) */
+  --card: #ffffff;         /* Card putih bersih */
+  --text: #1a1a2e;         /* Teks gelap (kontras tinggi) */
+  --muted: #4a4a6a;        /* Teks abu-abu gelap */
+  --border: #d0d5dd;       /* Border abu-abu terang */
+  --input: #f0f2f5;        /* Input abu-abu terang */
+  --gold: #0ea5e9;         /* Ubah aksen emas menjadi BIRU TERANG (Sky Blue) */
+  --gold-light: rgba(14, 165, 233, 0.08);
+}
+
+/* Penyesuaian elemen spesifik untuk kasir */
+body.kasir-mode .btn-gold,
+body.kasir-mode .btn-cart-checkout,
+body.kasir-mode .tab-btn.active {
+  background: #0ea5e9;
+  color: #fff;
+}
+
+body.kasir-mode .stat-card .val {
+  color: #0ea5e9;
+}
+
+body.kasir-mode .box h2 {
+  color: #0ea5e9;
+  border-bottom-color: #d0d5dd;
+}
+
+/* Biarkan tombol lain (Add, Undo, dll) tetap sesuai agar tidak bentrok */
+body.kasir-mode .btn-add {
+  background: #34d399; /* Hijau mint untuk tambah */
+  color: #111;
+}
 </style>
 </head>
 <body>
@@ -386,6 +420,7 @@ function applyRoleUI(){
   
   updateActionButton();
   applySettingsToUI();
+document.body.classList.toggle('kasir-mode', !isAdmin);
 }
 
 // ============================================================
