@@ -2,8 +2,11 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN v7.0 - CART SYSTEM</title>
+<title>MANTUL KITCHEN v8.0 - FINAL</title>
+<!-- LIBRARY EXTERNAL -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 :root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08); --warning: #ff9800; }
 * { box-sizing: border-box; font-family: Arial, sans-serif; }
@@ -104,14 +107,12 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 .sort-controls label { color: var(--muted); font-size: 0.8rem; font-weight: bold; }
 .sort-controls select { background: var(--input); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; flex: 1; min-width: 180px; }
 
-/* CART TABLE */
 .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
 .cart-item-row .item-info { flex: 3; }
 .cart-item-row .item-price { flex: 1; text-align: right; }
 .cart-item-row .item-actions { flex: 0.5; text-align: right; }
 .cart-total-line { display: flex; justify-content: space-between; font-weight: bold; padding: 10px 0; border-top: 2px solid var(--gold); margin-top: 5px; }
 
-/* RECEIPT MODAL */
 .receipt-modal { display: none; position: fixed; top:0;left:0;width:100%;height:100%;background: rgba(0,0,0,0.7);z-index:9998; justify-content:center; align-items:center; }
 .receipt-modal.active { display: flex; }
 .receipt-content { background: #fff; color: #111; max-width: 400px; width: 90%; padding: 25px; border-radius: 12px; max-height: 90vh; overflow-y: auto; font-family: 'Courier New', monospace; }
@@ -122,6 +123,8 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 .btn-wa { background: #25D366; color: #fff; }
 .btn-copy { background: #ddd; color: #111; }
 .btn-close-modal { background: #ff4d4d; color: #fff; }
+.btn-share-img { background: #7c4dff; color: #fff; }
+.btn-pdf { background: #f44336; color: #fff; }
 
 .empty-cart-msg { color: var(--muted); text-align: center; padding: 20px 0; font-style: italic; }
 </style>
@@ -140,8 +143,8 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 
 <div class="container">
   <div class="header">
-    <h1>MANTUL KITCHEN v7.0</h1>
-    <p>Cart System + Smart Analytics</p>
+    <h1>MANTUL KITCHEN v8.0</h1>
+    <p>Cart System + Struk Gambar/PDF + Nama Pelanggan</p>
     <div class="user-badge" id="userBadge">👤 Admin Mode</div>
   </div>
   
@@ -210,7 +213,6 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
           
           <button class="btn btn-add" onclick="addToCart()">➕ Tambahkan ke Keranjang</button>
         </div>
-
         <!-- BOX KERANJANG BELANJA -->
         <div class="box" id="cartSection">
           <h2>🧺 KERANJANG <span class="badge-cart" id="cartCount">0 Item</span></h2>
@@ -223,6 +225,11 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
             <div class="form-group" style="margin-top:10px;">
               <label>Diskon Order (Rp):</label>
               <input type="number" id="cartDiscount" value="0" min="0" oninput="updateCartSummary()">
+            </div>
+            <!-- [NEW] KOLOM NAMA PEMESAN -->
+            <div class="form-group">
+              <label>Nama / Catatan (Opsional):</label>
+              <input type="text" id="customerName" placeholder="Contoh: Yika / Meja 5 / GoFood" value="">
             </div>
             <div class="cart-total-line" style="border-top: 2px solid var(--gold); font-size:1.2rem; color:var(--gold);">
               <span>TOTAL BAYAR</span>
@@ -247,9 +254,11 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
             </div>
         </div>
         
-        <!-- ADMIN CONTROLS (HIDDEN UNTUK KASIR) -->
+        <!-- ADMIN CONTROLS -->
         <div id="adminControls">
             <button class="btn btn-secondary" onclick="toggleAddMenuForm()">➕ Tambah Menu Manual</button>
+            <button class="btn btn-secondary" onclick="quickAddStock()">📦 Input Stok Masuk</button>
+            <button class="btn btn-undo" onclick="undoLastTransaction()">↩️ Undo Transaksi Terakhir</button>
             <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>
         </div>
         
@@ -318,7 +327,7 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
       <button class="btn btn-excel" id="exportBtn" onclick="exportToExcel()">Export .CSV 📊</button>
       <div class="table-wrapper">
         <table>
-          <thead><tr><th>Order ID</th><th>Waktu</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset</th><th>Edit Diskon</th><th>Modal</th><th>Laba</th></tr></thead>
+          <thead><tr><th>Order ID</th><th>Waktu</th><th>Pelanggan</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset</th><th>Edit Diskon</th><th>Modal</th><th>Laba</th></tr></thead>
           <tbody id="auditTableBody"></tbody>
         </table>
       </div>
@@ -331,8 +340,10 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
   <div class="receipt-content">
     <div id="receiptBody"></div>
     <div class="actions">
-      <button class="btn-wa" onclick="sendReceiptWA()">📱 Kirim via WA</button>
-      <button class="btn-copy" onclick="copyReceipt()">📋 Salin Struk</button>
+      <button class="btn-copy" onclick="copyReceipt()">📋 Salin Teks</button>
+      <button class="btn-wa" onclick="sendReceiptWA()">📱 Kirim Teks via WA</button>
+      <button class="btn-share-img" onclick="shareReceiptImage()">🖼️ Share Gambar</button>
+      <button class="btn-pdf" onclick="downloadReceiptPDF()">📄 Download PDF</button>
       <button class="btn-close-modal" onclick="closeReceipt()">✕ Tutup</button>
     </div>
   </div>
@@ -346,10 +357,8 @@ let currentSortMode = 'az';
 let isSyncing = false;
 let currentPeriod = 'today';
 let currentUserRole = 'admin'; 
-let lastReceiptLog = null;
-
-// STATE KERANJANG
 let cart = [];
+let lastReceiptOrder = null;
 
 // ============================================================
 // 2. FUNGSI TANGGAL & FORMAT
@@ -540,9 +549,8 @@ function cloneProduct(productName) {
   document.getElementById('saveProductBtn').innerText = 'Simpan Clone';
   document.getElementById('addMenuForm').scrollIntoView({ behavior: 'smooth' });
 }
-
 // ============================================================
-// 8. CART LOGIC (INTI PERUBAHAN)
+// 8. CART LOGIC
 // ============================================================
 function updateItemPreview() {
   const prod = document.getElementById('prodSelect').value;
@@ -684,6 +692,7 @@ function updateCartSummary() {
   document.getElementById('cartSubtotal').innerText = formatRupiah(subtotal);
   document.getElementById('cartGrandTotal').innerText = formatRupiah(grand);
 }
+
 // ============================================================
 // 9. CHECKOUT (PENYUMPULAN TRANSAKSI)
 // ============================================================
@@ -691,6 +700,7 @@ function checkoutOrder() {
   if (cart.length === 0) { alert('Keranjang kosong!'); return; }
   
   const discount = parseInt(document.getElementById('cartDiscount').value) || 0;
+  const customerName = document.getElementById('customerName').value.trim() || '-';
   let subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   if (discount > subtotal) { alert('Diskon tidak boleh melebihi subtotal!'); return; }
   
@@ -721,7 +731,8 @@ function checkoutOrder() {
       discount: 0,
       cogsTotal: item.cogsTotal,
       finalNominal: item.subtotal,
-      netProfit: item.subtotal - item.cogsTotal
+      netProfit: item.subtotal - item.cogsTotal,
+      customerName: customerName // [NEW]
     };
     transactionLogs.push(logEntry);
     grossTotal += item.subtotal;
@@ -744,23 +755,73 @@ function checkoutOrder() {
   logs.unshift(...transactionLogs);
   cart = [];
   document.getElementById('cartDiscount').value = '0';
+  document.getElementById('customerName').value = '';
   renderCart();
   saveToCloud();
-  showCombinedReceipt(orderId, transactionLogs, discount, grossTotal - discount);
+  showCombinedReceipt(orderId, transactionLogs, discount, grossTotal - discount, customerName);
 }
-
 // ============================================================
-// 10. RECEIPT (STRUK GABUNGAN)
+// 10. RECEIPT (STRUK GABUNGAN) & PLAIN TEXT GENERATOR
 // ============================================================
 let lastReceiptOrder = null;
 
-function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal) {
-  lastReceiptOrder = { orderId, logsList, totalDiscount, grandTotal };
+// [NEW] Fungsi menghasilkan teks rapi dengan lebar kolom tetap
+function generatePlainReceipt(orderId, logsList, totalDiscount, grandTotal, customerName) {
+  const kasir = currentUserRole === 'admin' ? 'Admin' : 'Kasir';
+  const displayDate = formatDisplayDate(logsList[0]?.date || new Date());
+  const name = customerName || '-';
+  
+  let lines = [];
+  const ITEM_WIDTH = 20;
+  const QTY_WIDTH = 5;
+  const PRICE_WIDTH = 12;
+  const SEP = ''.padEnd(ITEM_WIDTH + QTY_WIDTH + PRICE_WIDTH + 2, '-');
+  
+  lines.push('MANTUL KITCHEN');
+  lines.push('====================');
+  lines.push(`Pelanggan : ${name}`);
+  lines.push(`Order ID  : ${orderId}`);
+  lines.push(`Tgl       : ${displayDate}`);
+  lines.push('--------------------');
+  
+  // Header Tabel
+  let header = 'Item'.padEnd(ITEM_WIDTH) + 'Qty'.padStart(QTY_WIDTH) + 'Total'.padStart(PRICE_WIDTH);
+  lines.push(header);
+  lines.push(SEP);
+  
+  let subTotalDisplay = 0;
+  logsList.forEach(log => {
+    subTotalDisplay += log.grossPrice;
+    let itemName = log.product.length > ITEM_WIDTH ? log.product.substring(0, ITEM_WIDTH-3) + '..' : log.product;
+    let qtyStr = log.qtyInput.toString();
+    let priceStr = log.grossPrice.toLocaleString('id-ID');
+    let row = itemName.padEnd(ITEM_WIDTH) + qtyStr.padStart(QTY_WIDTH) + priceStr.padStart(PRICE_WIDTH);
+    lines.push(row);
+  });
+  
+  lines.push(SEP);
+  if (totalDiscount > 0) {
+    lines.push(`Subtotal${''.padEnd(ITEM_WIDTH + QTY_WIDTH - 8)}${subTotalDisplay.toLocaleString('id-ID').padStart(PRICE_WIDTH)}`);
+    lines.push(`Diskon${''.padEnd(ITEM_WIDTH + QTY_WIDTH - 6)}-${totalDiscount.toLocaleString('id-ID').padStart(PRICE_WIDTH)}`);
+    lines.push('--------------------');
+  }
+  lines.push(`TOTAL BAYAR${''.padEnd(ITEM_WIDTH + QTY_WIDTH - 10)}${grandTotal.toLocaleString('id-ID').padStart(PRICE_WIDTH)}`);
+  lines.push('====================');
+  lines.push('Terima kasih!');
+  lines.push('📱 WA: 0881-0255-32438');
+  
+  return lines.join('\n');
+}
+
+// Tampilkan Struk di Modal (HTML)
+function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal, customerName) {
+  lastReceiptOrder = { orderId, logsList, totalDiscount, grandTotal, customerName };
   const modal = document.getElementById('receiptModal');
   const body = document.getElementById('receiptBody');
   
   const kasir = currentUserRole === 'admin' ? 'Admin' : 'Kasir';
   const displayDate = formatDisplayDate(logsList[0]?.date || new Date());
+  const name = customerName || '-';
   
   let html = `
     <div style="text-align:center; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
@@ -769,12 +830,13 @@ function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal) {
       <p style="margin:2px 0; font-size:0.7rem; color:#555;">"Kualitas Restoran Bintang Lima, Kini Hadir di Meja Makan Anda"</p>
       <p style="margin:4px 0 0 0; font-size:0.8rem; color:#555;">📱 WA: 0881-0255-32438</p>
     </div>
-    <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:8px;">
+    <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:4px;">
       <span>Order: ${orderId}</span>
       <span>Kasir: ${kasir}</span>
     </div>
     <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:12px;">
-      <span>Tanggal: ${displayDate}</span>
+      <span>Pelanggan: ${name}</span>
+      <span>${displayDate}</span>
     </div>
     <div style="border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; padding: 8px 0; margin-bottom: 10px;">
       <div style="display:flex; font-weight:bold; font-size:0.8rem; color:#333; border-bottom: 1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
@@ -833,36 +895,72 @@ function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal) {
 
 function closeReceipt() { document.getElementById('receiptModal').classList.remove('active'); }
 
+// [NEW] Copy Teks Rapi
 function copyReceipt() {
-  const body = document.getElementById('receiptBody');
-  navigator.clipboard.writeText(body.innerText).then(() => alert('✅ Struk disalin!'));
+  if (!lastReceiptOrder) return;
+  const { orderId, logsList, totalDiscount, grandTotal, customerName } = lastReceiptOrder;
+  const text = generatePlainReceipt(orderId, logsList, totalDiscount, grandTotal, customerName);
+  navigator.clipboard.writeText(text).then(() => alert('✅ Struk teks rapi disalin!'));
 }
 
+// [NEW] Kirim Teks Rapi via WA
 function sendReceiptWA() {
   if (!lastReceiptOrder) return;
-  const { orderId, logsList, totalDiscount, grandTotal } = lastReceiptOrder;
-  let msg = `🧾 *MANTUL KITCHEN* - Premium Frozen Food\n`;
-  msg += `"Kualitas Restoran Bintang Lima, Kini Hadir di Meja Makan Anda"\n\n`;
-  msg += `📅 ${formatDisplayDate(logsList[0]?.date || new Date())}\n`;
-  msg += `🆔 Order: ${orderId}\n`;
-  msg += `----------------------------\n`;
-  let subTotalDisplay = 0;
-  logsList.forEach(log => {
-    const hargaSatuan = log.grossPrice / log.qtyInput;
-    subTotalDisplay += log.grossPrice;
-    msg += `${log.product} x${log.qtyInput} = ${formatRupiah(log.grossPrice)}\n`;
-  });
-  msg += `----------------------------\n`;
-  if (totalDiscount > 0) {
-    msg += `Subtotal: ${formatRupiah(subTotalDisplay)}\n`;
-    msg += `Diskon: -${formatRupiah(totalDiscount)}\n`;
-  }
-  msg += `💰 *Total: ${formatRupiah(grandTotal)}*\n\n`;
-  msg += `Terima kasih! 📱 WA: 0881-0255-32438`;
+  const { orderId, logsList, totalDiscount, grandTotal, customerName } = lastReceiptOrder;
+  const text = generatePlainReceipt(orderId, logsList, totalDiscount, grandTotal, customerName);
   const waNumber = '62881025532438';
-  window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, '_blank');
+  window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`, '_blank');
 }
 
+// [NEW] Share Gambar (HTML2Canvas + Web Share API)
+function shareReceiptImage() {
+  if (!lastReceiptOrder) return;
+  const modalContent = document.getElementById('receiptBody');
+  
+  html2canvas(modalContent, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    allowTaint: false,
+    useCORS: true
+  }).then(canvas => {
+    canvas.toBlob(function(blob) {
+      const file = new File([blob], `Struk_${lastReceiptOrder.orderId}.png`, { type: 'image/png' });
+      
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        navigator.share({
+          title: 'Struk MANTUL KITCHEN',
+          text: 'Berikut struk pembelian Anda.',
+          files: [file]
+        }).catch(() => {});
+      } else {
+        // Fallback: Download PNG
+        const link = document.createElement('a');
+        link.download = `Struk_${lastReceiptOrder.orderId}.png`;
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        alert('✅ Gambar struk didownload!');
+      }
+    });
+  }).catch(err => {
+    alert('Gagal generate gambar: ' + err);
+  });
+}
+
+// [NEW] Download PDF
+function downloadReceiptPDF() {
+  if (!lastReceiptOrder) return;
+  const modalContent = document.getElementById('receiptBody');
+  
+  const opt = {
+    margin:        [10, 10, 10, 10],
+    filename:     `Struk_${lastReceiptOrder.orderId}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, backgroundColor: '#ffffff', allowTaint: false, useCORS: true },
+    jsPDF:        { unit: 'mm', format: 'a6', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(modalContent).save();
+}
 // ============================================================
 // 11. FUNGSI UTAMA (RENDER, SORTING, SYNC)
 // ============================================================
@@ -1018,6 +1116,7 @@ function loadFromCloud() {
           if (!isNaN(d.getTime())) l.date = generateFormattedDateFromDate(d);
         }
         if (!l.orderId) l.orderId = 'LEGACY-' + Date.now().toString().slice(-8);
+        if (!l.customerName) l.customerName = '-'; // [NEW] Fallback
         return l;
       });
     }
@@ -1054,7 +1153,7 @@ function saveToCloud() {
 }
 
 // ============================================================
-// 14. RENDER DASHBOARD (UTAMA)
+// 14. RENDER DASHBOARD (UTAMA) + JURNAL
 // ============================================================
 function renderDashboard() {
   const stockBody = document.getElementById('stockTableBody');
@@ -1092,7 +1191,7 @@ function renderDashboard() {
   const displayLogs = filteredLogs.length > 0 ? filteredLogs : logs;
   
   if (displayLogs.length === 0 && filteredLogs.length === 0) {
-    auditBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);">Tidak ada transaksi pada periode ini.</td></tr>`;
+    auditBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);">Tidak ada transaksi pada periode ini.</td></tr>`;
   } else {
     displayLogs.forEach((log, i) => {
       let badge = log.type === "JUAL" ? `<span class="badge-out">JUAL</span>` : log.type === "TESTER" ? `<span class="badge-tester">TESTER</span>` : `<span class="badge-in">MASUK</span>`;
@@ -1100,6 +1199,7 @@ function renderDashboard() {
       if (log.type === "TESTER") { tCogs += log.cogsTotal; tNet += log.netProfit; }
       const displayDate = formatDisplayDate(log.date);
       const orderId = log.orderId || 'N/A';
+      const customer = log.customerName || '-';
       let editDiscountHtml = '-';
       if (log.type === "JUAL" && isAdmin) {
         editDiscountHtml = `<input type="number" value="${log.discount}" onblur="updateManualDiscount(this, ${i})" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">`;
@@ -1109,6 +1209,7 @@ function renderDashboard() {
       auditBody.innerHTML += `<tr>
         <td><small>${orderId}</small></td>
         <td><small>${displayDate}</small></td>
+        <td><small>${customer}</small></td>
         <td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td>
         <td>${badge}</td>
         <td>${(log.type==="JUAL")?formatRupiah(log.grossPrice):(log.type==="TESTER"?"PROMOSI":"-")}</td>
@@ -1201,18 +1302,49 @@ function runCalculator() {
   const totalModalRiil = modalBahan + packing + opr;
   document.getElementById('calcTotalModal').innerText = formatRupiah(totalModalRiil);
   let hargaJualRaw = totalModalRiil / (1 - (mgn / 100));
-  let hargaJualBulat = Math.ceil(hargaJualRaw / 1000) * 1000;
-  document.getElementById('calcIdealPrice').innerText = formatRupiah(hargaJualBulat);
+  let hargaJualBulat = Math.ceil(hargaJualRaw / 1000) * 1000; document.getElementById('calcIdealPrice').innerText = formatRupiah(hargaJualBulat);
 }
 
 // ============================================================
-// 16. UNDO (CANCEL LAST ORDER)
+// 16. FUNGSI TAMBAHAN: INPUT STOK MASUK & UNDO
 // ============================================================
+function quickAddStock() {
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
+  const prod = document.getElementById('prodSelect').value;
+  if (!prod) { alert('Pilih produk terlebih dahulu!'); return; }
+  const qtyInput = prompt(`Masukkan jumlah stok MASUK untuk "${prod}":`, "10");
+  if (qtyInput === null) return;
+  const qty = parseInt(qtyInput);
+  if (isNaN(qty) || qty <= 0) { alert('Jumlah harus angka positif!'); return; }
+  inventory[prod] = (inventory[prod] || 0) + qty;
+  const logEntry = {
+    orderId: 'STOCK-' + Date.now().toString().slice(-8),
+    date: generateFormattedDate(),
+    product: prod,
+    type: 'MASUK',
+    qtyInput: qty,
+    detail: 'Restock Manual',
+    impactStock: `+${qty} Pcs`,
+    finalDeduct: qty,
+    grossPrice: 0,
+    discount: 0,
+    cogsTotal: 0,
+    finalNominal: 0,
+    netProfit: 0,
+    customerName: 'Admin'
+  };
+  logs.unshift(logEntry);
+  saveToCloud();
+  renderDashboard();
+  alert(`✅ Stok "${prod}" berhasil ditambah ${qty} Pcs.`);
+}
+
 function undoLastTransaction() {
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
   if (logs.length === 0) return alert("Belum ada transaksi.");
   
   const lastLog = logs[0];
-  if (!lastLog.orderId) {
+  if (!lastLog.orderId || lastLog.orderId.startsWith('STOCK-')) {
     const last = logs[0];
     if (!confirm(`Batalkan transaksi terakhir?\n${last.product} (${last.type})`)) return;
     if (last.type === "MASUK") inventory[last.product] -= last.qtyInput;
@@ -1254,10 +1386,10 @@ function resetSystemData() {
 
 function exportToExcel() {
   if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
-  let csv = "\uFEFFOrder ID,Waktu,Produk,Aktivitas,Detail,Dampak Stok,Omset,Diskon,Modal HPP,Laba Bersih\n";
+  let csv = "\uFEFFOrder ID,Waktu,Pelanggan,Produk,Aktivitas,Detail,Dampak Stok,Omset,Diskon,Modal HPP,Laba Bersih\n";
   logs.forEach(l => {
     const displayDate = formatDisplayDate(l.date);
-    csv += `"${l.orderId||'N/A'}","${displayDate}","${l.product}","${l.type}","${l.detail}","${l.impactStock}","${l.grossPrice||0}","${l.discount}","${l.cogsTotal||0}","${l.netProfit||0}"\n`;
+    csv += `"${l.orderId||'N/A'}","${displayDate}","${l.customerName||'-'}","${l.product}","${l.type}","${l.detail}","${l.impactStock}","${l.grossPrice||0}","${l.discount}","${l.cogsTotal||0}","${l.netProfit||0}"\n`;
   });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
