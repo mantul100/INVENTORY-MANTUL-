@@ -184,6 +184,13 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
             </select>
           </div>
           <div class="form-group"><label>4. Kuantitas:</label><input type="number" id="txQty" value="1" min="1" oninput="updateItemPreview()"></div>
+<div class="form-group" id="unitGroup" style="display:none;">
+  <label>Satuan Input:</label>
+  <select id="txUnit" onchange="updateItemPreview()">
+    <option value="Pcs">Pcs</option>
+    <option value="Pack">Pack</option>
+  </select>
+</div>
           <div class="preview-box">
             <h4>👀 Preview Item</h4>
             <div class="preview-row"><span>Harga Satuan:</span><span id="prePackPrice">Rp 0</span></div>
@@ -326,33 +333,41 @@ function formatRupiah(n){ return "Rp "+Math.round(n).toLocaleString('id-ID'); }
 
 function verifyPin(){ try{ const pin=document.getElementById('pinInput').value; const err=document.getElementById('pinError'); if(pin==='1234'){ currentUserRole='admin'; document.getElementById('userBadge').innerText='👤 Admin Mode'; document.getElementById('pinOverlay').style.display='none'; applyRoleUI(); initApp(); alert('✅ Login sebagai ADMIN'); } else if(pin==='0000'){ currentUserRole='kasir'; document.getElementById('userBadge').innerText='👤 Kasir Mode'; document.getElementById('pinOverlay').style.display='none'; applyRoleUI(); initApp(); alert('✅ Login sebagai KASIR'); } else { err.innerText='❌ PIN Salah! Coba 1234 atau 0000'; document.getElementById('pinInput').value=''; document.getElementById('pinInput').focus(); } } catch(e){ alert('Error login: '+e.message); } }
 
-function applyRoleUI(){ 
-  const isAdmin=currentUserRole==='admin'; 
-  document.getElementById('adminToolsBox').style.display=isAdmin?'block':'none'; 
-  document.getElementById('exportBtn').style.display=isAdmin?'block':'none'; 
-  const actionType=document.getElementById('actionType');
-  if(!isAdmin){ 
-    for(let opt of actionType.options){ 
-      if(opt.value==='MASUK'||opt.value==='TESTER') opt.style.display='none'; 
-    } 
-    actionType.value='JUAL'; 
-  } else { 
-    for(let opt of actionType.options) opt.style.display='block'; 
-  }
-  document.getElementById('inputBox').classList.toggle('kasir-mode', !isAdmin);
-  updateActionButton();
-  applySettingsToUI();
+function applySettingsToUI(){
+  document.getElementById('setShowSlogan').checked = appSettings.showSlogan;
+  document.getElementById('setShowAddress').checked = appSettings.showAddress;
+  document.getElementById('setShowWA').checked = appSettings.showWA;
+  document.getElementById('setShowFooter').checked = appSettings.showFooter;
+  document.getElementById('setShowDuplicate').checked = appSettings.showDuplicate;
+  document.getElementById('setSloganText').value = appSettings.sloganText;
+  document.getElementById('setAddressText').value = appSettings.addressText;
+  document.getElementById('setWAText').value = appSettings.waText;
+  document.getElementById('setFooterText').value = appSettings.footerText;
 }
-
 function updateActionButton(){
-  const action=document.getElementById('actionType').value;
-  const btn=document.getElementById('actionButton');
-  if(action==='JUAL'){ btn.innerText='➕ Tambahkan ke Keranjang'; btn.className='btn btn-add'; }
-  else if(action==='MASUK'){ btn.innerText='📥 Input Stok Masuk'; btn.className='btn btn-green'; }
-  else if(action==='TESTER'){ btn.innerText='🎁 Proses Tester'; btn.className='btn btn-orange'; }
+  const action = document.getElementById('actionType').value;
+  const btn = document.getElementById('actionButton');
+  const unitGroup = document.getElementById('unitGroup');
+  
+  // Reset tampilan tombol & unitGroup
+  if(action === 'JUAL'){
+    btn.innerText = '➕ Tambahkan ke Keranjang';
+    btn.className = 'btn btn-add';
+    unitGroup.style.display = 'none';
+  }
+  else if(action === 'MASUK'){
+    btn.innerText = '📥 Input Stok Masuk';
+    btn.className = 'btn btn-green';
+    unitGroup.style.display = 'block'; // Tampilkan pilihan satuan
+  }
+  else if(action === 'TESTER'){
+    btn.innerText = '🎁 Proses Tester';
+    btn.className = 'btn btn-orange';
+    unitGroup.style.display = 'none';
+  }
+  
   updateItemPreview();
 }
-
 // SETTINGS UI
 function applySettingsToUI(){
   document.getElementById('setShowSlogan').checked = appSettings.showSlogan;
@@ -410,21 +425,44 @@ function updateItemPreview(){
   const action=document.getElementById('actionType').value;
   const variants=getVariants(prod); 
   const impactEl=document.getElementById('preImpact');
+  const unitGroup=document.getElementById('unitGroup');
+  const unitSelect=document.getElementById('txUnit');
+  
+  // Tampilkan/sembunyikan satuan hanya untuk MASUK
+  if(action==='MASUK'){
+    unitGroup.style.display='block';
+  } else {
+    unitGroup.style.display='none';
+  }
+  
   if(variants.length===0){ 
     document.getElementById('prePackPrice').innerText='Rp 0'; 
     document.getElementById('preTotalPcs').innerText='0'; 
     impactEl.innerText='-'; return; 
   } 
   const isPure=(variants.length===1&&variants[0].pcsPerPack===1); 
-  let idx=0; if(!isPure)idx=parseInt(document.getElementById('packSelect').value)||0; 
+  let idx=0; 
+  if(!isPure)idx=parseInt(document.getElementById('packSelect').value)||0; 
   const pack=variants[idx]; 
   if(pack){ 
     document.getElementById('prePackPrice').innerText=formatRupiah(pack.pricePerPack); 
-    const totalPcs=pack.pcsPerPack*qty;
+    let totalPcs = pack.pcsPerPack*qty;
+    // Jika MASUK dan satuan Pack, totalPcs = pack.pcsPerPack * qty (sudah benar)
+    // Jika MASUK dan satuan Pcs, totalPcs = qty (karena qty dalam Pcs)
+    if(action==='MASUK' && unitSelect.value==='Pcs'){
+      totalPcs = qty; // override: qty langsung dianggap Pcs
+    }
     document.getElementById('preTotalPcs').innerText=totalPcs+' Pcs'; 
-    if(action==='MASUK'){ impactEl.innerText='+'+totalPcs+' Pcs (Stok bertambah)'; impactEl.style.color='var(--success)'; }
-    else if(action==='TESTER'){ impactEl.innerText='-'+totalPcs+' Pcs (Promosi)'; impactEl.style.color='var(--warning)'; }
-    else { impactEl.innerText='-'+totalPcs+' Pcs (Penjualan)'; impactEl.style.color='var(--danger)'; }
+    if(action==='MASUK'){ 
+      impactEl.innerText='+'+totalPcs+' Pcs (Stok bertambah)'; 
+      impactEl.style.color='var(--success)'; 
+    } else if(action==='TESTER'){ 
+      impactEl.innerText='-'+totalPcs+' Pcs (Promosi)'; 
+      impactEl.style.color='var(--warning)'; 
+    } else { 
+      impactEl.innerText='-'+totalPcs+' Pcs (Penjualan)'; 
+      impactEl.style.color='var(--danger)'; 
+    }
   } 
 }
 
@@ -438,7 +476,17 @@ function processAction(){
   const isPure=(variants.length===1&&variants[0].pcsPerPack===1);
   let idx=0; if(!isPure)idx=parseInt(document.getElementById('packSelect').value)||0;
   const pack=variants[idx]; if(!pack)return;
-  const totalPcs=pack.pcsPerPack*qty;
+  
+  // === HITUNG TOTAL PCS ===
+  let totalPcs = pack.pcsPerPack * qty; // default: qty dalam Pack
+  // Jika MASUK dan satuan Pcs, totalPcs = qty (langsung)
+  if(action==='MASUK'){
+    const unit = document.getElementById('txUnit').value;
+    if(unit==='Pcs'){
+      totalPcs = qty;
+    }
+  }
+  
   const subtotal=pack.pricePerPack*qty;
   const cogsTotal=totalPcs*getCogs(prod);
 
@@ -462,6 +510,25 @@ function processAction(){
     updateItemPreview();
     return;
   }
+
+  // === JUAL ===
+  if((inventory[prod]||0)<totalPcs)return alert('Stok kurang! Butuh '+totalPcs+' Pcs');
+  const existing=cart.findIndex(item=>item.productName===prod&&item.variantIndex===idx);
+  if(existing!==-1){
+    const newQty=cart[existing].qty+qty;
+    const newTotal=cart[existing].pcsPerPack*newQty;
+    if((inventory[prod]||0)<newTotal)return alert('Stok kurang! Total '+newTotal+' Pcs');
+    cart[existing].qty=newQty;
+    cart[existing].totalPcs=newTotal;
+    cart[existing].subtotal=cart[existing].pricePerPack*newQty;
+    cart[existing].cogsTotal=newTotal*getCogs(prod);
+  } else {
+    cart.push({ productName:prod, variantIndex:idx, qty:qty, pricePerPack:pack.pricePerPack, pcsPerPack:pack.pcsPerPack, totalPcs:totalPcs, subtotal:subtotal, cogsTotal:cogsTotal, label:pack.label, action:'JUAL' });
+  }
+  renderCart();
+  document.getElementById('txQty').value='1';
+  updateItemPreview();
+}
 
   // JUAL
   if((inventory[prod]||0)<totalPcs)return alert('Stok kurang! Butuh '+totalPcs+' Pcs');
