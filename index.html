@@ -804,7 +804,50 @@ function populateProductDropdown(){ const sel=document.getElementById('prodSelec
 function updatePackageOptions(){ const prod=document.getElementById('prodSelect').value; const group=document.getElementById('packageFormGroup'); const sel=document.getElementById('packSelect'); const variants=getVariants(prod); if(variants.length<=1){ group.style.display='none'; return; } group.style.display='block'; sel.innerHTML=''; variants.forEach((p,i)=>{ const opt=document.createElement('option'); opt.value=i; opt.textContent=p.label; sel.appendChild(opt); }); updateItemPreview(); }
 function runCalculator(){ if(currentUserRole!=='admin')return; const prod=document.getElementById('prodSelect').value; const qty=parseInt(document.getElementById('txQty').value)||1; const variants=getVariants(prod); const isPure=(variants.length===1&&variants[0].pcsPerPack===1); let totalPcs=qty; if(!isPure&&variants.length>0){ const idx=parseInt(document.getElementById('packSelect').value)||0; const pack=variants[idx]; if(pack)totalPcs=pack.pcsPerPack*qty; } const bahan=totalPcs*getCogs(prod); const pack=parseFloat(document.getElementById('calcPack').value)||0; const opr=parseFloat(document.getElementById('calcOpr').value)||0; const mgn=parseFloat(document.getElementById('calcMargin').value)||0; const total=bahan+pack+opr; document.getElementById('calcTotalModal').innerText=formatRupiah(total); let ideal=total/(1-(mgn/100)); ideal=Math.ceil(ideal/1000)*1000; document.getElementById('calcIdealPrice').innerText=formatRupiah(ideal); }
 
-function loadFromCloud(){ showLoading('🔄 Menyelaraskan Data...'); fetch(CLOUD_URL).then(res=>res.json()).then(data=>{ if(data.inventory)for(let k in data.inventory)inventory[k]=data.inventory[k]; if(data.logs){ logs=data.logs.map(l=>{ if(!l.orderId)l.orderId='LEGACY-'+Date.now().toString().slice(-8); if(!l.customerName)l.customerName='-'; return l; }); } if(data.productCatalog){ productCatalog=data.productCatalog; saveProductCatalog(); } else { loadProductCatalog(); } if(data.appSettings){ appSettings=data.appSettings; applySettingsToUI(); } for(let k in productCatalog)if(!(k in inventory))inventory[k]=0; populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading(); applyDateFilter(currentPeriod||'today'); showSyncBanner('success','✅ Data dimuat dari Cloud.',false); setTimeout(dismissSyncBanner,2000); }).catch(()=>{ loadProductCatalog(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading(); applyDateFilter(currentPeriod||'today'); playBeep(); showSyncBanner('error','⚠️ Gagal konek Cloud! (Data lokal)',true); }); }
+async function loadFromCloud(){ 
+  showLoading('🔄 Menyelaraskan Data...'); 
+  try {
+    const res = await fetch(CLOUD_URL);
+    const data = await res.json();
+    
+    if(data.inventory) for(let k in data.inventory) inventory[k] = data.inventory[k];
+    if(data.logs){ 
+      logs = data.logs.map(l => { 
+        if(!l.orderId) l.orderId = 'LEGACY-'+Date.now().toString().slice(-8); 
+        if(!l.customerName) l.customerName = '-'; 
+        return l; 
+      }); 
+    }
+    if(data.productCatalog){ 
+      productCatalog = data.productCatalog; 
+      saveProductCatalog(); 
+    } else { 
+      loadProductCatalog(); 
+    }
+    if(data.appSettings){ 
+      appSettings = data.appSettings; 
+      applySettingsToUI(); // Terapkan tema & setting dari cloud
+    }
+    for(let k in productCatalog) if(!(k in inventory)) inventory[k] = 0;
+    populateProductDropdown(); 
+    updatePackageOptions(); 
+    renderDashboard(); 
+    hideLoading(); 
+    applyDateFilter(currentPeriod || 'today'); 
+    showSyncBanner('success','✅ Data dimuat dari Cloud.',false); 
+    setTimeout(dismissSyncBanner, 2000);
+  } catch(e) {
+    console.error('Load Cloud Error:', e);
+    loadProductCatalog(); 
+    populateProductDropdown(); 
+    updatePackageOptions(); 
+    renderDashboard(); 
+    hideLoading(); 
+    applyDateFilter(currentPeriod || 'today'); 
+    playBeep(); 
+    showSyncBanner('error','⚠️ Gagal konek Cloud! (Data lokal)', true);
+  }
+}
 function saveToCloud(){ if(isSyncing)return; isSyncing=true; showLoading('💾 Menyimpan...'); collectSettingsFromUI(); const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),15000); fetch(CLOUD_URL,{method:'POST',mode:'no-cors',signal:ctrl.signal,body:JSON.stringify({type:'SALE',inventory,logs,productCatalog,appSettings})}).then(()=>{ clearTimeout(tid); hideLoading(); renderDashboard(); saveProductCatalog(); showSyncBanner('success','✅ Tersimpan ke Cloud.',false); setTimeout(dismissSyncBanner,2000); isSyncing=false; }).catch((err)=>{ clearTimeout(tid); console.error(err); hideLoading(); renderDashboard(); saveProductCatalog(); playBeep(); showSyncBanner('error','❌ Gagal sync!',true); isSyncing=false; }); }
 
 function undoLastTransaction(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); if(logs.length===0)return alert('Belum ada transaksi.'); const last=logs[0]; if(!last.orderId||last.orderId.startsWith('STOCK-')||last.orderId.startsWith('TEST-')){ if(!confirm('Batalkan '+last.product+' ('+last.type+')?'))return; if(last.type==='MASUK')inventory[last.product]-=last.qtyInput; else if(last.type==='TESTER')inventory[last.product]+=last.finalDeduct; else inventory[last.product]+=last.finalDeduct; logs.shift(); saveToCloud(); renderDashboard(); return; } const oid=last.orderId; const toUndo=logs.filter(l=>l.orderId===oid); if(!confirm('Batalkan ORDER '+oid+' ('+toUndo.length+' item)?'))return; for(let l of toUndo){ if(l.type==='MASUK')inventory[l.product]-=l.qtyInput; else if(l.type==='JUAL'||l.type==='TESTER')inventory[l.product]+=l.finalDeduct; } logs=logs.filter(l=>l.orderId!==oid); saveToCloud(); renderDashboard(); alert('✅ Order '+oid+' dibatalkan.'); }
@@ -825,7 +868,20 @@ function showSyncBanner(type,msg,retry=false){ const b=document.getElementById('
 function dismissSyncBanner(){ document.getElementById('syncStatusBanner').style.display='none'; }
 function retrySync(){ dismissSyncBanner(); saveToCloud(); }
 
-function initApp(){ try{ loadProductCatalog(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); renderCart(); loadFromCloud(); applyRoleUI(); }catch(e){ alert('Error init: '+e.message); console.error(e); } }
+async function initApp(){ 
+  try{ 
+    loadProductCatalog(); 
+    populateProductDropdown(); 
+    updatePackageOptions(); 
+    renderDashboard(); 
+    renderCart(); 
+    await loadFromCloud(); // Tunggu cloud selesai
+    applyRoleUI(); // Baru terapkan tema & role
+  }catch(e){ 
+    alert('Error init: '+e.message); 
+    console.error(e); 
+  } 
+}
 </script>
 </body>
 </html>
