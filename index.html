@@ -2,12 +2,12 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN v8.2 - FINAL</title>
+<title>MANTUL KITCHEN v8.3 - FINAL</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08); --warning: #ff9800; }
+:root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212,175,55,0.08); --warning: #ff9800; }
 * { box-sizing: border-box; font-family: Arial, sans-serif; }
 body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 .container { max-width: 1400px; margin: auto; }
@@ -95,11 +95,12 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 .cart-total-line { display:flex; justify-content:space-between; font-weight:bold; padding:10px 0; border-top:2px solid var(--gold); margin-top:5px; }
 .receipt-modal { display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9998; justify-content:center; align-items:center; }
 .receipt-modal.active { display:flex; }
-.receipt-content { background:#fff; color:#111; max-width:400px; width:90%; padding:25px; border-radius:12px; max-height:90vh; overflow-y:auto; font-family:'Courier New',monospace; box-shadow:0 4px 20px rgba(0,0,0,0.5); }
+.receipt-content { background:#fff; color:#111; max-width:420px; width:92%; border-radius:16px; max-height:95vh; overflow-y:auto; font-family:'Courier New',monospace; box-shadow:0 8px 30px rgba(0,0,0,0.6); }
+#receiptBody { padding:25px 30px; background:#fff; border-radius:16px; }
 .receipt-content .row { display:flex; justify-content:space-between; font-size:0.9rem; padding:4px 0; }
-.receipt-content .total { font-weight:bold; font-size:1.1rem; border-top:2px solid #ccc; margin-top:10px; padding-top:10px; }
+.receipt-content .total { font-weight:bold; font-size:1.2rem; border-top:2px solid #ccc; margin-top:10px; padding-top:10px; color:#d4af37; }
 .receipt-content .footer-text { text-align:center; font-size:0.75rem; color:#555; margin-top:12px; border-top:1px dashed #ccc; padding-top:10px; }
-.receipt-content .actions { margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; }
+.receipt-content .actions { margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; padding:0 10px 20px 10px; }
 .receipt-content .actions button { flex:1; padding:10px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; min-width:80px; }
 .btn-wa { background:#25D366; color:#fff; }
 .btn-copy { background:#ddd; color:#111; }
@@ -111,6 +112,19 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 .admin-tools-grid .btn { width:100%; margin-bottom:0; }
 #actionType option[value="MASUK"], #actionType option[value="TESTER"] { display:block; }
 .kasir-mode #actionType option[value="MASUK"], .kasir-mode #actionType option[value="TESTER"] { display:none; }
+.settings-group { background:var(--input); border-radius:10px; padding:15px; margin-top:10px; border:1px solid var(--border); }
+.settings-group .form-group { margin-bottom:8px; }
+.settings-group .form-group label { font-size:0.75rem; }
+.settings-group .form-group input[type="text"] { font-size:0.8rem; padding:8px; }
+.settings-row { display:flex; gap:15px; flex-wrap:wrap; align-items:center; }
+.settings-row label { display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--muted); cursor:pointer; }
+.settings-row input[type="checkbox"] { width:18px; height:18px; accent-color:var(--gold); }
+.duplicate-watermark { color:#ff4d4d; font-size:0.7rem; text-align:center; font-weight:bold; letter-spacing:2px; border-top:1px dashed #ff4d4d; padding-top:5px; margin-top:5px; }
+.receipt-title { color:#d4af37; font-size:1.8rem; font-weight:bold; text-align:center; margin:0 0 2px 0; letter-spacing:2px; }
+.receipt-subtitle { font-style:italic; text-align:center; font-size:0.8rem; color:#555; margin:0 0 2px 0; }
+.receipt-slogan { text-align:center; font-size:0.7rem; color:#888; margin:0 0 10px 0; }
+.receipt-divider { border-top:1px dashed #ccc; margin:8px 0; }
+.receipt-info { display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:4px; }
 </style>
 </head>
 <body>
@@ -124,8 +138,8 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 </div>
 <div class="container">
   <div class="header">
-    <h1>MANTUL KITCHEN v8.2</h1>
-    <p>Cart System + Struk Gambar/PDF + Nama Pelanggan</p>
+    <h1>MANTUL KITCHEN v8.3</h1>
+    <p>Cart System + Struk Custom + Cetak Ulang</p>
     <div class="user-badge" id="userBadge">👤 Admin Mode</div>
   </div>
   <div id="syncStatusBanner" class="sync-banner" style="display:none;"></div>
@@ -159,10 +173,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
         <!-- BOX INPUT PRODUK -->
         <div class="box" id="inputBox">
           <h2>🛒 TAMBAH KE KERANJANG</h2>
-          <div class="form-group">
-            <label>1. Pilih Produk:</label>
-            <select id="prodSelect" onchange="updatePackageOptions(); updateItemPreview();"></select>
-          </div>
+          <div class="form-group"><label>1. Pilih Produk:</label><select id="prodSelect" onchange="updatePackageOptions(); updateItemPreview();"></select></div>
           <div class="form-group" id="packageFormGroup"><label>2. Varian Paket:</label><select id="packSelect" onchange="updateItemPreview()"></select></div>
           <div class="form-group">
             <label>3. Jenis Aktivitas:</label>
@@ -197,7 +208,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
         </div>
       </div>
 
-      <!-- BOX ADMIN TOOLS (hanya untuk admin) -->
+      <!-- BOX ADMIN TOOLS -->
       <div class="box" id="adminToolsBox">
         <h2>⚙️ ADMIN TOOLS</h2>
         <div class="admin-tools-grid">
@@ -205,6 +216,25 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
           <button class="btn btn-undo" onclick="undoLastTransaction()">↩️ Undo Transaksi</button>
           <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>
         </div>
+        
+        <!-- PENGATURAN STRUK -->
+        <hr style="border-color:var(--border);margin:15px 0;">
+        <h4 style="color:var(--gold);margin:0 0 10px 0;">🖌️ Pengaturan Struk</h4>
+        <div class="settings-group">
+          <div class="settings-row" style="margin-bottom:10px;">
+            <label><input type="checkbox" id="setShowSlogan" checked> Slogan</label>
+            <label><input type="checkbox" id="setShowAddress" checked> Alamat</label>
+            <label><input type="checkbox" id="setShowWA" checked> WA</label>
+            <label><input type="checkbox" id="setShowFooter" checked> Footer</label>
+            <label><input type="checkbox" id="setShowDuplicate" checked> Watermark Duplicate</label>
+          </div>
+          <div class="form-group"><label>Header Slogan:</label><input type="text" id="setSloganText" value='"Kualitas Restoran Bintang Lima, Kini Hadir di Meja Makan Anda"'></div>
+          <div class="form-group"><label>Alamat / Lokasi:</label><input type="text" id="setAddressText" value="📍 Jl. Contoh No. 123, Kota"></div>
+          <div class="form-group"><label>Nomor WA:</label><input type="text" id="setWAText" value="📱 WA: 0881-0255-32438"></div>
+          <div class="form-group"><label>Footer Terima Kasih:</label><input type="text" id="setFooterText" value="Terima kasih telah berbelanja di MANTUL KITCHEN! 🙏"></div>
+          <button class="btn btn-secondary" onclick="saveAppSettings()" style="margin-top:5px;">💾 Simpan Pengaturan ke Cloud</button>
+        </div>
+        
         <hr style="border-color:var(--border);margin:15px 0;">
         <h4 style="color:var(--gold);margin:0 0 10px 0;">🧠 Kalkulator Margin</h4>
         <div class="form-group"><label>Target Margin (%):</label><input type="number" id="calcMargin" value="25" min="5" max="95" oninput="runCalculator()"></div>
@@ -218,7 +248,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
         </div>
       </div>
 
-      <!-- FORM TAMBAH/EDIT MENU (tersembunyi) -->
+      <!-- FORM TAMBAH MENU (tersembunyi) -->
       <div id="addMenuForm">
         <h3 id="formTitle">➕ Tambah Produk Baru</h3>
         <div class="form-group"><label>Nama Produk:</label><input type="text" id="newProductName" placeholder="Contoh: Siomay Udang"></div>
@@ -257,10 +287,15 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
       <div class="stat-card"><h3>Laba Bersih</h3><div class="val" id="profNet" style="color:var(--success)">Rp 0</div></div>
     </div>
     <div class="box">
-      <h2>📜 JURNAL AUDIT</h2>
+      <h2>📜 JURNAL AUDIT & CETAK ULANG</h2>
+      <div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;">
+        <input type="text" id="searchReceipt" placeholder="Cari Order ID / Nama Pelanggan..." style="flex:2;padding:10px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+        <button class="btn btn-secondary" onclick="searchReceipt()" style="flex:1;padding:10px;margin:0;">🔍 Cari</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('searchReceipt').value='';searchReceipt();" style="flex:0.5;padding:10px;margin:0;">✕ Reset</button>
+      </div>
       <button class="btn btn-excel" id="exportBtn" onclick="exportToExcel()">Export .CSV 📊</button>
       <div class="table-wrapper">
-        <table><thead><tr><th>Order ID</th><th>Waktu</th><th>Pelanggan</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset</th><th>Diskon</th><th>Modal</th><th>Laba</th></tr></thead><tbody id="auditTableBody"></tbody></table>
+        <table><thead><tr><th>Order ID</th><th>Waktu</th><th>Pelanggan</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset</th><th>Diskon</th><th>Modal</th><th>Laba</th><th>Aksi</th></tr></thead><tbody id="auditTableBody"></tbody></table>
       </div>
     </div>
   </div>
@@ -268,7 +303,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 
 <!-- MODAL STRUK -->
 <div id="receiptModal" class="receipt-modal">
-  <div class="receipt-content" id="receiptContent">
+  <div class="receipt-content">
     <div id="receiptBody"></div>
     <div class="actions">
       <button class="btn-copy" onclick="copyReceipt()">📋 Salin Teks</button>
@@ -282,6 +317,8 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 <script>
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzI6-_z0LtWs6hC9M0oSak_DdYLtTHBAQqZsQV4CIYAbCmMeW_t3y8yLULYiQZuDiav/exec";
 let currentSortMode='az', isSyncing=false, currentPeriod='today', currentUserRole='admin', cart=[], lastReceiptOrder=null;
+let appSettings = { showSlogan:true, showAddress:true, showWA:true, showFooter:true, showDuplicate:true, sloganText:'"Kualitas Restoran Bintang Lima, Kini Hadir di Meja Makan Anda"', addressText:'📍 Jl. Contoh No. 123, Kota', waText:'📱 WA: 0881-0255-32438', footerText:'Terima kasih telah berbelanja di MANTUL KITCHEN! 🙏' };
+
 function generateFormattedDate(){ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`; }
 function parseDate(s){ let d=new Date(s); if(!isNaN(d))return d; let p=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2})\.(\d{2})/); if(p)return new Date(p[3],p[2]-1,p[1],p[4],p[5]); return new Date(s); }
 function formatDisplayDate(s){ const d=parseDate(s); if(isNaN(d))return s; return d.toLocaleDateString('id-ID',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
@@ -304,6 +341,7 @@ function applyRoleUI(){
   }
   document.getElementById('inputBox').classList.toggle('kasir-mode', !isAdmin);
   updateActionButton();
+  applySettingsToUI();
 }
 
 function updateActionButton(){
@@ -313,6 +351,35 @@ function updateActionButton(){
   else if(action==='MASUK'){ btn.innerText='📥 Input Stok Masuk'; btn.className='btn btn-green'; }
   else if(action==='TESTER'){ btn.innerText='🎁 Proses Tester'; btn.className='btn btn-orange'; }
   updateItemPreview();
+}
+
+// SETTINGS UI
+function applySettingsToUI(){
+  document.getElementById('setShowSlogan').checked = appSettings.showSlogan;
+  document.getElementById('setShowAddress').checked = appSettings.showAddress;
+  document.getElementById('setShowWA').checked = appSettings.showWA;
+  document.getElementById('setShowFooter').checked = appSettings.showFooter;
+  document.getElementById('setShowDuplicate').checked = appSettings.showDuplicate;
+  document.getElementById('setSloganText').value = appSettings.sloganText;
+  document.getElementById('setAddressText').value = appSettings.addressText;
+  document.getElementById('setWAText').value = appSettings.waText;
+  document.getElementById('setFooterText').value = appSettings.footerText;
+}
+function collectSettingsFromUI(){
+  appSettings.showSlogan = document.getElementById('setShowSlogan').checked;
+  appSettings.showAddress = document.getElementById('setShowAddress').checked;
+  appSettings.showWA = document.getElementById('setShowWA').checked;
+  appSettings.showFooter = document.getElementById('setShowFooter').checked;
+  appSettings.showDuplicate = document.getElementById('setShowDuplicate').checked;
+  appSettings.sloganText = document.getElementById('setSloganText').value;
+  appSettings.addressText = document.getElementById('setAddressText').value;
+  appSettings.waText = document.getElementById('setWAText').value;
+  appSettings.footerText = document.getElementById('setFooterText').value;
+}
+function saveAppSettings(){
+  collectSettingsFromUI();
+  saveToCloud();
+  alert('✅ Pengaturan struk disimpan ke Cloud!');
 }
 
 const NOW=Date.now();
@@ -346,12 +413,10 @@ function updateItemPreview(){
   if(variants.length===0){ 
     document.getElementById('prePackPrice').innerText='Rp 0'; 
     document.getElementById('preTotalPcs').innerText='0'; 
-    impactEl.innerText='-'; 
-    return; 
+    impactEl.innerText='-'; return; 
   } 
   const isPure=(variants.length===1&&variants[0].pcsPerPack===1); 
-  let idx=0; 
-  if(!isPure)idx=parseInt(document.getElementById('packSelect').value)||0; 
+  let idx=0; if(!isPure)idx=parseInt(document.getElementById('packSelect').value)||0; 
   const pack=variants[idx]; 
   if(pack){ 
     document.getElementById('prePackPrice').innerText=formatRupiah(pack.pricePerPack); 
@@ -377,7 +442,6 @@ function processAction(){
   const subtotal=pack.pricePerPack*qty;
   const cogsTotal=totalPcs*getCogs(prod);
 
-  // ADMIN: MASUK atau TESTER langsung proses, tidak masuk keranjang
   if(action==='MASUK' || action==='TESTER'){
     if(currentUserRole!=='admin')return alert('Hanya Admin!');
     if(action==='MASUK'){
@@ -399,7 +463,7 @@ function processAction(){
     return;
   }
 
-  // JUAL: masuk ke keranjang (sama untuk Admin & Kasir)
+  // JUAL
   if((inventory[prod]||0)<totalPcs)return alert('Stok kurang! Butuh '+totalPcs+' Pcs');
   const existing=cart.findIndex(item=>item.productName===prod&&item.variantIndex===idx);
   if(existing!==-1){
@@ -423,16 +487,80 @@ function clearCart(){ if(cart.length===0)return; if(confirm('Kosongkan keranjang
 function renderCart(){ const container=document.getElementById('cartItemsContainer'); const summary=document.getElementById('cartSummary'); const count=document.getElementById('cartCount'); count.innerText=cart.length+' Item'; if(cart.length===0){ container.innerHTML='<div class="empty-cart-msg">Keranjang kosong.</div>'; summary.style.display='none'; return; } let html='', subtotal=0; cart.forEach((item,idx)=>{ subtotal+=item.subtotal; html+='<div class="cart-item-row"><div class="item-info"><b>'+item.productName+'</b><br><small style="color:var(--muted);">'+item.label+' x '+item.qty+'</small></div><div class="item-price">'+formatRupiah(item.subtotal)+'</div><div class="item-actions"><button class="btn-remove-cart" onclick="removeFromCart('+idx+')">✕</button></div></div>'; }); container.innerHTML=html; summary.style.display='block'; document.getElementById('cartSubtotal').innerText=formatRupiah(subtotal); updateCartSummary(); }
 function updateCartSummary(){ let sub=cart.reduce((s,i)=>s+i.subtotal,0); const disc=parseInt(document.getElementById('cartDiscount').value)||0; document.getElementById('cartSubtotal').innerText=formatRupiah(sub); document.getElementById('cartGrandTotal').innerText=formatRupiah(Math.max(0,sub-disc)); }
 
-function checkoutOrder(){ if(cart.length===0)return alert('Keranjang kosong!'); const discount=parseInt(document.getElementById('cartDiscount').value)||0; const customerName=document.getElementById('customerName').value.trim()||'-'; let subtotal=cart.reduce((s,i)=>s+i.subtotal,0); if(discount>subtotal)return alert('Diskon > Subtotal!'); const orderId='ORD-'+Date.now().toString().slice(-8); const transactionLogs=[]; let grossTotal=0; for(let item of cart){ if((inventory[item.productName]||0)<item.totalPcs)return alert('Stok '+item.productName+' kurang!'); inventory[item.productName]-=item.totalPcs; const log={ orderId, date:generateFormattedDate(), product:item.productName, type:'JUAL', qtyInput:item.qty, detail:item.label+' ('+item.totalPcs+' Pcs)', impactStock:'-'+item.totalPcs+' Pcs', finalDeduct:item.totalPcs, grossPrice:item.subtotal, discount:0, cogsTotal:item.cogsTotal, finalNominal:item.subtotal, netProfit:item.subtotal-item.cogsTotal, customerName:customerName }; transactionLogs.push(log); grossTotal+=item.subtotal; } if(transactionLogs.length>0&&discount>0){ let remaining=discount; for(let i=0;i<transactionLogs.length;i++){ let log=transactionLogs[i]; let prop=log.grossPrice/grossTotal; let alloc=Math.round(discount*prop); if(i===transactionLogs.length-1)alloc=remaining; remaining-=alloc; log.discount=alloc; log.finalNominal=log.grossPrice-alloc; log.netProfit=log.finalNominal-log.cogsTotal; } } logs.unshift(...transactionLogs); cart=[]; document.getElementById('cartDiscount').value='0'; document.getElementById('customerName').value=''; renderCart(); saveToCloud(); const totalFinal=transactionLogs.reduce((s,l)=>s+l.finalNominal,0); showCombinedReceipt(orderId, transactionLogs, discount, totalFinal, customerName); }
+function checkoutOrder(){ if(cart.length===0)return alert('Keranjang kosong!'); const discount=parseInt(document.getElementById('cartDiscount').value)||0; const customerName=document.getElementById('customerName').value.trim()||'-'; let subtotal=cart.reduce((s,i)=>s+i.subtotal,0); if(discount>subtotal)return alert('Diskon > Subtotal!'); const orderId='ORD-'+Date.now().toString().slice(-8); const transactionLogs=[]; let grossTotal=0; for(let item of cart){ if((inventory[item.productName]||0)<item.totalPcs)return alert('Stok '+item.productName+' kurang!'); inventory[item.productName]-=item.totalPcs; const log={ orderId, date:generateFormattedDate(), product:item.productName, type:'JUAL', qtyInput:item.qty, detail:item.label+' ('+item.totalPcs+' Pcs)', impactStock:'-'+item.totalPcs+' Pcs', finalDeduct:item.totalPcs, grossPrice:item.subtotal, discount:0, cogsTotal:item.cogsTotal, finalNominal:item.subtotal, netProfit:item.subtotal-item.cogsTotal, customerName:customerName }; transactionLogs.push(log); grossTotal+=item.subtotal; } if(transactionLogs.length>0&&discount>0){ let remaining=discount; for(let i=0;i<transactionLogs.length;i++){ let log=transactionLogs[i]; let prop=log.grossPrice/grossTotal; let alloc=Math.round(discount*prop); if(i===transactionLogs.length-1)alloc=remaining; remaining-=alloc; log.discount=alloc; log.finalNominal=log.grossPrice-alloc; log.netProfit=log.finalNominal-log.cogsTotal; } } logs.unshift(...transactionLogs); cart=[]; document.getElementById('cartDiscount').value='0'; document.getElementById('customerName').value=''; renderCart(); saveToCloud(); const totalFinal=transactionLogs.reduce((s,l)=>s+l.finalNominal,0); showCombinedReceipt(orderId, transactionLogs, discount, totalFinal, customerName, false); }
 
-function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal, customerName){ lastReceiptOrder={orderId, logsList, totalDiscount, grandTotal, customerName}; const modal=document.getElementById('receiptModal'); const body=document.getElementById('receiptBody'); const kasir=currentUserRole==='admin'?'Admin':'Kasir'; const displayDate=formatDisplayDate(logsList[0]?.date||new Date()); const name=customerName||'-'; let html='<div style="text-align:center;border-bottom:2px dashed #ccc;padding-bottom:10px;margin-bottom:10px;"><h2 style="margin:0;color:#d4af37;">MANTUL KITCHEN</h2><p style="margin:2px 0;font-size:0.7rem;color:#888;">- Premium Frozen Food -</p><p style="margin:4px 0 0 0;font-size:0.8rem;color:#555;">📱 WA: 0881-0255-32438</p></div>'; html+='<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#555;"><span>Order: '+orderId+'</span><span>Kasir: '+kasir+'</span></div>'; html+='<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#555;margin-bottom:12px;"><span>Pelanggan: '+name+'</span><span>'+displayDate+'</span></div>'; html+='<div style="border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:8px 0;margin-bottom:10px;"><div style="display:flex;font-weight:bold;font-size:0.8rem;color:#333;border-bottom:1px solid #eee;padding-bottom:4px;"><span style="flex:2;">Item</span><span style="flex:1;text-align:right;">Qty</span><span style="flex:1;text-align:right;">Harga</span><span style="flex:1;text-align:right;">Subtotal</span></div>'; let subDisplay=0; logsList.forEach(log=>{ const satuan=log.grossPrice/log.qtyInput; subDisplay+=log.grossPrice; html+='<div style="display:flex;font-size:0.85rem;padding:4px 0;"><span style="flex:2;">'+log.product+'</span><span style="flex:1;text-align:right;">'+log.qtyInput+'</span><span style="flex:1;text-align:right;">'+formatRupiah(satuan)+'</span><span style="flex:1;text-align:right;">'+formatRupiah(log.grossPrice)+'</span></div>'; }); html+='</div>'; if(totalDiscount>0){ html+='<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;"><span>Subtotal</span><span>'+formatRupiah(subDisplay)+'</span></div><div style="display:flex;justify-content:space-between;color:#ff4d4d;"><span>Diskon</span><span>-'+formatRupiah(totalDiscount)+'</span></div></div>'; } html+='<div style="border-top:2px solid #333;padding-top:8px;font-weight:bold;font-size:1.2rem;display:flex;justify-content:space-between;"><span>TOTAL BAYAR</span><span style="color:#d4af37;">'+formatRupiah(grandTotal)+'</span></div>'; html+='<div class="footer-text">Terima kasih telah berbelanja di MANTUL KITCHEN! 🙏<br>📱 WA: 0881-0255-32438<br>📍 Jl. Contoh No. 123, Kota</div>'; body.innerHTML=html; modal.classList.add('active'); }
+// GENERATE RECEIPT with SETTINGS
+function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal, customerName, isDuplicate=false){
+  lastReceiptOrder = { orderId, logsList, totalDiscount, grandTotal, customerName, isDuplicate };
+  const modal = document.getElementById('receiptModal');
+  const body = document.getElementById('receiptBody');
+  const kasir = currentUserRole==='admin'?'Admin':'Kasir';
+  const displayDate = formatDisplayDate(logsList[0]?.date||new Date());
+  const name = customerName||'-';
+  
+  // Ambil pengaturan
+  const s = appSettings;
+  let html = '<div style="padding:0;">';
+  // Header
+  html += '<div class="receipt-title">MANTUL KITCHEN</div>';
+  html += '<div class="receipt-subtitle">* Premium Frozen Food *</div>';
+  if(s.showSlogan) html += '<div class="receipt-slogan">'+s.sloganText+'</div>';
+  html += '<div class="receipt-divider"></div>';
+  // Info
+  html += '<div class="receipt-info"><span>Order: '+orderId+'</span><span>Kasir: '+kasir+'</span></div>';
+  html += '<div class="receipt-info"><span>Pelanggan: '+name+'</span><span>'+displayDate+'</span></div>';
+  html += '<div class="receipt-divider"></div>';
+  // Tabel
+  html += '<div style="display:flex;font-weight:bold;font-size:0.8rem;color:#333;border-bottom:1px solid #eee;padding-bottom:4px;margin-bottom:4px;">';
+  html += '<span style="flex:2;">Item</span><span style="flex:1;text-align:right;">Qty</span><span style="flex:1;text-align:right;">Harga</span><span style="flex:1;text-align:right;">Subtotal</span></div>';
+  let subDisplay=0;
+  logsList.forEach(log=>{
+    if(log.type!=='JUAL'){ html+='<div style="display:flex;font-size:0.85rem;padding:4px 0;color:#888;"><span style="flex:2;">'+log.product+'</span><span style="flex:3;text-align:right;">'+log.detail+'</span></div>'; return; }
+    const satuan=log.grossPrice/log.qtyInput; subDisplay+=log.grossPrice;
+    html+='<div style="display:flex;font-size:0.85rem;padding:4px 0;"><span style="flex:2;">'+log.product+'</span><span style="flex:1;text-align:right;">'+log.qtyInput+'</span><span style="flex:1;text-align:right;">'+formatRupiah(satuan)+'</span><span style="flex:1;text-align:right;">'+formatRupiah(log.grossPrice)+'</span></div>';
+  });
+  html += '<div class="receipt-divider"></div>';
+  if(totalDiscount>0){
+    html+='<div style="display:flex;justify-content:space-between;font-size:0.9rem;"><span>Subtotal</span><span>'+formatRupiah(subDisplay)+'</span></div>';
+    html+='<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:#ff4d4d;"><span>Diskon</span><span>-'+formatRupiah(totalDiscount)+'</span></div>';
+    html += '<div class="receipt-divider"></div>';
+  }
+  html+='<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:1.2rem;color:#d4af37;"><span>TOTAL BAYAR</span><span>'+formatRupiah(grandTotal)+'</span></div>';
+  
+  // Footer
+  if(s.showFooter) html += '<div class="footer-text">'+s.footerText+'</div>';
+  if(s.showWA) html += '<div class="footer-text" style="border-top:none;padding-top:0;">'+s.waText+'</div>';
+  if(s.showAddress) html += '<div class="footer-text" style="border-top:none;padding-top:0;font-size:0.7rem;">'+s.addressText+'</div>';
+  
+  // Duplicate watermark
+  if(isDuplicate && s.showDuplicate) html += '<div class="duplicate-watermark">*** DUPLICATE ***</div>';
+  
+  html += '</div>';
+  body.innerHTML = html;
+  modal.classList.add('active');
+}
+
 function closeReceipt(){ document.getElementById('receiptModal').classList.remove('active'); }
 
-function generatePlainReceipt(orderId, logsList, totalDiscount, grandTotal, customerName){ const displayDate=formatDisplayDate(logsList[0]?.date||new Date()); const name=customerName||'-'; let lines=[]; const W=20; const Q=5; const P=12; const SEP=''.padEnd(W+Q+P+2,'-'); lines.push('MANTUL KITCHEN'); lines.push('===================='); lines.push('Pelanggan : '+name); lines.push('Order ID  : '+orderId); lines.push('Tgl       : '+displayDate); lines.push('--------------------'); let header='Item'.padEnd(W)+'Qty'.padStart(Q)+'Total'.padStart(P); lines.push(header); lines.push(SEP); let sub=0; logsList.forEach(log=>{ sub+=log.grossPrice; let nm=log.product.length>W?log.product.substring(0,W-3)+'..':log.product; lines.push(nm.padEnd(W)+log.qtyInput.toString().padStart(Q)+log.grossPrice.toLocaleString('id-ID').padStart(P)); }); lines.push(SEP); if(totalDiscount>0){ lines.push('Subtotal'.padEnd(W+Q-8)+sub.toLocaleString('id-ID').padStart(P)); lines.push('Diskon'.padEnd(W+Q-6)+'-'+totalDiscount.toLocaleString('id-ID').padStart(P)); lines.push('--------------------'); } lines.push('TOTAL BAYAR'.padEnd(W+Q-10)+grandTotal.toLocaleString('id-ID').padStart(P)); lines.push('===================='); lines.push('Terima kasih!'); lines.push('📱 WA: 0881-0255-32438'); lines.push('📍 Jl. Contoh No. 123'); return lines.join('\n'); }
-function copyReceipt(){ if(!lastReceiptOrder)return; const {orderId,logsList,totalDiscount,grandTotal,customerName}=lastReceiptOrder; const text=generatePlainReceipt(orderId,logsList,totalDiscount,grandTotal,customerName); navigator.clipboard.writeText(text).then(()=>alert('✅ Teks disalin!')); }
-function sendReceiptWA(){ if(!lastReceiptOrder)return; const {orderId,logsList,totalDiscount,grandTotal,customerName}=lastReceiptOrder; const text=generatePlainReceipt(orderId,logsList,totalDiscount,grandTotal,customerName); window.open('https://wa.me/62881025532438?text='+encodeURIComponent(text),'_blank'); }
-function shareReceiptImage(){ if(!lastReceiptOrder)return; html2canvas(document.getElementById('receiptBody'),{scale:2,backgroundColor:'#ffffff',allowTaint:false,useCORS:true}).then(canvas=>{ canvas.toBlob(function(blob){ const file=new File([blob],'Struk_'+lastReceiptOrder.orderId+'.png',{type:'image/png'}); if(navigator.share&&navigator.canShare({files:[file]})){ navigator.share({title:'Struk MANTUL KITCHEN',files:[file]}).catch(()=>{}); } else { const link=document.createElement('a'); link.download='Struk_'+lastReceiptOrder.orderId+'.png'; link.href=URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); alert('✅ Gambar didownload!'); } }); }).catch(err=>alert('Gagal generate gambar: '+err)); }
-function downloadReceiptPDF(){ if(!lastReceiptOrder)return; html2pdf().set({margin:[10,10,10,10], filename:'Struk_'+lastReceiptOrder.orderId+'.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2,backgroundColor:'#ffffff'}, jsPDF:{unit:'mm', format:'a6', orientation:'portrait'}}).from(document.getElementById('receiptBody')).save(); }
+function generatePlainReceipt(orderId, logsList, totalDiscount, grandTotal, customerName, isDuplicate=false){
+  const displayDate=formatDisplayDate(logsList[0]?.date||new Date());
+  const name=customerName||'-';
+  let lines=[]; const W=20; const Q=5; const P=12; const SEP=''.padEnd(W+Q+P+2,'-');
+  lines.push('MANTUL KITCHEN'); lines.push('====================');
+  lines.push('Pelanggan : '+name); lines.push('Order ID  : '+orderId); lines.push('Tgl       : '+displayDate);
+  lines.push('--------------------');
+  let header='Item'.padEnd(W)+'Qty'.padStart(Q)+'Total'.padStart(P); lines.push(header); lines.push(SEP);
+  let sub=0; logsList.forEach(log=>{ if(log.type!=='JUAL'){ lines.push(log.product+' '+log.detail); return; } sub+=log.grossPrice; let nm=log.product.length>W?log.product.substring(0,W-3)+'..':log.product; lines.push(nm.padEnd(W)+log.qtyInput.toString().padStart(Q)+log.grossPrice.toLocaleString('id-ID').padStart(P)); });
+  lines.push(SEP);
+  if(totalDiscount>0){ lines.push('Subtotal'.padEnd(W+Q-8)+sub.toLocaleString('id-ID').padStart(P)); lines.push('Diskon'.padEnd(W+Q-6)+'-'+totalDiscount.toLocaleString('id-ID').padStart(P)); lines.push('--------------------'); }
+  lines.push('TOTAL BAYAR'.padEnd(W+Q-10)+grandTotal.toLocaleString('id-ID').padStart(P));
+  lines.push('====================');
+  if(appSettings.showFooter) lines.push(appSettings.footerText);
+  if(appSettings.showWA) lines.push(appSettings.waText);
+  if(appSettings.showAddress) lines.push(appSettings.addressText);
+  if(isDuplicate && appSettings.showDuplicate) lines.push('*** DUPLICATE ***');
+  return lines.join('\n');
+}
 function switchTab(t){ document.querySelectorAll('.tab-content,.tab-btn').forEach(el=>el.classList.remove('active')); document.getElementById(t==='dashboard'?'tabDashboard':'tabProfit').classList.add('active'); document.getElementById(t==='dashboard'?'btnTabDashboard':'btnTabProfit').classList.add('active'); }
 function getSortedProductKeys(){ const keys=Object.keys(productCatalog); switch(currentSortMode){ case 'az': return keys.sort((a,b)=>a.localeCompare(b)); case 'za': return keys.sort((a,b)=>b.localeCompare(a)); case 'qty_asc': return keys.sort((a,b)=>(inventory[a]||0)-(inventory[b]||0)); case 'qty_desc': return keys.sort((a,b)=>(inventory[b]||0)-(inventory[a]||0)); default: return keys.sort((a,b)=>a.localeCompare(b)); } }
 function changeSortMode(m){ currentSortMode=m; renderDashboard(); }
@@ -440,20 +568,68 @@ function populateProductDropdown(){ const sel=document.getElementById('prodSelec
 function updatePackageOptions(){ const prod=document.getElementById('prodSelect').value; const group=document.getElementById('packageFormGroup'); const sel=document.getElementById('packSelect'); const variants=getVariants(prod); if(variants.length<=1){ group.style.display='none'; return; } group.style.display='block'; sel.innerHTML=''; variants.forEach((p,i)=>{ const opt=document.createElement('option'); opt.value=i; opt.textContent=p.label; sel.appendChild(opt); }); updateItemPreview(); }
 function runCalculator(){ if(currentUserRole!=='admin')return; const prod=document.getElementById('prodSelect').value; const qty=parseInt(document.getElementById('txQty').value)||1; const variants=getVariants(prod); const isPure=(variants.length===1&&variants[0].pcsPerPack===1); let totalPcs=qty; if(!isPure&&variants.length>0){ const idx=parseInt(document.getElementById('packSelect').value)||0; const pack=variants[idx]; if(pack)totalPcs=pack.pcsPerPack*qty; } const bahan=totalPcs*getCogs(prod); const pack=parseFloat(document.getElementById('calcPack').value)||0; const opr=parseFloat(document.getElementById('calcOpr').value)||0; const mgn=parseFloat(document.getElementById('calcMargin').value)||0; const total=bahan+pack+opr; document.getElementById('calcTotalModal').innerText=formatRupiah(total); let ideal=total/(1-(mgn/100)); ideal=Math.ceil(ideal/1000)*1000; document.getElementById('calcIdealPrice').innerText=formatRupiah(ideal); }
 
-function loadFromCloud(){ showLoading('🔄 Menyelaraskan Data...'); fetch(CLOUD_URL).then(res=>res.json()).then(data=>{ if(data.inventory)for(let k in data.inventory)inventory[k]=data.inventory[k]; if(data.logs){ logs=data.logs.map(l=>{ if(!l.orderId)l.orderId='LEGACY-'+Date.now().toString().slice(-8); if(!l.customerName)l.customerName='-'; return l; }); } if(data.productCatalog){ productCatalog=data.productCatalog; saveProductCatalog(); } else { loadProductCatalog(); } for(let k in productCatalog)if(!(k in inventory))inventory[k]=0; populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading(); applyDateFilter(currentPeriod||'today'); showSyncBanner('success','✅ Data dimuat dari Cloud.',false); setTimeout(dismissSyncBanner,2000); }).catch(()=>{ loadProductCatalog(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading(); applyDateFilter(currentPeriod||'today'); playBeep(); showSyncBanner('error','⚠️ Gagal konek Cloud! (Data lokal)',true); }); }
-function saveToCloud(){ if(isSyncing)return; isSyncing=true; showLoading('💾 Menyimpan ke Cloud...'); const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),15000); fetch(CLOUD_URL,{method:'POST',mode:'no-cors',signal:ctrl.signal,body:JSON.stringify({type:'SALE',inventory,logs,productCatalog})}).then(()=>{ clearTimeout(tid); hideLoading(); renderDashboard(); saveProductCatalog(); showSyncBanner('success','✅ Tersimpan ke Cloud.',false); setTimeout(dismissSyncBanner,2000); isSyncing=false; }).catch((err)=>{ clearTimeout(tid); console.error(err); hideLoading(); renderDashboard(); saveProductCatalog(); playBeep(); showSyncBanner('error','❌ Gagal sync! Periksa jaringan.',true); isSyncing=false; }); }
+// REPRINT LOGIC
+function searchReceipt(){
+  const keyword = document.getElementById('searchReceipt').value.trim().toLowerCase();
+  renderDashboard(); // reset dulu
+  if(!keyword) return;
+  const filtered = logs.filter(l => {
+    const oid = (l.orderId||'').toLowerCase();
+    const cust = (l.customerName||'').toLowerCase();
+    return oid.includes(keyword) || cust.includes(keyword);
+  });
+  // Re-render audit table manually with reprint buttons
+  const auditBody = document.getElementById('auditTableBody');
+  auditBody.innerHTML = '';
+  if(filtered.length===0){ auditBody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--muted);">Tidak ditemukan.</td></tr>'; return; }
+  filtered.forEach((log, i) => {
+    let badge = log.type==='JUAL'?'<span class="badge-out">JUAL</span>':log.type==='TESTER'?'<span class="badge-tester">TESTER</span>':'<span class="badge-in">MASUK</span>';
+    const dt=formatDisplayDate(log.date); const oid=log.orderId||'N/A'; const cust=log.customerName||'-';
+    let discHtml='-';
+    if(log.type==='JUAL' && currentUserRole==='admin'){ discHtml='<input type="number" value="'+log.discount+'" onblur="updateManualDiscount(this,'+i+')" style="width:75px;...">'; } else if(log.type==='JUAL'){ discHtml=formatRupiah(log.discount); }
+    let reprintBtn = (log.type==='JUAL' || log.type==='TESTER') ? `<button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;width:auto;" onclick="reprintReceipt('${oid}')">🔄 Cetak Ulang</button>` : '-';
+    auditBody.innerHTML += `<tr><td><small>${oid}</small></td><td><small>${dt}</small></td><td><small>${cust}</small></td><td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td><td>${badge}</td><td>${(log.type==='JUAL')?formatRupiah(log.grossPrice):(log.type==='TESTER'?'PROMOSI':'-')}</td><td>${discHtml}</td><td><span style="color:var(--danger)">${(log.type==='JUAL'||log.type==='TESTER')?formatRupiah(log.cogsTotal):'-'}</span></td><td><b style="${log.netProfit<0?'color:var(--danger)':'color:var(--success)'}">${(log.type==='JUAL'||log.type==='TESTER')?formatRupiah(log.netProfit):'-'}</b></td><td>${reprintBtn}</td></tr>`;
+  });
+}
+
+function reprintReceipt(orderId){
+  const related = logs.filter(l => l.orderId === orderId);
+  if(related.length===0) return alert('Transaksi tidak ditemukan!');
+  const isJual = related.some(l => l.type==='JUAL');
+  const totalDiscount = related.reduce((s,l)=>s+(l.discount||0),0);
+  const grandTotal = related.reduce((s,l)=>s+(l.finalNominal||0),0);
+  const customerName = related[0]?.customerName || '-';
+  showCombinedReceipt(orderId, related, totalDiscount, grandTotal, customerName, true);
+}
+
+function loadFromCloud(){ showLoading('🔄 Menyelaraskan Data...'); fetch(CLOUD_URL).then(res=>res.json()).then(data=>{ if(data.inventory)for(let k in data.inventory)inventory[k]=data.inventory[k]; if(data.logs){ logs=data.logs.map(l=>{ if(!l.orderId)l.orderId='LEGACY-'+Date.now().toString().slice(-8); if(!l.customerName)l.customerName='-'; return l; }); } if(data.productCatalog){ productCatalog=data.productCatalog; saveProductCatalog(); } else { loadProductCatalog(); } if(data.appSettings){ appSettings = data.appSettings; applySettingsToUI(); } for(let k in productCatalog)if(!(k in inventory))inventory[k]=0; populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading(); applyDateFilter(currentPeriod||'today'); showSyncBanner('success','✅ Data dimuat dari Cloud.',false); setTimeout(dismissSyncBanner,2000); }).catch(()=>{ loadProductCatalog(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading(); applyDateFilter(currentPeriod||'today'); playBeep(); showSyncBanner('error','⚠️ Gagal konek Cloud! (Data lokal)',true); }); }
+
+function saveToCloud(){ if(isSyncing)return; isSyncing=true; showLoading('💾 Menyimpan...'); collectSettingsFromUI(); const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),15000); fetch(CLOUD_URL,{method:'POST',mode:'no-cors',signal:ctrl.signal,body:JSON.stringify({type:'SALE',inventory,logs,productCatalog,appSettings})}).then(()=>{ clearTimeout(tid); hideLoading(); renderDashboard(); saveProductCatalog(); showSyncBanner('success','✅ Tersimpan ke Cloud.',false); setTimeout(dismissSyncBanner,2000); isSyncing=false; }).catch((err)=>{ clearTimeout(tid); console.error(err); hideLoading(); renderDashboard(); saveProductCatalog(); playBeep(); showSyncBanner('error','❌ Gagal sync!',true); isSyncing=false; }); }
+
 function undoLastTransaction(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); if(logs.length===0)return alert('Belum ada transaksi.'); const last=logs[0]; if(!last.orderId||last.orderId.startsWith('STOCK-')||last.orderId.startsWith('TEST-')){ if(!confirm('Batalkan '+last.product+' ('+last.type+')?'))return; if(last.type==='MASUK')inventory[last.product]-=last.qtyInput; else if(last.type==='TESTER')inventory[last.product]+=last.finalDeduct; else inventory[last.product]+=last.finalDeduct; logs.shift(); saveToCloud(); renderDashboard(); return; } const oid=last.orderId; const toUndo=logs.filter(l=>l.orderId===oid); if(!confirm('Batalkan ORDER '+oid+' ('+toUndo.length+' item)?'))return; for(let l of toUndo){ if(l.type==='MASUK')inventory[l.product]-=l.qtyInput; else if(l.type==='JUAL'||l.type==='TESTER')inventory[l.product]+=l.finalDeduct; } logs=logs.filter(l=>l.orderId!==oid); saveToCloud(); renderDashboard(); alert('✅ Order '+oid+' dibatalkan.'); }
 function resetSystemData(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); if(prompt('Ketik 8888 untuk HAPUS SEMUA DATA:')==='8888'){ for(let k in productCatalog)inventory[k]=0; logs=[]; saveToCloud(); renderDashboard(); } }
 function exportToExcel(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); let csv="\uFEFFOrder ID,Waktu,Pelanggan,Produk,Aktivitas,Detail,Omset,Diskon,Modal,Laba\n"; logs.forEach(l=>{ csv+='"'+ (l.orderId||'N/A') +'","'+ formatDisplayDate(l.date) +'","'+ (l.customerName||'-') +'","'+ l.product +'","'+ l.type +'","'+ l.detail +'","'+ (l.grossPrice||0) +'","'+ (l.discount||0) +'","'+ (l.cogsTotal||0) +'","'+ (l.netProfit||0) +'"\n'; }); const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='Audit_MantulKitchen.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
-function renderDashboard(){ const stockBody=document.getElementById('stockTableBody'); stockBody.innerHTML=''; const sorted=getSortedProductKeys(); const isAdmin=currentUserRole==='admin'; for(let item of sorted){ if(!(item in inventory))continue; let unit='Pcs'; const variants=getVariants(item); if(variants.length===1&&variants[0].pcsPerPack===1)unit='Pack'; const safe=item.replace(/'/g,"\\'"); const fc=getForecastDays(item); let actions=isAdmin?'<button class="btn-clone" onclick="cloneProduct(\''+safe+'\')">📋</button><button class="btn-edit" onclick="editProduct(\''+safe+'\')">✏️</button><button class="btn-trash" onclick="deleteProduct(\''+safe+'\')">🗑️</button>':'<span style="color:var(--muted);font-size:0.7rem;">(read only)</span>'; stockBody.innerHTML+='<tr><td><b>'+item+'</b></td><td>'+(inventory[item]||0)+' '+unit+'</td><td style="font-size:0.75rem;">'+fc+'</td><td style="text-align:center;white-space:nowrap;">'+actions+'</td></tr>'; } let tRev=0,tVol=0,tDisc=0,tGross=0,tCogs=0,tNet=0; const audit=document.getElementById('auditTableBody'); audit.innerHTML=''; const display=filteredLogs.length>0?filteredLogs:logs; if(display.length===0&&filteredLogs.length===0){ audit.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);">Tidak ada transaksi.</td></tr>'; } else { display.forEach((log,i)=>{ let badge=log.type==='JUAL'?'<span class="badge-out">JUAL</span>':log.type==='TESTER'?'<span class="badge-tester">TESTER</span>':'<span class="badge-in">MASUK</span>'; if(log.type==='JUAL'){ tRev+=log.finalNominal; tDisc+=log.discount; tVol+=log.qtyInput; tGross+=log.grossPrice; tCogs+=log.cogsTotal; tNet+=log.netProfit; } if(log.type==='TESTER'){ tCogs+=log.cogsTotal; tNet+=log.netProfit; } const dt=formatDisplayDate(log.date); const oid=log.orderId||'N/A'; const cust=log.customerName||'-'; let discHtml='-'; if(log.type==='JUAL'&&isAdmin){ discHtml='<input type="number" value="'+log.discount+'" onblur="updateManualDiscount(this,'+i+')" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">'; } else if(log.type==='JUAL'){ discHtml=formatRupiah(log.discount); } audit.innerHTML+='<tr><td><small>'+oid+'</small></td><td><small>'+dt+'</small></td><td><small>'+cust+'</small></td><td><b>'+log.product+'</b><br><small style="color:var(--muted)">'+log.detail+'</small></td><td>'+badge+'</td><td>'+(log.type==='JUAL'?formatRupiah(log.grossPrice):(log.type==='TESTER'?'PROMOSI':'-'))+'</td><td>'+discHtml+'</td><td><span style="color:var(--danger)">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.cogsTotal):'-')+'</span></td><td><b style="'+(log.netProfit<0?'color:var(--danger)':'color:var(--success)')+'">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.netProfit):'-')+'</b></td></tr>'; }); } document.getElementById('sumRevenue').innerText=formatRupiah(tRev); document.getElementById('sumSold').innerText=tVol+' Item'; document.getElementById('sumDiscount').innerText=formatRupiah(tDisc); document.getElementById('profGross').innerText=formatRupiah(tGross); document.getElementById('profCogs').innerText=formatRupiah(tCogs); document.getElementById('profNet').innerText=formatRupiah(tNet); const {top,bottom}=calculatePareto(); document.getElementById('topProducts').innerHTML=top.length===0?'<p style="color:var(--muted);font-size:0.8rem;">Belum ada data.</p>':top.map(([n,q])=>'<div class="pareto-item top"><span class="name">'+n+'</span><span class="val">'+q+' pcs</span></div>').join(''); document.getElementById('bottomProducts').innerHTML=bottom.length===0?'<p style="color:var(--muted);font-size:0.8rem;">Data kosong.</p>':bottom.map(([n,q])=>'<div class="pareto-item bottom"><span class="name">'+n+'</span><span class="val">'+q+' pcs</span></div>').join(''); checkAlertsAndChart(display); }
+
+function renderDashboard(){ const stockBody=document.getElementById('stockTableBody'); stockBody.innerHTML=''; const sorted=getSortedProductKeys(); const isAdmin=currentUserRole==='admin'; for(let item of sorted){ if(!(item in inventory))continue; let unit='Pcs'; const variants=getVariants(item); if(variants.length===1&&variants[0].pcsPerPack===1)unit='Pack'; const safe=item.replace(/'/g,"\\'"); const fc=getForecastDays(item); let actions=isAdmin?'<button class="btn-clone" onclick="cloneProduct(\''+safe+'\')">📋</button><button class="btn-edit" onclick="editProduct(\''+safe+'\')">✏️</button><button class="btn-trash" onclick="deleteProduct(\''+safe+'\')">🗑️</button>':'<span style="color:var(--muted);font-size:0.7rem;">(read only)</span>'; stockBody.innerHTML+='<tr><td><b>'+item+'</b></td><td>'+(inventory[item]||0)+' '+unit+'</td><td style="font-size:0.75rem;">'+fc+'</td><td style="text-align:center;white-space:nowrap;">'+actions+'</td></tr>'; } let tRev=0,tVol=0,tDisc=0,tGross=0,tCogs=0,tNet=0; const audit=document.getElementById('auditTableBody'); audit.innerHTML=''; const display=filteredLogs.length>0?filteredLogs:logs; if(display.length===0&&filteredLogs.length===0){ audit.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--muted);">Tidak ada transaksi.</td></tr>'; } else { display.forEach((log,i)=>{ let badge=log.type==='JUAL'?'<span class="badge-out">JUAL</span>':log.type==='TESTER'?'<span class="badge-tester">TESTER</span>':'<span class="badge-in">MASUK</span>'; if(log.type==='JUAL'){ tRev+=log.finalNominal; tDisc+=log.discount; tVol+=log.qtyInput; tGross+=log.grossPrice; tCogs+=log.cogsTotal; tNet+=log.netProfit; } if(log.type==='TESTER'){ tCogs+=log.cogsTotal; tNet+=log.netProfit; } const dt=formatDisplayDate(log.date); const oid=log.orderId||'N/A'; const cust=log.customerName||'-'; let discHtml='-'; if(log.type==='JUAL'&&isAdmin){ discHtml='<input type="number" value="'+log.discount+'" onblur="updateManualDiscount(this,'+i+')" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">'; } else if(log.type==='JUAL'){ discHtml=formatRupiah(log.discount); } let reprintBtn = (log.type==='JUAL' || log.type==='TESTER') ? `<button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;width:auto;" onclick="reprintReceipt('${oid}')">🔄 Cetak</button>` : '-'; audit.innerHTML+='<tr><td><small>'+oid+'</small></td><td><small>'+dt+'</small></td><td><small>'+cust+'</small></td><td><b>'+log.product+'</b><br><small style="color:var(--muted)">'+log.detail+'</small></td><td>'+badge+'</td><td>'+(log.type==='JUAL'?formatRupiah(log.grossPrice):(log.type==='TESTER'?'PROMOSI':'-'))+'</td><td>'+discHtml+'</td><td><span style="color:var(--danger)">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.cogsTotal):'-')+'</span></td><td><b style="'+(log.netProfit<0?'color:var(--danger)':'color:var(--success)')+'">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.netProfit):'-')+'</b></td><td>'+reprintBtn+'</td></tr>'; }); } document.getElementById('sumRevenue').innerText=formatRupiah(tRev); document.getElementById('sumSold').innerText=tVol+' Item'; document.getElementById('sumDiscount').innerText=formatRupiah(tDisc); document.getElementById('profGross').innerText=formatRupiah(tGross); document.getElementById('profCogs').innerText=formatRupiah(tCogs); document.getElementById('profNet').innerText=formatRupiah(tNet); const {top,bottom}=calculatePareto(); document.getElementById('topProducts').innerHTML=top.length===0?'<p style="color:var(--muted);font-size:0.8rem;">Belum ada data.</p>':top.map(([n,q])=>'<div class="pareto-item top"><span class="name">'+n+'</span><span class="val">'+q+' pcs</span></div>').join(''); document.getElementById('bottomProducts').innerHTML=bottom.length===0?'<p style="color:var(--muted);font-size:0.8rem;">Data kosong.</p>':bottom.map(([n,q])=>'<div class="pareto-item bottom"><span class="name">'+n+'</span><span class="val">'+q+' pcs</span></div>').join(''); checkAlertsAndChart(display); }
+
 function updateManualDiscount(el,idx){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); let v=parseInt(el.value.replace(/[^0-9]/g,''))||0; logs[idx].discount=v; logs[idx].finalNominal=Math.max(0,logs[idx].grossPrice-v); logs[idx].netProfit=logs[idx].finalNominal-logs[idx].cogsTotal; saveToCloud(); }
 function checkAlertsAndChart(data){ const box=document.getElementById('stockAlerts'); box.innerHTML=''; for(let item in inventory){ const stok=inventory[item]||0; let th=5; if(item==='Dimsum Premium')th=20; else if(item==='Gyoza Premium')th=20; else if(item.includes('Wonton'))th=10; if(stok<=th)box.innerHTML+='<div class="alert-box">⚠️ Stok <b>'+item+'</b> menipis (Sisa: '+stok+')</div>'; } const ctx=document.getElementById('salesChart').getContext('2d'); if(salesChartInstance)salesChartInstance.destroy(); const cnt={}; (data||logs).forEach(l=>{ if(l.type==='JUAL'){ if(!cnt[l.product])cnt[l.product]=0; cnt[l.product]+=l.qtyInput; } }); const labels=Object.keys(cnt); const values=labels.map(k=>cnt[k]); salesChartInstance=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Penjualan',data:values,backgroundColor:'#d4af37',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a2e'}},x:{grid:{display:false}}}}}); }
+
+// FIX PDF & IMAGE SHARE
+function shareReceiptImage(){ if(!lastReceiptOrder)return; showLoading('🖼️ Generating Image...'); const el = document.getElementById('receiptBody'); html2canvas(el,{scale:2,backgroundColor:'#ffffff',allowTaint:false,useCORS:true}).then(canvas=>{ hideLoading(); canvas.toBlob(function(blob){ const file=new File([blob],'Struk_'+lastReceiptOrder.orderId+'.png',{type:'image/png'}); if(navigator.share&&navigator.canShare({files:[file]})){ navigator.share({title:'Struk MANTUL KITCHEN',files:[file]}).catch(()=>{}); } else { const link=document.createElement('a'); link.download='Struk_'+lastReceiptOrder.orderId+'.png'; link.href=URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); alert('✅ Gambar didownload!'); } }); }).catch(err=>{ hideLoading(); alert('Gagal: '+err); }); }
+
+function downloadReceiptPDF(){ if(!lastReceiptOrder)return; showLoading('📄 Generating PDF...'); const el = document.getElementById('receiptBody'); html2canvas(el,{scale:2,backgroundColor:'#ffffff',allowTaint:false,useCORS:true}).then(canvas=>{ hideLoading(); const imgData=canvas.toDataURL('image/png'); const { jsPDF } = window.jspdf; const pdf = new jsPDF('p','mm','a6'); const pdfWidth = pdf.internal.pageSize.getWidth(); const pdfHeight = (canvas.height * pdfWidth) / canvas.width; pdf.addImage(imgData,'PNG',0,0,pdfWidth,pdfHeight); pdf.save('Struk_'+lastReceiptOrder.orderId+'.pdf'); }).catch(err=>{ hideLoading(); alert('Gagal PDF: '+err); }); }
+
+function copyReceipt(){ if(!lastReceiptOrder)return; const {orderId,logsList,totalDiscount,grandTotal,customerName,isDuplicate}=lastReceiptOrder; const text=generatePlainReceipt(orderId,logsList,totalDiscount,grandTotal,customerName,isDuplicate); navigator.clipboard.writeText(text).then(()=>alert('✅ Teks disalin!')); }
+function sendReceiptWA(){ if(!lastReceiptOrder)return; const {orderId,logsList,totalDiscount,grandTotal,customerName,isDuplicate}=lastReceiptOrder; const text=generatePlainReceipt(orderId,logsList,totalDiscount,grandTotal,customerName,isDuplicate); window.open('https://wa.me/62881025532438?text='+encodeURIComponent(text),'_blank'); }
+
 function showLoading(t){ const el=document.getElementById('syncIndicator'); el.innerText=t; el.style.display='block'; }
 function hideLoading(){ document.getElementById('syncIndicator').style.display='none'; }
 function playBeep(){ try{ const ctx=new(window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=800; osc.type='square'; gain.gain.value=0.3; osc.start(); setTimeout(()=>{ try{osc.stop();ctx.close();}catch(e){} },350); }catch(e){} }
 function showSyncBanner(type,msg,retry=false){ const b=document.getElementById('syncStatusBanner'); b.className='sync-banner '+type; b.style.display='flex'; let btn=''; if(retry)btn+='<button class="btn-retry" onclick="retrySync()">🔄 Coba Lagi</button>'; btn+='<button class="btn-close" onclick="dismissSyncBanner()">✕ Tutup</button>'; b.innerHTML='<span>'+msg+'</span> <div style="display:flex;gap:8px;">'+btn+'</div>'; }
 function dismissSyncBanner(){ document.getElementById('syncStatusBanner').style.display='none'; }
 function retrySync(){ dismissSyncBanner(); saveToCloud(); }
+
 function initApp(){ try{ loadProductCatalog(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); renderCart(); loadFromCloud(); applyRoleUI(); }catch(e){ alert('Error init: '+e.message); console.error(e); } }
 </script>
 </body>
