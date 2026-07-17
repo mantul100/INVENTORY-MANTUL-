@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN v6.0 - ENTERPRISE (Full Features)</title>
+<title>MANTUL KITCHEN v7.0 - CART SYSTEM</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root { --bg: #0b0b0c; --card: #171719; --gold: #d4af37; --text: #f5f5f5; --muted: #bdbdbd; --border: #2a2a2e; --input: #202023; --success: #25D366; --danger: #ff4d4d; --gold-light: rgba(212, 175, 55, 0.08); --warning: #ff9800; }
@@ -58,6 +58,7 @@ body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 
 .box { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 20px; height: fit-content; margin-bottom: 20px; }
 .box h2 { color: var(--gold); margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 1px dashed var(--border); padding-bottom: 10px; text-transform: uppercase; }
+.box h2 .badge-cart { background: var(--gold); color: #111; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; margin-left: 10px; }
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
 .form-group input, .form-group select { width: 100%; padding: 12px; background: var(--input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.95rem; }
@@ -65,12 +66,16 @@ body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 .preview-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; color: var(--muted); }
 .preview-row span:last-child { color: var(--text); font-weight: 600; }
 .preview-row.total-line { border-top: 1px dashed rgba(212, 175, 55, 0.3); margin-top: 8px; padding-top: 8px; font-size: 0.95rem; color: var(--gold); }
-.btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+.btn { padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; width: 100%; }
 .btn-gold { background: var(--gold); color: #111; margin-bottom: 10px; }
+.btn-add { background: #4fc3f7; color: #111; margin-bottom: 10px; }
 .btn-undo { background: #ff9800; color: #111; margin-bottom: 10px; }
 .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
 .btn-excel { background: #1D7344; color: #fff; margin-bottom: 20px; }
 .btn-secondary { background: var(--border); color: var(--text); margin-bottom: 10px; }
+.btn-cart-checkout { background: var(--success); color: #111; font-size: 1.2rem; padding: 16px; }
+.btn-cart-checkout:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-remove-cart { background: transparent; color: var(--danger); border: none; cursor: pointer; font-size: 1.1rem; }
 .table-wrapper { overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border); }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
 th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
@@ -99,6 +104,13 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 .sort-controls label { color: var(--muted); font-size: 0.8rem; font-weight: bold; }
 .sort-controls select { background: var(--input); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; flex: 1; min-width: 180px; }
 
+/* CART TABLE */
+.cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.cart-item-row .item-info { flex: 3; }
+.cart-item-row .item-price { flex: 1; text-align: right; }
+.cart-item-row .item-actions { flex: 0.5; text-align: right; }
+.cart-total-line { display: flex; justify-content: space-between; font-weight: bold; padding: 10px 0; border-top: 2px solid var(--gold); margin-top: 5px; }
+
 /* RECEIPT MODAL */
 .receipt-modal { display: none; position: fixed; top:0;left:0;width:100%;height:100%;background: rgba(0,0,0,0.7);z-index:9998; justify-content:center; align-items:center; }
 .receipt-modal.active { display: flex; }
@@ -110,6 +122,8 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 .btn-wa { background: #25D366; color: #fff; }
 .btn-copy { background: #ddd; color: #111; }
 .btn-close-modal { background: #ff4d4d; color: #fff; }
+
+.empty-cart-msg { color: var(--muted); text-align: center; padding: 20px 0; font-style: italic; }
 </style>
 </head>
 <body>
@@ -126,8 +140,8 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
 
 <div class="container">
   <div class="header">
-    <h1>MANTUL KITCHEN v6.0</h1>
-    <p>Enterprise POS + Inventory + Smart Analytics</p>
+    <h1>MANTUL KITCHEN v7.0</h1>
+    <p>Cart System + Smart Analytics</p>
     <div class="user-badge" id="userBadge">👤 Admin Mode</div>
   </div>
   
@@ -135,7 +149,7 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
   <div id="syncIndicator" class="loading-status">🔄 Sedang Menghubungkan ke Server Cloud...</div>
   
   <div class="tab-navigation">
-    <button id="btnTabDashboard" class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard & Input</button>
+    <button id="btnTabDashboard" class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard & POS</button>
     <button id="btnTabProfit" class="tab-btn" onclick="switchTab('profit')">📜 Jurnal & Edit Data</button>
   </div>
 
@@ -174,43 +188,73 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
     <div class="main-layout">
       <!-- KOLOM KIRI -->
       <div>
+        <!-- BOX INPUT PRODUK KE KERANJANG -->
         <div class="box">
-          <h2>📥 INPUT TRANSAKSI</h2>
+          <h2>🛒 TAMBAH KE KERANJANG</h2>
           <div class="form-group">
             <label>1. Pilih Produk:</label>
-            <select id="prodSelect" onchange="updatePackageOptions(); syncFormAndPreview();"></select>
+            <select id="prodSelect" onchange="updatePackageOptions(); updateItemPreview();"></select>
           </div>
-          <div class="form-group" id="packageFormGroup"><label>2. Varian Paket:</label><select id="packSelect" onchange="syncFormAndPreview()"></select></div>
+          <div class="form-group" id="packageFormGroup"><label>2. Varian Paket:</label><select id="packSelect" onchange="updateItemPreview()"></select></div>
           <div class="form-group">
-            <label>3. Jenis Aktivitas:</label>
-            <select id="actionType" onchange="updatePackageOptions(); syncFormAndPreview();">
-              <option value="JUAL">Penjualan (Pengurang Stok + Omset)</option>
-              <option value="MASUK">Stok Masuk (Penambah Stok)</option>
-              <option value="TESTER">TESTER / PROMOSI</option>
-            </select>
+            <label>3. Kuantitas:</label>
+            <input type="number" id="txQty" value="1" min="1" oninput="updateItemPreview()">
           </div>
-          <div class="form-group"><label id="qtyLabel">4. Kuantitas Jual:</label><input type="number" id="txQty" value="1" min="1" oninput="syncFormAndPreview()"></div>
-          <div class="form-group" id="discountFormGroup"><label>5. Diskon / Potongan (Rp):</label><input type="number" id="txDiscount" value="0" min="0" oninput="syncFormAndPreview()"></div>
           
           <div class="preview-box">
-            <h4>👀 Live Preview</h4>
-            <div class="preview-row"><span>Harga Dasar:</span><span id="prePackPrice">Rp 0</span></div>
-            <div class="preview-row" id="preSubtotalRow"><span>Subtotal:</span><span id="preSubtotal">Rp 0</span></div>
-            <div class="preview-row" id="preDiscountRow"><span>Diskon:</span><span id="preDiscount" style="color:var(--danger)">-Rp 0</span></div>
-            <div class="preview-row total-line"><span>Total Omset:</span><span id="preTotalNominal">Rp 0</span></div>
+            <h4>👀 Preview Item</h4>
+            <div class="preview-row"><span>Harga Satuan:</span><span id="prePackPrice">Rp 0</span></div>
+            <div class="preview-row"><span>Total Pcs / Pack:</span><span id="preTotalPcs">0</span></div>
+            <div class="preview-row total-line"><span>Subtotal Item:</span><span id="preSubtotalItem">Rp 0</span></div>
           </div>
           
-          <button class="btn btn-gold" onclick="submitTransaction()">Catat ke Database 💾</button>
-          <button class="btn btn-undo" onclick="undoLastTransaction()">↩️ Undo Transaksi</button>
+          <button class="btn btn-add" onclick="addToCart()">➕ Tambahkan ke Keranjang</button>
+        </div>
+
+        <!-- BOX KERANJANG BELANJA -->
+        <div class="box" id="cartSection">
+          <h2>🧺 KERANJANG <span class="badge-cart" id="cartCount">0 Item</span></h2>
+          <div id="cartItemsContainer">
+            <div class="empty-cart-msg">Keranjang kosong. Silakan tambahkan produk.</div>
+          </div>
           
-          <!-- Tombol Admin Only -->
-          <div id="adminControls">
-            <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>
+          <div id="cartSummary" style="display:none;">
+            <div class="cart-total-line"><span>Subtotal</span><span id="cartSubtotal">Rp 0</span></div>
+            <div class="form-group" style="margin-top:10px;">
+              <label>Diskon Order (Rp):</label>
+              <input type="number" id="cartDiscount" value="0" min="0" oninput="updateCartSummary()">
+            </div>
+            <div class="cart-total-line" style="border-top: 2px solid var(--gold); font-size:1.2rem; color:var(--gold);">
+              <span>TOTAL BAYAR</span>
+              <span id="cartGrandTotal">Rp 0</span>
+            </div>
+            <button class="btn btn-cart-checkout" onclick="checkoutOrder()">🛒 Bayar & Terbitkan Struk</button>
+            <button class="btn btn-undo" onclick="clearCart()" style="background:var(--border); color:var(--muted);">🗑️ Kosongkan Keranjang</button>
+          </div>
+        </div>
+
+        <!-- KALKULATOR MARGIN (ADMIN ONLY) -->
+        <div class="box" id="adminCalculatorBox">
+            <h2>🧠 SMART KALKULATOR MARGIN</h2>
+            <div class="form-group"><label>Target Margin (%):</label><input type="number" id="calcMargin" value="25" min="5" max="95" oninput="runCalculator()"></div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1"><label>Biaya Packing:</label><input type="number" id="calcPack" value="800" oninput="runCalculator()"></div>
+                <div class="form-group" style="flex:1"><label>Listrik/Bensin:</label><input type="number" id="calcOpr" value="1000" oninput="runCalculator()"></div>
+            </div>
+            <div class="preview-box">
+                <div class="preview-row"><span>Total Modal Riil:</span><span id="calcTotalModal">Rp 0</span></div>
+                <div class="preview-row total-line"><span>Harga Jual Ideal:</span><span id="calcIdealPrice" style="color:var(--success)">Rp 0</span></div>
+            </div>
+        </div>
+        
+        <!-- ADMIN CONTROLS (HIDDEN UNTUK KASIR) -->
+        <div id="adminControls">
             <button class="btn btn-secondary" onclick="toggleAddMenuForm()">➕ Tambah Menu Manual</button>
-          </div>
-          
-          <!-- Form Tambah / Edit -->
-          <div id="addMenuForm">
+            <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>
+        </div>
+        
+        <!-- Form Tambah / Edit Menu -->
+        <div id="addMenuForm">
             <h3 id="formTitle">➕ Tambah Produk Baru</h3>
             <div class="form-group"><label>Nama Produk:</label><input type="text" id="newProductName" placeholder="Contoh: Siomay Udang"></div>
             <div class="form-group"><label>HPP per Pcs (Rp):</label><input type="number" id="newProductCogs" placeholder="5000"></div>
@@ -225,20 +269,6 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
               <button class="btn btn-danger" onclick="cancelEdit()" style="flex:1;">Batal</button>
             </div>
           </div>
-        </div>
-
-        <div class="box">
-            <h2>🧠 SMART KALKULATOR MARGIN</h2>
-            <div class="form-group"><label>Target Margin (%):</label><input type="number" id="calcMargin" value="25" min="5" max="95" oninput="runCalculator()"></div>
-            <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1"><label>Biaya Packing:</label><input type="number" id="calcPack" value="800" oninput="runCalculator()"></div>
-                <div class="form-group" style="flex:1"><label>Listrik/Bensin:</label><input type="number" id="calcOpr" value="1000" oninput="runCalculator()"></div>
-            </div>
-            <div class="preview-box">
-                <div class="preview-row"><span>Total Modal Riil:</span><span id="calcTotalModal">Rp 0</span></div>
-                <div class="preview-row total-line"><span>Harga Jual Ideal:</span><span id="calcIdealPrice" style="color:var(--success)">Rp 0</span></div>
-            </div>
-        </div>
       </div>
 
       <!-- KOLOM KANAN -->
@@ -285,10 +315,10 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
     </div>
     <div class="box">
       <h2>📜 JURNAL AUDIT</h2>
-      <button class="btn btn-excel" onclick="exportToExcel()">Export .CSV 📊</button>
+      <button class="btn btn-excel" id="exportBtn" onclick="exportToExcel()">Export .CSV 📊</button>
       <div class="table-wrapper">
         <table>
-          <thead><tr><th>Waktu</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset</th><th>Edit Diskon</th><th>Modal</th><th>Laba</th></tr></thead>
+          <thead><tr><th>Order ID</th><th>Waktu</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset</th><th>Edit Diskon</th><th>Modal</th><th>Laba</th></tr></thead>
           <tbody id="auditTableBody"></tbody>
         </table>
       </div>
@@ -307,7 +337,6 @@ th { color: var(--gold); background: rgba(255,255,255,0.03); text-transform: upp
     </div>
   </div>
 </div>
-
 <script>
 // ============================================================
 // 1. KONFIGURASI & STATE
@@ -319,8 +348,11 @@ let currentPeriod = 'today';
 let currentUserRole = 'admin'; 
 let lastReceiptLog = null;
 
+// STATE KERANJANG
+let cart = [];
+
 // ============================================================
-// 2. FUNGSI TANGGAL TERSTANDARISASI (PERBAIKAN UTAMA)
+// 2. FUNGSI TANGGAL & FORMAT
 // ============================================================
 function generateFormattedDate() {
   const now = new Date();
@@ -330,37 +362,24 @@ function generateFormattedDate() {
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const seconds = String(now.getSeconds()).padStart(2, '0');
-  // Format ISO: YYYY-MM-DD HH:MM:SS (mudah di-parse dan di-sort)
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
 function parseDate(dateStr) {
-  // Coba parse berbagai format:
-  // 1. Format standar: YYYY-MM-DD HH:MM:SS
   let d = new Date(dateStr);
   if (!isNaN(d.getTime())) return d;
-  
-  // 2. Format "DD/MM/YYYY, HH.MM.SS" (dari toLocaleString)
   let parts = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2})\.(\d{2})/);
-  if (parts) {
-    return new Date(parts[3], parts[2]-1, parts[1], parts[4], parts[5]);
-  }
-  
-  // 3. Format "Rabu, 15 Juli 2026 - 23.37" (coba parse dengan Date)
-  let cleaned = dateStr.replace(/[a-zA-Z]+,?\s*/g, '').replace(/[-.]/g, ':').trim();
-  d = new Date(cleaned);
-  if (!isNaN(d.getTime())) return d;
-  
-  // 4. Fallback: coba new Date langsung
+  if (parts) return new Date(parts[3], parts[2]-1, parts[1], parts[4], parts[5]);
   return new Date(dateStr);
 }
 
 function formatDisplayDate(dateStr) {
   const d = parseDate(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-  return d.toLocaleDateString('id-ID', options);
+  return d.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
+
+function formatRupiah(num) { return "Rp " + Math.round(num).toLocaleString('id-ID'); }
 
 // ============================================================
 // 3. PIN & AUTHENTICATION
@@ -372,19 +391,26 @@ function verifyPin() {
     currentUserRole = 'admin';
     document.getElementById('userBadge').innerText = '👤 Admin Mode (Full Access)';
     document.getElementById('pinOverlay').style.display = 'none';
-    document.getElementById('adminControls').style.display = 'block';
+    applyRoleUI();
     initApp();
   } else if (pin === '0000') {
     currentUserRole = 'kasir';
     document.getElementById('userBadge').innerText = '👤 Kasir Mode (Transaksi Only)';
     document.getElementById('pinOverlay').style.display = 'none';
-    document.getElementById('adminControls').style.display = 'none';
+    applyRoleUI();
     initApp();
   } else {
     errorEl.innerText = '❌ PIN Salah! Coba 1234 (Admin) atau 0000 (Kasir)';
     document.getElementById('pinInput').value = '';
     document.getElementById('pinInput').focus();
   }
+}
+
+function applyRoleUI() {
+  const isAdmin = currentUserRole === 'admin';
+  document.getElementById('adminControls').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('adminCalculatorBox').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('exportBtn').style.display = isAdmin ? 'block' : 'none';
 }
 
 // ============================================================
@@ -411,9 +437,6 @@ let variantRows = [];
 let editingProductName = null;
 let filteredLogs = [];
 
-// ============================================================
-// 5. MANAJEMEN DATA
-// ============================================================
 function loadProductCatalog() {
   const stored = localStorage.getItem('productCatalog');
   if (stored) { try { productCatalog = JSON.parse(stored); for (let key in DEFAULT_PRODUCTS) if (!productCatalog[key]) productCatalog[key] = DEFAULT_PRODUCTS[key]; } catch(e) { productCatalog = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS)); } } 
@@ -427,7 +450,7 @@ function getCogs(name) { return productCatalog[name] ? productCatalog[name].cogs
 function getVariants(name) { return productCatalog[name] ? productCatalog[name].variants : []; }
 
 // ============================================================
-// 6. DATE FILTER (PERIODE) - DENGAN PARSE DATE
+// 5. DATE FILTER
 // ============================================================
 function applyDateFilter(mode) {
   document.querySelectorAll('.date-filter button').forEach(b => b.classList.remove('active'));
@@ -464,14 +487,12 @@ function applyDateFilter(mode) {
     const d = parseDate(l.date);
     return d >= start && d <= end;
   });
-  if (filteredLogs.length === 0 && mode !== 'all') {
-    filteredLogs = [...logs];
-  }
+  
   renderDashboard();
 }
 
 // ============================================================
-// 7. PARETO & FORECASTING
+// 6. PARETO & FORECASTING
 // ============================================================
 function calculatePareto() {
   const sales = {};
@@ -482,9 +503,7 @@ function calculatePareto() {
     }
   });
   const sorted = Object.entries(sales).sort((a, b) => b[1] - a[1]);
-  const top = sorted.slice(0, 5);
-  const bottom = sorted.slice(-5).reverse();
-  return { top, bottom };
+  return { top: sorted.slice(0, 5), bottom: sorted.slice(-5).reverse() };
 }
 
 function getForecastDays(item) {
@@ -504,10 +523,10 @@ function getForecastDays(item) {
 }
 
 // ============================================================
-// 8. CLONE MENU
+// 7. CLONE & EDIT MENU (ADMIN ONLY)
 // ============================================================
 function cloneProduct(productName) {
-  if (currentUserRole !== 'admin') { alert('Hanya Admin yang bisa clone menu!'); return; }
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
   const prod = productCatalog[productName];
   if (!prod) return alert("Produk tidak ditemukan!");
   toggleAddMenuForm();
@@ -523,18 +542,226 @@ function cloneProduct(productName) {
 }
 
 // ============================================================
-// 9. RECEIPT (STRUK) - DENGAN FORMAT TANGGAL BARU
+// 8. CART LOGIC (INTI PERUBAHAN)
 // ============================================================
-function showReceipt(log) {
-  lastReceiptLog = log;
+function updateItemPreview() {
+  const prod = document.getElementById('prodSelect').value;
+  const qty = parseInt(document.getElementById('txQty').value) || 0;
+  const variants = getVariants(prod);
+  let price = 0, pcs = 0;
+  
+  if (variants.length === 0) {
+    document.getElementById('prePackPrice').innerText = 'Rp 0';
+    document.getElementById('preTotalPcs').innerText = '0';
+    document.getElementById('preSubtotalItem').innerText = 'Rp 0';
+    return;
+  }
+  
+  const isPure = (variants.length === 1 && variants[0].pcsPerPack === 1);
+  let packIdx = 0;
+  if (!isPure) packIdx = parseInt(document.getElementById('packSelect').value) || 0;
+  const pack = variants[packIdx];
+  if (pack) {
+    price = pack.pricePerPack;
+    pcs = pack.pcsPerPack * qty;
+    document.getElementById('prePackPrice').innerText = formatRupiah(price);
+    document.getElementById('preTotalPcs').innerText = pcs + ' Pcs';
+    document.getElementById('preSubtotalItem').innerText = formatRupiah(price * qty);
+  }
+}
+
+function addToCart() {
+  const prod = document.getElementById('prodSelect').value;
+  const qty = parseInt(document.getElementById('txQty').value) || 0;
+  if (qty <= 0) { alert('Qty harus lebih dari 0!'); return; }
+  
+  const variants = getVariants(prod);
+  if (variants.length === 0) { alert('Produk ini belum punya varian!'); return; }
+  
+  const isPure = (variants.length === 1 && variants[0].pcsPerPack === 1);
+  let packIdx = 0;
+  if (!isPure) packIdx = parseInt(document.getElementById('packSelect').value) || 0;
+  const pack = variants[packIdx];
+  if (!pack) return;
+  
+  const totalPcs = pack.pcsPerPack * qty;
+  const subtotal = pack.pricePerPack * qty;
+  const cogsTotal = totalPcs * getCogs(prod);
+  
+  if ((inventory[prod] || 0) < totalPcs) {
+    alert(`Stok tidak mencukupi! Butuh ${totalPcs} Pcs, tersisa ${inventory[prod]||0} Pcs.`);
+    return;
+  }
+  
+  const existingIdx = cart.findIndex(item => item.productName === prod && item.variantIndex === packIdx);
+  if (existingIdx !== -1) {
+    const newQty = cart[existingIdx].qty + qty;
+    const newTotalPcs = cart[existingIdx].pcsPerPack * newQty;
+    if ((inventory[prod] || 0) < newTotalPcs) {
+      alert(`Stok tidak mencukupi untuk total ${newTotalPcs} Pcs!`);
+      return;
+    }
+    cart[existingIdx].qty = newQty;
+    cart[existingIdx].totalPcs = newTotalPcs;
+    cart[existingIdx].subtotal = cart[existingIdx].pricePerPack * newQty;
+    cart[existingIdx].cogsTotal = newTotalPcs * getCogs(prod);
+  } else {
+    cart.push({
+      productName: prod,
+      variantIndex: packIdx,
+      qty: qty,
+      pricePerPack: pack.pricePerPack,
+      pcsPerPack: pack.pcsPerPack,
+      totalPcs: totalPcs,
+      subtotal: subtotal,
+      cogsTotal: cogsTotal,
+      label: pack.label
+    });
+  }
+  
+  renderCart();
+  document.getElementById('txQty').value = '1';
+  updateItemPreview();
+}
+
+function removeFromCart(index) {
+  if (index >= 0 && index < cart.length) {
+    cart.splice(index, 1);
+    renderCart();
+  }
+}
+
+function clearCart() {
+  if (cart.length === 0) return;
+  if (confirm('Yakin kosongkan semua item di keranjang?')) {
+    cart = [];
+    renderCart();
+  }
+}
+
+function renderCart() {
+  const container = document.getElementById('cartItemsContainer');
+  const summary = document.getElementById('cartSummary');
+  const count = document.getElementById('cartCount');
+  
+  count.innerText = cart.length + ' Item';
+  
+  if (cart.length === 0) {
+    container.innerHTML = `<div class="empty-cart-msg">Keranjang kosong. Silakan tambahkan produk.</div>`;
+    summary.style.display = 'none';
+    return;
+  }
+  
+  let html = '';
+  let subtotal = 0;
+  cart.forEach((item, idx) => {
+    subtotal += item.subtotal;
+    html += `
+      <div class="cart-item-row">
+        <div class="item-info">
+          <b>${item.productName}</b><br>
+          <small style="color:var(--muted);">${item.label} x ${item.qty}</small>
+        </div>
+        <div class="item-price">${formatRupiah(item.subtotal)}</div>
+        <div class="item-actions">
+          <button class="btn-remove-cart" onclick="removeFromCart(${idx})">✕</button>
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  summary.style.display = 'block';
+  
+  document.getElementById('cartSubtotal').innerText = formatRupiah(subtotal);
+  updateCartSummary();
+}
+
+function updateCartSummary() {
+  let subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+  const discount = parseInt(document.getElementById('cartDiscount').value) || 0;
+  const grand = Math.max(0, subtotal - discount);
+  document.getElementById('cartSubtotal').innerText = formatRupiah(subtotal);
+  document.getElementById('cartGrandTotal').innerText = formatRupiah(grand);
+}
+// ============================================================
+// 9. CHECKOUT (PENYUMPULAN TRANSAKSI)
+// ============================================================
+function checkoutOrder() {
+  if (cart.length === 0) { alert('Keranjang kosong!'); return; }
+  
+  const discount = parseInt(document.getElementById('cartDiscount').value) || 0;
+  let subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+  if (discount > subtotal) { alert('Diskon tidak boleh melebihi subtotal!'); return; }
+  
+  for (let item of cart) {
+    if ((inventory[item.productName] || 0) < item.totalPcs) {
+      alert(`Stok ${item.productName} tidak mencukupi! (Butuh ${item.totalPcs} Pcs)`);
+      return;
+    }
+  }
+  
+  const orderId = 'ORD-' + Date.now().toString().slice(-8);
+  const transactionLogs = [];
+  let grossTotal = 0;
+  
+  for (let item of cart) {
+    inventory[item.productName] -= item.totalPcs;
+    
+    const logEntry = {
+      orderId: orderId,
+      date: generateFormattedDate(),
+      product: item.productName,
+      type: 'JUAL',
+      qtyInput: item.qty,
+      detail: `${item.label} (${item.totalPcs} Pcs)`,
+      impactStock: `-${item.totalPcs} Pcs`,
+      finalDeduct: item.totalPcs,
+      grossPrice: item.subtotal,
+      discount: 0,
+      cogsTotal: item.cogsTotal,
+      finalNominal: item.subtotal,
+      netProfit: item.subtotal - item.cogsTotal
+    };
+    transactionLogs.push(logEntry);
+    grossTotal += item.subtotal;
+  }
+  
+  if (transactionLogs.length > 0 && discount > 0) {
+    let remainingDiscount = discount;
+    for (let i = 0; i < transactionLogs.length; i++) {
+      let log = transactionLogs[i];
+      let prop = log.grossPrice / grossTotal;
+      let discAlloc = Math.round(discount * prop);
+      if (i === transactionLogs.length - 1) discAlloc = remainingDiscount;
+      remainingDiscount -= discAlloc;
+      log.discount = discAlloc;
+      log.finalNominal = log.grossPrice - discAlloc;
+      log.netProfit = log.finalNominal - log.cogsTotal;
+    }
+  }
+  
+  logs.unshift(...transactionLogs);
+  cart = [];
+  document.getElementById('cartDiscount').value = '0';
+  renderCart();
+  saveToCloud();
+  showCombinedReceipt(orderId, transactionLogs, discount, grossTotal - discount);
+}
+
+// ============================================================
+// 10. RECEIPT (STRUK GABUNGAN)
+// ============================================================
+let lastReceiptOrder = null;
+
+function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal) {
+  lastReceiptOrder = { orderId, logsList, totalDiscount, grandTotal };
   const modal = document.getElementById('receiptModal');
   const body = document.getElementById('receiptBody');
-
+  
   const kasir = currentUserRole === 'admin' ? 'Admin' : 'Kasir';
-  const transaksiId = 'TRX-' + Date.now().toString().slice(-8);
-  const hargaSatuan = log.grossPrice / log.qtyInput;
-  const displayDate = formatDisplayDate(log.date);
-
+  const displayDate = formatDisplayDate(logsList[0]?.date || new Date());
+  
   let html = `
     <div style="text-align:center; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
       <h2 style="margin:0; color:#d4af37;">MANTUL KITCHEN</h2>
@@ -543,7 +770,7 @@ function showReceipt(log) {
       <p style="margin:4px 0 0 0; font-size:0.8rem; color:#555;">📱 WA: 0881-0255-32438</p>
     </div>
     <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:8px;">
-      <span>No. Transaksi: ${transaksiId}</span>
+      <span>Order: ${orderId}</span>
       <span>Kasir: ${kasir}</span>
     </div>
     <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:12px;">
@@ -556,37 +783,50 @@ function showReceipt(log) {
         <span style="flex:1; text-align:right;">Harga</span>
         <span style="flex:1; text-align:right;">Subtotal</span>
       </div>
+  `;
+  
+  let subTotalDisplay = 0;
+  logsList.forEach(log => {
+    const hargaSatuan = log.grossPrice / log.qtyInput;
+    subTotalDisplay += log.grossPrice;
+    html += `
       <div style="display:flex; font-size:0.85rem; padding:4px 0;">
-        <span style="flex:2;">${log.product} (${log.detail})</span>
+        <span style="flex:2;">${log.product}</span>
         <span style="flex:1; text-align:right;">${log.qtyInput}</span>
         <span style="flex:1; text-align:right;">${formatRupiah(hargaSatuan)}</span>
         <span style="flex:1; text-align:right;">${formatRupiah(log.grossPrice)}</span>
       </div>
-    </div>
-    
-    ${log.discount > 0 ? `
+    `;
+  });
+  
+  html += `</div>`;
+  
+  if (totalDiscount > 0) {
+    html += `
       <div style="margin-bottom:8px;">
         <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
           <span>Subtotal</span>
-          <span>${formatRupiah(log.grossPrice)}</span>
+          <span>${formatRupiah(subTotalDisplay)}</span>
         </div>
         <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#ff4d4d;">
           <span>Diskon</span>
-          <span>-${formatRupiah(log.discount)}</span>
+          <span>-${formatRupiah(totalDiscount)}</span>
         </div>
       </div>
-    ` : ''}
-    
-    <div style="border-top: ${log.discount > 0 ? '1px solid #ddd' : '2px solid #333'}; padding-top: 8px; font-weight:bold; font-size:1.2rem; display:flex; justify-content:space-between;">
+    `;
+  }
+  
+  html += `
+    <div style="border-top: 2px solid #333; padding-top: 8px; font-weight:bold; font-size:1.2rem; display:flex; justify-content:space-between;">
       <span>TOTAL BAYAR</span>
-      <span style="color:#d4af37;">${formatRupiah(log.finalNominal)}</span>
+      <span style="color:#d4af37;">${formatRupiah(grandTotal)}</span>
     </div>
-    
     <div style="text-align:center; margin-top: 15px; font-size:0.75rem; color:#888; border-top: 1px dashed #ccc; padding-top: 10px;">
       Terima kasih telah berbelanja di MANTUL KITCHEN!<br>
       📱 WA: 0881-0255-32438
     </div>
   `;
+  
   body.innerHTML = html;
   modal.classList.add('active');
 }
@@ -595,32 +835,37 @@ function closeReceipt() { document.getElementById('receiptModal').classList.remo
 
 function copyReceipt() {
   const body = document.getElementById('receiptBody');
-  const text = body.innerText;
-  navigator.clipboard.writeText(text).then(() => alert('✅ Struk disalin ke clipboard!'));
+  navigator.clipboard.writeText(body.innerText).then(() => alert('✅ Struk disalin!'));
 }
 
 function sendReceiptWA() {
-  if (!lastReceiptLog) return;
-  const l = lastReceiptLog;
-  const hargaSatuan = l.grossPrice / l.qtyInput;
-  const displayDate = formatDisplayDate(l.date);
+  if (!lastReceiptOrder) return;
+  const { orderId, logsList, totalDiscount, grandTotal } = lastReceiptOrder;
   let msg = `🧾 *MANTUL KITCHEN* - Premium Frozen Food\n`;
   msg += `"Kualitas Restoran Bintang Lima, Kini Hadir di Meja Makan Anda"\n\n`;
-  msg += `📅 ${displayDate}\n`;
-  msg += `🛒 ${l.product} (${l.detail})\n`;
-  msg += `📦 ${l.qtyInput} x ${formatRupiah(hargaSatuan)}\n`;
-  if (l.discount > 0) msg += `💸 Diskon: -${formatRupiah(l.discount)}\n`;
-  msg += `💰 *Total: ${formatRupiah(l.finalNominal)}*\n\n`;
+  msg += `📅 ${formatDisplayDate(logsList[0]?.date || new Date())}\n`;
+  msg += `🆔 Order: ${orderId}\n`;
+  msg += `----------------------------\n`;
+  let subTotalDisplay = 0;
+  logsList.forEach(log => {
+    const hargaSatuan = log.grossPrice / log.qtyInput;
+    subTotalDisplay += log.grossPrice;
+    msg += `${log.product} x${log.qtyInput} = ${formatRupiah(log.grossPrice)}\n`;
+  });
+  msg += `----------------------------\n`;
+  if (totalDiscount > 0) {
+    msg += `Subtotal: ${formatRupiah(subTotalDisplay)}\n`;
+    msg += `Diskon: -${formatRupiah(totalDiscount)}\n`;
+  }
+  msg += `💰 *Total: ${formatRupiah(grandTotal)}*\n\n`;
   msg += `Terima kasih! 📱 WA: 0881-0255-32438`;
   const waNumber = '62881025532438';
-  const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
-  window.open(url, '_blank');
+  window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // ============================================================
-// 10. FUNGSI UTAMA (RENDER, SORTING, SYNC)
+// 11. FUNGSI UTAMA (RENDER, SORTING, SYNC)
 // ============================================================
-function formatRupiah(num) { return "Rp " + Math.round(num).toLocaleString('id-ID'); }
 function switchTab(t) {
   document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById(t === 'dashboard' ? 'tabDashboard' : 'tabProfit').classList.add('active');
@@ -647,13 +892,14 @@ function populateProductDropdown() {
   const sortedKeys = Object.keys(productCatalog).sort((a,b)=>a.localeCompare(b));
   for (let key of sortedKeys) { const opt = document.createElement('option'); opt.value=key; opt.textContent=key; select.appendChild(opt); }
   if (select.options.length>0) select.selectedIndex=0;
+  updateItemPreview();
 }
 
 // ============================================================
-// 11. UI FORM (ADD/EDIT/CLONE)
+// 12. UI FORM (ADD/EDIT/CLONE) - ADMIN ONLY
 // ============================================================
 function toggleAddMenuForm() {
-  if (currentUserRole !== 'admin') { alert('Hanya Admin!'); return; }
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
   const form = document.getElementById('addMenuForm');
   if (form.style.display === 'block') { cancelEdit(); return; }
   editingProductName = null;
@@ -666,10 +912,7 @@ function toggleAddMenuForm() {
   form.style.display = 'block'; form.scrollIntoView({ behavior: 'smooth' });
 }
 function cancelEdit() {
-  const form = document.getElementById('addMenuForm');
-  form.style.display = 'none'; editingProductName = null;
-  document.getElementById('formTitle').innerText = '➕ Tambah Produk Baru';
-  document.getElementById('saveProductBtn').innerText = 'Simpan Produk';
+  document.getElementById('addMenuForm').style.display = 'none'; editingProductName = null;
 }
 function addVariantRow() { variantRows.push({ label:'', pcsPerPack:1, pricePerPack:0 }); renderVariantRows(); }
 function removeVariantRow(index) { if(variantRows.length<=1) { alert('Minimal 1 varian!'); return; } variantRows.splice(index,1); renderVariantRows(); }
@@ -689,7 +932,7 @@ function renderVariantRows() {
 function updateVariant(index, field, value) { variantRows[index][field] = value; }
 
 function editProduct(productName) {
-  if (currentUserRole !== 'admin') { alert('Hanya Admin!'); return; }
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
   const prod = productCatalog[productName]; if (!prod) return alert("Tidak ditemukan!");
   editingProductName = productName;
   document.getElementById('formTitle').innerText = '✏️ Edit Produk';
@@ -703,6 +946,7 @@ function editProduct(productName) {
 }
 
 function saveNewProduct() {
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
   const name = document.getElementById('newProductName').value.trim();
   const cogs = parseInt(document.getElementById('newProductCogs').value)||0;
   const stock = parseInt(document.getElementById('newProductStock').value)||0;
@@ -733,7 +977,7 @@ function saveNewProduct() {
 }
 
 function deleteProduct(productName) {
-  if (currentUserRole !== 'admin') { alert('Hanya Admin!'); return; }
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
   if (!productName) return;
   const hasLog = logs.some(l=>l.product===productName);
   let msg = `Yakin hapus "${productName}"?`;
@@ -745,7 +989,7 @@ function deleteProduct(productName) {
 }
 
 // ============================================================
-// 12. CLOUD SYNC (DENGAN BUNYI & RETRY)
+// 13. CLOUD SYNC
 // ============================================================
 function playBeep() {
   try { const ctx = new (window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=800; osc.type='square'; gain.gain.value=0.3; osc.start(); setTimeout(()=>{ try{osc.stop(); ctx.close();} catch(e){} },350); } catch(e){}
@@ -760,7 +1004,6 @@ function showSyncBanner(type, message, showRetry=false) {
 }
 function dismissSyncBanner() { document.getElementById('syncStatusBanner').style.display = 'none'; }
 function retrySync() { dismissSyncBanner(); saveToCloud(); }
-
 function showLoading(txt) { const el = document.getElementById('syncIndicator'); el.innerText = txt; el.style.display = "block"; }
 function hideLoading() { document.getElementById('syncIndicator').style.display = "none"; }
 
@@ -769,15 +1012,12 @@ function loadFromCloud() {
   fetch(CLOUD_URL).then(res=>res.json()).then(data=>{
     if (data.inventory) for (let k in data.inventory) inventory[k] = data.inventory[k];
     if (data.logs) {
-      // Konversi semua tanggal di logs ke format standar jika belum
       logs = data.logs.map(l => {
         if (l.date && !l.date.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
-          // Coba parse dan format ulang
           const d = parseDate(l.date);
-          if (!isNaN(d.getTime())) {
-            l.date = generateFormattedDateFromDate(d);
-          }
+          if (!isNaN(d.getTime())) l.date = generateFormattedDateFromDate(d);
         }
+        if (!l.orderId) l.orderId = 'LEGACY-' + Date.now().toString().slice(-8);
         return l;
       });
     }
@@ -814,27 +1054,35 @@ function saveToCloud() {
 }
 
 // ============================================================
-// 13. RENDER DASHBOARD (UTAMA)
+// 14. RENDER DASHBOARD (UTAMA)
 // ============================================================
 function renderDashboard() {
   const stockBody = document.getElementById('stockTableBody');
   stockBody.innerHTML = "";
   const sortedKeys = getSortedProductKeys();
+  const isAdmin = currentUserRole === 'admin';
+  
   for (let item of sortedKeys) {
     if (!(item in inventory)) continue;
     let unit = "Pcs"; const variants = getVariants(item);
     if (variants.length === 1 && variants[0].pcsPerPack === 1) unit = "Pack";
     const safeItem = item.replace(/'/g, "\\'");
     const forecast = getForecastDays(item);
+    let actionsHtml = '';
+    if (isAdmin) {
+      actionsHtml = `
+        <button class="btn-clone" onclick="cloneProduct('${safeItem}')" title="Clone Menu">📋</button>
+        <button class="btn-edit" onclick="editProduct('${safeItem}')" title="Edit Menu">✏️</button>
+        <button class="btn-trash" onclick="deleteProduct('${safeItem}')" title="Hapus Menu">🗑️</button>
+      `;
+    } else {
+      actionsHtml = `<span style="color:var(--muted);font-size:0.7rem;">(read only)</span>`;
+    }
     stockBody.innerHTML += `<tr>
       <td><b>${item}</b></td>
       <td>${inventory[item]||0} ${unit}</td>
       <td style="font-size:0.75rem;">${forecast}</td>
-      <td style="text-align:center; white-space:nowrap;">
-        ${currentUserRole === 'admin' ? `<button class="btn-clone" onclick="cloneProduct('${safeItem}')" title="Clone Menu">📋</button>` : ''}
-        ${currentUserRole === 'admin' ? `<button class="btn-edit" onclick="editProduct('${safeItem}')" title="Edit Menu">✏️</button>` : ''}
-        ${currentUserRole === 'admin' ? `<button class="btn-trash" onclick="deleteProduct('${safeItem}')" title="Hapus Menu">🗑️</button>` : ''}
-      </td>
+      <td style="text-align:center; white-space:nowrap;">${actionsHtml}</td>
     </tr>`;
   }
 
@@ -842,21 +1090,34 @@ function renderDashboard() {
   const auditBody = document.getElementById('auditTableBody');
   auditBody.innerHTML = "";
   const displayLogs = filteredLogs.length > 0 ? filteredLogs : logs;
-  displayLogs.forEach((log, i) => {
-    let badge = log.type === "JUAL" ? `<span class="badge-out">JUAL</span>` : log.type === "TESTER" ? `<span class="badge-tester">TESTER</span>` : `<span class="badge-in">MASUK</span>`;
-    if (log.type === "JUAL") { tRev += log.finalNominal; tDisc += log.discount; tVol += log.qtyInput; tGross += log.grossPrice; tCogs += log.cogsTotal; tNet += log.netProfit; }
-    if (log.type === "TESTER") { tCogs += log.cogsTotal; tNet += log.netProfit; }
-    const displayDate = formatDisplayDate(log.date);
-    auditBody.innerHTML += `<tr>
-      <td><small>${displayDate}</small></td>
-      <td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td>
-      <td>${badge}</td>
-      <td>${(log.type==="JUAL")?formatRupiah(log.grossPrice):(log.type==="TESTER"?"PROMOSI":"-")}</td>
-      <td>${log.type==="JUAL"?`<input type="number" value="${log.discount}" onblur="updateManualDiscount(this, ${i})" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">`:"-"}</td>
-      <td><span style="color:var(--danger)">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.cogsTotal):"-"}</span></td>
-      <td><b style="${log.netProfit<0?'color:var(--danger)':'color:var(--success)'}">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.netProfit):"-"}</b></td>
-    </tr>`;
-  });
+  
+  if (displayLogs.length === 0 && filteredLogs.length === 0) {
+    auditBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);">Tidak ada transaksi pada periode ini.</td></tr>`;
+  } else {
+    displayLogs.forEach((log, i) => {
+      let badge = log.type === "JUAL" ? `<span class="badge-out">JUAL</span>` : log.type === "TESTER" ? `<span class="badge-tester">TESTER</span>` : `<span class="badge-in">MASUK</span>`;
+      if (log.type === "JUAL") { tRev += log.finalNominal; tDisc += log.discount; tVol += log.qtyInput; tGross += log.grossPrice; tCogs += log.cogsTotal; tNet += log.netProfit; }
+      if (log.type === "TESTER") { tCogs += log.cogsTotal; tNet += log.netProfit; }
+      const displayDate = formatDisplayDate(log.date);
+      const orderId = log.orderId || 'N/A';
+      let editDiscountHtml = '-';
+      if (log.type === "JUAL" && isAdmin) {
+        editDiscountHtml = `<input type="number" value="${log.discount}" onblur="updateManualDiscount(this, ${i})" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">`;
+      } else if (log.type === "JUAL") {
+        editDiscountHtml = formatRupiah(log.discount);
+      }
+      auditBody.innerHTML += `<tr>
+        <td><small>${orderId}</small></td>
+        <td><small>${displayDate}</small></td>
+        <td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td>
+        <td>${badge}</td>
+        <td>${(log.type==="JUAL")?formatRupiah(log.grossPrice):(log.type==="TESTER"?"PROMOSI":"-")}</td>
+        <td>${editDiscountHtml}</td>
+        <td><span style="color:var(--danger)">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.cogsTotal):"-"}</span></td>
+        <td><b style="${log.netProfit<0?'color:var(--danger)':'color:var(--success)'}">${(log.type==="JUAL"||log.type==="TESTER")?formatRupiah(log.netProfit):"-"}</b></td>
+      </tr>`;
+    });
+  }
 
   document.getElementById('sumRevenue').innerText = formatRupiah(tRev);
   document.getElementById('sumSold').innerText = tVol + " Item";
@@ -878,6 +1139,7 @@ function renderDashboard() {
 }
 
 function updateManualDiscount(el, idx) {
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
   let newDisc = parseInt(el.value.replace(/[^0-9]/g, '')) || 0;
   logs[idx].discount = newDisc;
   logs[idx].finalNominal = Math.max(0, logs[idx].grossPrice - newDisc);
@@ -907,74 +1169,27 @@ function checkAlertsAndChart(filteredLogsForChart) {
 }
 
 // ============================================================
-// 14. UPDATE UI & PREVIEW
+// 15. UPDATE UI (PACKAGE, PREVIEW, CALCULATOR)
 // ============================================================
 function updatePackageOptions() {
   const prod = document.getElementById('prodSelect').value;
-  const type = document.getElementById('actionType').value;
   const group = document.getElementById('packageFormGroup');
   const select = document.getElementById('packSelect');
   const variants = getVariants(prod);
-  if (type === "MASUK" || type === "TESTER" || variants.length <= 1) { group.style.display = "none"; return; }
+  if (variants.length <= 1) { group.style.display = "none"; return; }
   group.style.display = "block"; select.innerHTML = "";
   variants.forEach((p,i) => { const opt=document.createElement('option'); opt.value=i; opt.textContent=p.label; select.appendChild(opt); });
-  runCalculator();
+  updateItemPreview();
 }
-function syncFormAndPreview() {
-  const prod = document.getElementById('prodSelect').value;
-  const type = document.getElementById('actionType').value;
-  const qty = parseInt(document.getElementById('txQty').value) || 0;
-  const disc = parseInt(document.getElementById('txDiscount').value) || 0;
-  const variants = getVariants(prod);
-  const isPure = (variants.length === 1 && variants[0].pcsPerPack === 1);
-  const unit = isPure ? "Pack" : "Pcs";
-  const qtyLabel = document.getElementById('qtyLabel');
 
-  if (type === "TESTER") {
-    qtyLabel.innerText = `4. Kuantitas Tester (${unit}):`;
-    document.getElementById('discountFormGroup').style.display = "none";
-    document.getElementById('preSubtotalRow').style.display = "none";
-    document.getElementById('preDiscountRow').style.display = "none";
-    document.getElementById('preSubtotal').innerText = "PROMOSI";
-    document.getElementById('preTotalNominal').innerText = "Rp 0";
-    return;
-  } else if (type === "MASUK") {
-    qtyLabel.innerText = `4. Kuantitas Masuk (${unit}):`;
-    document.getElementById('discountFormGroup').style.display = "none";
-    document.getElementById('preSubtotalRow').style.display = "none";
-    document.getElementById('preDiscountRow').style.display = "none";
-    document.getElementById('preTotalLabel').innerText = "Status:";
-    document.getElementById('preTotalNominal').innerText = `+${qty} ${unit} Masuk`;
-    return;
-  }
-
-  qtyLabel.innerText = "4. Kuantitas Jual:";
-  document.getElementById('discountFormGroup').style.display = "block";
-  document.getElementById('preSubtotalRow').style.display = "flex";
-  document.getElementById('preDiscountRow').style.display = "flex";
-
-  let subtotal = 0;
-  if (isPure || variants.length === 0) {
-    let price = variants.length > 0 ? variants[0].pricePerPack : 0;
-    subtotal = qty * price;
-    document.getElementById('prePackPrice').innerText = formatRupiah(price);
-  } else {
-    const packIdx = parseInt(document.getElementById('packSelect').value) || 0;
-    const pack = variants[packIdx];
-    if (pack) { subtotal = pack.pricePerPack * qty; document.getElementById('prePackPrice').innerText = formatRupiah(pack.pricePerPack); }
-  }
-  document.getElementById('preSubtotal').innerText = formatRupiah(subtotal);
-  document.getElementById('preDiscount').innerText = "-" + formatRupiah(disc);
-  document.getElementById('preTotalNominal').innerText = formatRupiah(Math.max(0, subtotal - disc));
-  runCalculator();
-}
 function runCalculator() {
+  if (currentUserRole !== 'admin') return;
   const prod = document.getElementById('prodSelect').value;
   const qty = parseInt(document.getElementById('txQty').value) || 1;
   const variants = getVariants(prod);
   const isPure = (variants.length === 1 && variants[0].pcsPerPack === 1);
   let totalPcs = qty;
-  if (!isPure && document.getElementById('actionType').value !== "MASUK" && document.getElementById('actionType').value !== "TESTER") {
+  if (!isPure && variants.length > 0) {
     const packIdx = parseInt(document.getElementById('packSelect').value) || 0;
     const pack = variants[packIdx];
     if (pack) totalPcs = pack.pcsPerPack * qty;
@@ -991,87 +1206,58 @@ function runCalculator() {
 }
 
 // ============================================================
-// 15. TRANSAKSI (DENGAN RECEIPT)
+// 16. UNDO (CANCEL LAST ORDER)
 // ============================================================
-function submitTransaction() {
-  const prod = document.getElementById('prodSelect').value;
-  const type = document.getElementById('actionType').value;
-  const qty = parseInt(document.getElementById('txQty').value) || 0;
-  const disc = parseInt(document.getElementById('txDiscount').value) || 0;
-  if (qty <= 0) return;
-  const variants = getVariants(prod);
-  const isPure = (variants.length === 1 && variants[0].pcsPerPack === 1);
-  const unit = isPure ? "Pack" : "Pcs";
-  let detail = "", impact = "", deduct = qty, gross = 0, cogs = 0, finalNom = 0, net = 0;
-
-  if (type === "MASUK") {
-    inventory[prod] = (inventory[prod] || 0) + qty;
-    detail = "Restock Freezer"; impact = `+${qty} ${unit}`;
-  } else if (type === "TESTER") {
-    if ((inventory[prod] || 0) < qty) { alert("Stok tidak mencukupi untuk Tester!"); return; }
-    inventory[prod] -= qty; cogs = qty * getCogs(prod); detail = "Tester/Promosi"; impact = `-${qty} ${unit}`; net = -cogs;
-  } else {
-    if (isPure || variants.length === 0) {
-      let price = variants.length > 0 ? variants[0].pricePerPack : 0;
-      gross = qty * price; cogs = qty * getCogs(prod); detail = "Murni Jual Pack"; impact = `-${qty} Pack`;
-      if ((inventory[prod] || 0) < qty) { alert("Stok tidak mencukupi!"); return; }
-      inventory[prod] -= qty;
-    } else {
-      const packIdx = parseInt(document.getElementById('packSelect').value) || 0;
-      const pack = variants[packIdx]; if (!pack) return;
-      gross = pack.pricePerPack * qty; deduct = pack.pcsPerPack * qty; cogs = deduct * getCogs(prod);
-      detail = `${qty} x [${pack.label}]`; impact = `-${deduct} Pcs`;
-      if ((inventory[prod] || 0) < deduct) { alert("Stok tidak mencukupi!"); return; }
-      inventory[prod] -= deduct;
-    }
-    finalNom = Math.max(0, gross - disc); net = finalNom - cogs;
-  }
-
-  const logEntry = { 
-    date: generateFormattedDate(), 
-    product: prod, 
-    type, 
-    qtyInput: qty, 
-    detail, 
-    impactStock: impact, 
-    finalDeduct: deduct, 
-    grossPrice: gross, 
-    discount: disc, 
-    cogsTotal: cogs, 
-    finalNominal: finalNom, 
-    netProfit: net 
-  };
-  logs.unshift(logEntry);
-  saveToCloud();
-  document.getElementById('txQty').value = "1"; document.getElementById('txDiscount').value = "0"; syncFormAndPreview();
-  
-  if (type === "JUAL") {
-    showReceipt(logEntry);
-  } else {
-    alert(`✅ ${type} berhasil dicatat!`);
-  }
-}
-
 function undoLastTransaction() {
   if (logs.length === 0) return alert("Belum ada transaksi.");
-  const last = logs[0];
-  if (!confirm(`Batalkan transaksi:\n${last.product} (${last.type})?`)) return;
-  if (last.type === "MASUK") inventory[last.product] -= last.qtyInput;
-  else inventory[last.product] += last.finalDeduct;
-  logs.shift(); saveToCloud();
+  
+  const lastLog = logs[0];
+  if (!lastLog.orderId) {
+    const last = logs[0];
+    if (!confirm(`Batalkan transaksi terakhir?\n${last.product} (${last.type})`)) return;
+    if (last.type === "MASUK") inventory[last.product] -= last.qtyInput;
+    else inventory[last.product] += last.finalDeduct;
+    logs.shift();
+    saveToCloud();
+    renderDashboard();
+    return;
+  }
+  
+  const orderId = lastLog.orderId;
+  const logsToUndo = logs.filter(l => l.orderId === orderId);
+  if (logsToUndo.length === 0) return;
+  
+  if (!confirm(`Batalkan 1 ORDER (${orderId}) dengan ${logsToUndo.length} item?`)) return;
+  
+  for (let log of logsToUndo) {
+    if (log.type === "MASUK") inventory[log.product] -= log.qtyInput;
+    else if (log.type === "JUAL" || log.type === "TESTER") inventory[log.product] += log.finalDeduct;
+  }
+  
+  logs = logs.filter(l => l.orderId !== orderId);
+  saveToCloud();
+  renderDashboard();
+  alert(`✅ Order ${orderId} dibatalkan.`);
 }
+
+// ============================================================
+// 17. RESET & EXPORT (ADMIN ONLY)
+// ============================================================
 function resetSystemData() {
-  if (currentUserRole !== 'admin') { alert('Hanya Admin!'); return; }
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
   if (prompt("Ketik 8888 untuk HAPUS SEMUA DATA CLOUD:") === "8888") {
     for (let key in productCatalog) inventory[key] = 0;
     logs = []; saveToCloud();
+    renderDashboard();
   }
 }
+
 function exportToExcel() {
-  let csv = "\uFEFFWaktu,Produk,Aktivitas,Detail,Dampak Stok,Omset,Diskon,Modal HPP,Laba Bersih\n";
+  if (currentUserRole !== 'admin') { alert('Akses ditolak untuk Kasir!'); return; }
+  let csv = "\uFEFFOrder ID,Waktu,Produk,Aktivitas,Detail,Dampak Stok,Omset,Diskon,Modal HPP,Laba Bersih\n";
   logs.forEach(l => {
     const displayDate = formatDisplayDate(l.date);
-    csv += `"${displayDate}","${l.product}","${l.type}","${l.detail}","${l.impactStock}","${l.grossPrice||0}","${l.discount}","${l.cogsTotal||0}","${l.netProfit||0}"\n`;
+    csv += `"${l.orderId||'N/A'}","${displayDate}","${l.product}","${l.type}","${l.detail}","${l.impactStock}","${l.grossPrice||0}","${l.discount}","${l.cogsTotal||0}","${l.netProfit||0}"\n`;
   });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
@@ -1080,14 +1266,16 @@ function exportToExcel() {
 }
 
 // ============================================================
-// 16. INISIALISASI
+// 18. INISIALISASI
 // ============================================================
 function initApp() {
   loadProductCatalog();
   populateProductDropdown();
   updatePackageOptions();
   renderDashboard();
+  renderCart();
   loadFromCloud();
+  applyRoleUI();
 }
 </script>
 </body>
