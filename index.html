@@ -552,13 +552,13 @@ function collectSettingsFromUI(){
   appSettings.waText = get('setWAText') || '';
   appSettings.footerText = get('setFooterText') || '';
 }
+applyTheme(currentUserRole || 'admin');
+}
 
 function saveAppSettings(){
   collectSettingsFromUI();
   saveToCloud();
   alert('✅ Pengaturan struk disimpan ke Cloud!');
-}
-applyTheme(currentUserRole || 'admin');
 }
 
 // ============================================================
