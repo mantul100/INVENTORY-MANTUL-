@@ -284,6 +284,28 @@ body.kasir-mode .btn-add {
           </div>
           <button class="btn btn-cart-checkout" onclick="checkoutOrder()">🛒 Bayar & Terbitkan Struk</button>
           <button class="btn btn-undo" onclick="clearCart()" style="background:var(--border);color:var(--muted);">🗑️ Kosongkan Keranjang</button>
+<!-- BOX THEME CUSTOMIZER (Muncul untuk Semua) -->
+<div class="box" id="themeBox">
+  <h2>🎨 TEMA & TAMPILAN</h2>
+  <div style="margin-bottom:10px;">
+    <div class="theme-picker-row">
+      <label>Aksen:</label>
+      <input type="color" id="themeAccent" value="#d4af37">
+      <label>Latar:</label>
+      <input type="color" id="themeBg" value="#0b0b0c">
+      <label>Kartu:</label>
+      <input type="color" id="themeCard" value="#171719">
+      <button class="btn btn-secondary" onclick="applyCurrentTheme()" style="flex:0.5; min-width:80px; padding:10px; margin:0;">💾 Terapkan</button>
+    </div>
+  </div>
+  <div class="theme-preset-grid">
+    <button class="btn btn-secondary" onclick="loadPresetTheme('dark')">🌑 Dark Gold</button>
+    <button class="btn btn-secondary" onclick="loadPresetTheme('light')">☀️ Light Blue</button>
+    <button class="btn btn-secondary" onclick="loadPresetTheme('green')">🌿 Soft Green</button>
+    <button class="btn btn-secondary" onclick="loadPresetTheme('sunset')">🌅 Sunset</button>
+  </div>
+  <div style="margin-top:8px; font-size:0.65rem; color:var(--muted); text-align:center;">
+    ⚡ Pengaturan tersimpan otomatis ke Cloud (berlaku per role)
         </div>
       </div>
 
