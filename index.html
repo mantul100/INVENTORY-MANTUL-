@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN v8.1 - FINAL</title>
+<title>MANTUL KITCHEN v8.2 - FINAL</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -65,6 +65,8 @@ body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 .btn-secondary { background:var(--border); color:var(--text); margin-bottom:10px; }
 .btn-cart-checkout { background:var(--success); color:#111; font-size:1.2rem; padding:16px; }
 .btn-remove-cart { background:transparent; color:var(--danger); border:none; cursor:pointer; font-size:1.1rem; }
+.btn-green { background:var(--success); color:#111; }
+.btn-orange { background:#ff9800; color:#111; }
 .table-wrapper { overflow-x:auto; margin-top:15px; border-radius:8px; border:1px solid var(--border); }
 table { width:100%; border-collapse:collapse; text-align:left; font-size:0.85rem; }
 th, td { padding:10px 12px; border-bottom:1px solid var(--border); }
@@ -107,6 +109,8 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 .empty-cart-msg { color:var(--muted); text-align:center; padding:20px 0; font-style:italic; }
 .admin-tools-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
 .admin-tools-grid .btn { width:100%; margin-bottom:0; }
+#actionType option[value="MASUK"], #actionType option[value="TESTER"] { display:block; }
+.kasir-mode #actionType option[value="MASUK"], .kasir-mode #actionType option[value="TESTER"] { display:none; }
 </style>
 </head>
 <body>
@@ -120,7 +124,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 </div>
 <div class="container">
   <div class="header">
-    <h1>MANTUL KITCHEN v8.1</h1>
+    <h1>MANTUL KITCHEN v8.2</h1>
     <p>Cart System + Struk Gambar/PDF + Nama Pelanggan</p>
     <div class="user-badge" id="userBadge">👤 Admin Mode</div>
   </div>
@@ -153,7 +157,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
     <div class="main-layout">
       <div>
         <!-- BOX INPUT PRODUK -->
-        <div class="box">
+        <div class="box" id="inputBox">
           <h2>🛒 TAMBAH KE KERANJANG</h2>
           <div class="form-group">
             <label>1. Pilih Produk:</label>
@@ -162,7 +166,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
           <div class="form-group" id="packageFormGroup"><label>2. Varian Paket:</label><select id="packSelect" onchange="updateItemPreview()"></select></div>
           <div class="form-group">
             <label>3. Jenis Aktivitas:</label>
-            <select id="actionType" onchange="updatePackageOptions(); updateItemPreview();">
+            <select id="actionType" onchange="updateActionButton(); updateItemPreview();">
               <option value="JUAL">JUAL (Penjualan)</option>
               <option value="MASUK">MASUK (Restock)</option>
               <option value="TESTER">TESTER / PROMOSI</option>
@@ -173,9 +177,9 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
             <h4>👀 Preview Item</h4>
             <div class="preview-row"><span>Harga Satuan:</span><span id="prePackPrice">Rp 0</span></div>
             <div class="preview-row"><span>Total Pcs / Pack:</span><span id="preTotalPcs">0</span></div>
-            <div class="preview-row total-line"><span>Subtotal Item:</span><span id="preSubtotalItem">Rp 0</span></div>
+            <div class="preview-row total-line"><span>Dampak:</span><span id="preImpact">-</span></div>
           </div>
-          <button class="btn btn-add" onclick="addToCart()">➕ Tambahkan ke Keranjang</button>
+          <button class="btn btn-add" id="actionButton" onclick="processAction()">➕ Tambahkan ke Keranjang</button>
         </div>
       <!-- BOX KERANJANG -->
       <div class="box" id="cartSection">
@@ -198,7 +202,6 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
         <h2>⚙️ ADMIN TOOLS</h2>
         <div class="admin-tools-grid">
           <button class="btn btn-secondary" onclick="toggleAddMenuForm()">➕ Tambah Menu</button>
-          <button class="btn btn-secondary" onclick="quickAddStock()">📦 Input Stok Masuk</button>
           <button class="btn btn-undo" onclick="undoLastTransaction()">↩️ Undo Transaksi</button>
           <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>
         </div>
@@ -285,7 +288,32 @@ function formatDisplayDate(s){ const d=parseDate(s); if(isNaN(d))return s; retur
 function formatRupiah(n){ return "Rp "+Math.round(n).toLocaleString('id-ID'); }
 
 function verifyPin(){ try{ const pin=document.getElementById('pinInput').value; const err=document.getElementById('pinError'); if(pin==='1234'){ currentUserRole='admin'; document.getElementById('userBadge').innerText='👤 Admin Mode'; document.getElementById('pinOverlay').style.display='none'; applyRoleUI(); initApp(); alert('✅ Login sebagai ADMIN'); } else if(pin==='0000'){ currentUserRole='kasir'; document.getElementById('userBadge').innerText='👤 Kasir Mode'; document.getElementById('pinOverlay').style.display='none'; applyRoleUI(); initApp(); alert('✅ Login sebagai KASIR'); } else { err.innerText='❌ PIN Salah! Coba 1234 atau 0000'; document.getElementById('pinInput').value=''; document.getElementById('pinInput').focus(); } } catch(e){ alert('Error login: '+e.message); } }
-function applyRoleUI(){ const isAdmin=currentUserRole==='admin'; document.getElementById('adminToolsBox').style.display=isAdmin?'block':'none'; document.getElementById('exportBtn').style.display=isAdmin?'block':'none'; const actionType=document.getElementById('actionType'); if(!isAdmin){ for(let opt of actionType.options){ if(opt.value==='MASUK'||opt.value==='TESTER') opt.style.display='none'; } actionType.value='JUAL'; } else { for(let opt of actionType.options) opt.style.display='block'; } }
+
+function applyRoleUI(){ 
+  const isAdmin=currentUserRole==='admin'; 
+  document.getElementById('adminToolsBox').style.display=isAdmin?'block':'none'; 
+  document.getElementById('exportBtn').style.display=isAdmin?'block':'none'; 
+  const actionType=document.getElementById('actionType');
+  if(!isAdmin){ 
+    for(let opt of actionType.options){ 
+      if(opt.value==='MASUK'||opt.value==='TESTER') opt.style.display='none'; 
+    } 
+    actionType.value='JUAL'; 
+  } else { 
+    for(let opt of actionType.options) opt.style.display='block'; 
+  }
+  document.getElementById('inputBox').classList.toggle('kasir-mode', !isAdmin);
+  updateActionButton();
+}
+
+function updateActionButton(){
+  const action=document.getElementById('actionType').value;
+  const btn=document.getElementById('actionButton');
+  if(action==='JUAL'){ btn.innerText='➕ Tambahkan ke Keranjang'; btn.className='btn btn-add'; }
+  else if(action==='MASUK'){ btn.innerText='📥 Input Stok Masuk'; btn.className='btn btn-green'; }
+  else if(action==='TESTER'){ btn.innerText='🎁 Proses Tester'; btn.className='btn btn-orange'; }
+  updateItemPreview();
+}
 
 const NOW=Date.now();
 const DEFAULT_PRODUCTS={ "Dimsum Premium":{cogs:2200,createdAt:NOW,updatedAt:NOW,variants:[{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp35.000)",pcsPerPack:10,pricePerPack:35000}]}, "Gyoza Premium":{cogs:2200,createdAt:NOW,updatedAt:NOW,variants:[{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp33.000)",pcsPerPack:10,pricePerPack:33000},{label:"Pack isi 20 (Rp65.000)",pcsPerPack:20,pricePerPack:65000}]}, "Wonton Udang Premium":{cogs:3500,createdAt:NOW,updatedAt:NOW,variants:[{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000},{label:"Pack isi 10 (Rp50.000)",pcsPerPack:10,pricePerPack:50000}]} };
@@ -309,19 +337,98 @@ function removeVariantRow(idx){ if(variantRows.length<=1)return alert('Minimal 1
 function renderVariantRows(){ const container=document.getElementById('variantList'); container.innerHTML=''; variantRows.forEach((v,i)=>{ const div=document.createElement('div'); div.className='variant-row'; div.innerHTML='<input type="text" placeholder="Label" value="'+v.label+'" onchange="updateVariant('+i+',\'label\',this.value)"><input type="number" placeholder="Isi" value="'+v.pcsPerPack+'" onchange="updateVariant('+i+',\'pcsPerPack\',parseInt(this.value)||0)"><input type="number" placeholder="Harga" value="'+v.pricePerPack+'" onchange="updateVariant('+i+',\'pricePerPack\',parseInt(this.value)||0)"><button onclick="removeVariantRow('+i+')">✕</button>'; container.appendChild(div); }); }
 function updateVariant(idx,field,val){ variantRows[idx][field]=val; }
 function saveNewProduct(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); const name=document.getElementById('newProductName').value.trim(); const cogs=parseInt(document.getElementById('newProductCogs').value)||0; const stock=parseInt(document.getElementById('newProductStock').value)||0; if(!name)return alert('Nama wajib!'); if(cogs<=0)return alert('HPP > 0!'); if(variantRows.length===0)return alert('Minimal 1 varian!'); for(let v of variantRows){ if(!v.label.trim()||v.pcsPerPack<=0||v.pricePerPack<=0)return alert('Lengkapi varian!'); } const now=Date.now(); if(editingProductName){ const old=editingProductName; if(old!==name&&productCatalog[name]){ if(!confirm('Nama "'+name+'" sudah ada. Timpa?'))return; } if(old!==name){ delete productCatalog[old]; inventory[name]=inventory[old]||0; delete inventory[old]; } const oldData=productCatalog[name]||{}; productCatalog[name]={cogs, createdAt:oldData.createdAt||now, updatedAt:now, variants:variantRows.map(v=>({label:v.label.trim(), pcsPerPack:v.pcsPerPack, pricePerPack:v.pricePerPack}))}; inventory[name]=stock; editingProductName=null; document.getElementById('formTitle').innerText='➕ Tambah Produk'; document.getElementById('saveProductBtn').innerText='Simpan Produk'; saveProductCatalog(); saveToCloud(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); document.getElementById('addMenuForm').style.display='none'; alert('✅ Produk "'+name+'" diupdate!'); return; } if(productCatalog[name]){ if(!confirm('Nama "'+name+'" sudah ada. Timpa?'))return; } productCatalog[name]={cogs, createdAt:now, updatedAt:now, variants:variantRows.map(v=>({label:v.label.trim(), pcsPerPack:v.pcsPerPack, pricePerPack:v.pricePerPack}))}; inventory[name]=stock; saveProductCatalog(); saveToCloud(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); document.getElementById('addMenuForm').style.display='none'; alert('✅ Produk "'+name+'" ditambahkan!'); }
-function updateItemPreview(){ const prod=document.getElementById('prodSelect').value; const qty=parseInt(document.getElementById('txQty').value)||0; const variants=getVariants(prod); if(variants.length===0){ document.getElementById('prePackPrice').innerText='Rp 0'; document.getElementById('preTotalPcs').innerText='0'; document.getElementById('preSubtotalItem').innerText='Rp 0'; return; } const isPure=(variants.length===1&&variants[0].pcsPerPack===1); let idx=0; if(!isPure)idx=parseInt(document.getElementById('packSelect').value)||0; const pack=variants[idx]; if(pack){ document.getElementById('prePackPrice').innerText=formatRupiah(pack.pricePerPack); document.getElementById('preTotalPcs').innerText=(pack.pcsPerPack*qty)+' Pcs'; document.getElementById('preSubtotalItem').innerText=formatRupiah(pack.pricePerPack*qty); } }
-function addToCart(){ const prod=document.getElementById('prodSelect').value; const qty=parseInt(document.getElementById('txQty').value)||0; if(qty<=0)return alert('Qty >0!'); const action=document.getElementById('actionType').value; const variants=getVariants(prod); if(variants.length===0)return alert('Tidak ada varian!'); const isPure=(variants.length===1&&variants[0].pcsPerPack===1); let idx=0; if(!isPure)idx=parseInt(document.getElementById('packSelect').value)||0; const pack=variants[idx]; if(!pack)return; const totalPcs=pack.pcsPerPack*qty; const subtotal=pack.pricePerPack*qty; const cogsTotal=totalPcs*getCogs(prod); if(action==='MASUK'){ cart.push({ productName:prod, variantIndex:idx, qty:qty, pricePerPack:pack.pricePerPack, pcsPerPack:pack.pcsPerPack, totalPcs:totalPcs, subtotal:subtotal, cogsTotal:cogsTotal, label:pack.label, action:'MASUK' }); renderCart(); document.getElementById('txQty').value='1'; updateItemPreview(); return; } if((inventory[prod]||0)<totalPcs)return alert('Stok kurang! Butuh '+totalPcs+' Pcs'); const existing=cart.findIndex(item=>item.productName===prod&&item.variantIndex===idx&&item.action!=='MASUK'); if(existing!==-1){ const newQty=cart[existing].qty+qty; const newTotal=cart[existing].pcsPerPack*newQty; if((inventory[prod]||0)<newTotal)return alert('Stok kurang! Total '+newTotal+' Pcs'); cart[existing].qty=newQty; cart[existing].totalPcs=newTotal; cart[existing].subtotal=cart[existing].pricePerPack*newQty; cart[existing].cogsTotal=newTotal*getCogs(prod); } else { cart.push({ productName:prod, variantIndex:idx, qty:qty, pricePerPack:pack.pricePerPack, pcsPerPack:pack.pcsPerPack, totalPcs:totalPcs, subtotal:subtotal, cogsTotal:cogsTotal, label:pack.label, action:action||'JUAL' }); } renderCart(); document.getElementById('txQty').value='1'; updateItemPreview(); }
+function updateItemPreview(){ 
+  const prod=document.getElementById('prodSelect').value; 
+  const qty=parseInt(document.getElementById('txQty').value)||0; 
+  const action=document.getElementById('actionType').value;
+  const variants=getVariants(prod); 
+  const impactEl=document.getElementById('preImpact');
+  if(variants.length===0){ 
+    document.getElementById('prePackPrice').innerText='Rp 0'; 
+    document.getElementById('preTotalPcs').innerText='0'; 
+    impactEl.innerText='-'; 
+    return; 
+  } 
+  const isPure=(variants.length===1&&variants[0].pcsPerPack===1); 
+  let idx=0; 
+  if(!isPure)idx=parseInt(document.getElementById('packSelect').value)||0; 
+  const pack=variants[idx]; 
+  if(pack){ 
+    document.getElementById('prePackPrice').innerText=formatRupiah(pack.pricePerPack); 
+    const totalPcs=pack.pcsPerPack*qty;
+    document.getElementById('preTotalPcs').innerText=totalPcs+' Pcs'; 
+    if(action==='MASUK'){ impactEl.innerText='+'+totalPcs+' Pcs (Stok bertambah)'; impactEl.style.color='var(--success)'; }
+    else if(action==='TESTER'){ impactEl.innerText='-'+totalPcs+' Pcs (Promosi)'; impactEl.style.color='var(--warning)'; }
+    else { impactEl.innerText='-'+totalPcs+' Pcs (Penjualan)'; impactEl.style.color='var(--danger)'; }
+  } 
+}
+
+function processAction(){
+  const prod=document.getElementById('prodSelect').value;
+  const qty=parseInt(document.getElementById('txQty').value)||0;
+  const action=document.getElementById('actionType').value;
+  if(qty<=0)return alert('Qty harus > 0!');
+  const variants=getVariants(prod);
+  if(variants.length===0)return alert('Tidak ada varian!');
+  const isPure=(variants.length===1&&variants[0].pcsPerPack===1);
+  let idx=0; if(!isPure)idx=parseInt(document.getElementById('packSelect').value)||0;
+  const pack=variants[idx]; if(!pack)return;
+  const totalPcs=pack.pcsPerPack*qty;
+  const subtotal=pack.pricePerPack*qty;
+  const cogsTotal=totalPcs*getCogs(prod);
+
+  // ADMIN: MASUK atau TESTER langsung proses, tidak masuk keranjang
+  if(action==='MASUK' || action==='TESTER'){
+    if(currentUserRole!=='admin')return alert('Hanya Admin!');
+    if(action==='MASUK'){
+      inventory[prod]=(inventory[prod]||0)+totalPcs;
+      const log={ orderId:'STOCK-'+Date.now().toString().slice(-8), date:generateFormattedDate(), product:prod, type:'MASUK', qtyInput:qty, detail:pack.label+' (+'+totalPcs+' Pcs)', impactStock:'+'+totalPcs+' Pcs', finalDeduct:totalPcs, grossPrice:0, discount:0, cogsTotal:0, finalNominal:0, netProfit:0, customerName:'Admin' };
+      logs.unshift(log);
+      saveToCloud(); renderDashboard();
+      alert('✅ Stok "'+prod+'" bertambah '+totalPcs+' Pcs');
+    } else if(action==='TESTER'){
+      if((inventory[prod]||0)<totalPcs)return alert('Stok tidak cukup! Butuh '+totalPcs+' Pcs');
+      inventory[prod]-=totalPcs;
+      const log={ orderId:'TEST-'+Date.now().toString().slice(-8), date:generateFormattedDate(), product:prod, type:'TESTER', qtyInput:qty, detail:pack.label+' (-'+totalPcs+' Pcs Promo)', impactStock:'-'+totalPcs+' Pcs', finalDeduct:totalPcs, grossPrice:0, discount:0, cogsTotal:cogsTotal, finalNominal:0, netProfit:-cogsTotal, customerName:'Admin' };
+      logs.unshift(log);
+      saveToCloud(); renderDashboard();
+      alert('✅ Tester "'+prod+'" selesai (-'+totalPcs+' Pcs)');
+    }
+    document.getElementById('txQty').value='1';
+    updateItemPreview();
+    return;
+  }
+
+  // JUAL: masuk ke keranjang (sama untuk Admin & Kasir)
+  if((inventory[prod]||0)<totalPcs)return alert('Stok kurang! Butuh '+totalPcs+' Pcs');
+  const existing=cart.findIndex(item=>item.productName===prod&&item.variantIndex===idx);
+  if(existing!==-1){
+    const newQty=cart[existing].qty+qty;
+    const newTotal=cart[existing].pcsPerPack*newQty;
+    if((inventory[prod]||0)<newTotal)return alert('Stok kurang! Total '+newTotal+' Pcs');
+    cart[existing].qty=newQty;
+    cart[existing].totalPcs=newTotal;
+    cart[existing].subtotal=cart[existing].pricePerPack*newQty;
+    cart[existing].cogsTotal=newTotal*getCogs(prod);
+  } else {
+    cart.push({ productName:prod, variantIndex:idx, qty:qty, pricePerPack:pack.pricePerPack, pcsPerPack:pack.pcsPerPack, totalPcs:totalPcs, subtotal:subtotal, cogsTotal:cogsTotal, label:pack.label, action:'JUAL' });
+  }
+  renderCart();
+  document.getElementById('txQty').value='1';
+  updateItemPreview();
+}
+
 function removeFromCart(index){ if(index>=0&&index<cart.length){ cart.splice(index,1); renderCart(); } }
 function clearCart(){ if(cart.length===0)return; if(confirm('Kosongkan keranjang?')){ cart=[]; renderCart(); } }
 function renderCart(){ const container=document.getElementById('cartItemsContainer'); const summary=document.getElementById('cartSummary'); const count=document.getElementById('cartCount'); count.innerText=cart.length+' Item'; if(cart.length===0){ container.innerHTML='<div class="empty-cart-msg">Keranjang kosong.</div>'; summary.style.display='none'; return; } let html='', subtotal=0; cart.forEach((item,idx)=>{ subtotal+=item.subtotal; html+='<div class="cart-item-row"><div class="item-info"><b>'+item.productName+'</b><br><small style="color:var(--muted);">'+item.label+' x '+item.qty+'</small></div><div class="item-price">'+formatRupiah(item.subtotal)+'</div><div class="item-actions"><button class="btn-remove-cart" onclick="removeFromCart('+idx+')">✕</button></div></div>'; }); container.innerHTML=html; summary.style.display='block'; document.getElementById('cartSubtotal').innerText=formatRupiah(subtotal); updateCartSummary(); }
 function updateCartSummary(){ let sub=cart.reduce((s,i)=>s+i.subtotal,0); const disc=parseInt(document.getElementById('cartDiscount').value)||0; document.getElementById('cartSubtotal').innerText=formatRupiah(sub); document.getElementById('cartGrandTotal').innerText=formatRupiah(Math.max(0,sub-disc)); }
 
-function checkoutOrder(){ if(cart.length===0)return alert('Keranjang kosong!'); const discount=parseInt(document.getElementById('cartDiscount').value)||0; const customerName=document.getElementById('customerName').value.trim()||'-'; let subtotal=cart.reduce((s,i)=>s+i.subtotal,0); if(discount>subtotal)return alert('Diskon > Subtotal!'); const orderId='ORD-'+Date.now().toString().slice(-8); const transactionLogs=[]; let grossTotal=0; for(let item of cart){ if(item.action==='MASUK'){ inventory[item.productName]=(inventory[item.productName]||0)+item.totalPcs; const log={ orderId, date:generateFormattedDate(), product:item.productName, type:'MASUK', qtyInput:item.qty, detail:item.label+' (+'+item.totalPcs+' Pcs)', impactStock:'+'+item.totalPcs+' Pcs', finalDeduct:item.totalPcs, grossPrice:0, discount:0, cogsTotal:0, finalNominal:0, netProfit:0, customerName:customerName }; transactionLogs.push(log); continue; } if((inventory[item.productName]||0)<item.totalPcs)return alert('Stok '+item.productName+' kurang!'); inventory[item.productName]-=item.totalPcs; const log={ orderId, date:generateFormattedDate(), product:item.productName, type:'JUAL', qtyInput:item.qty, detail:item.label+' ('+item.totalPcs+' Pcs)', impactStock:'-'+item.totalPcs+' Pcs', finalDeduct:item.totalPcs, grossPrice:item.subtotal, discount:0, cogsTotal:item.cogsTotal, finalNominal:item.subtotal, netProfit:item.subtotal-item.cogsTotal, customerName:customerName }; transactionLogs.push(log); grossTotal+=item.subtotal; } if(transactionLogs.length>0&&discount>0){ let remaining=discount; for(let i=0;i<transactionLogs.length;i++){ let log=transactionLogs[i]; if(log.type!=='JUAL')continue; let prop=log.grossPrice/grossTotal; let alloc=Math.round(discount*prop); if(i===transactionLogs.length-1)alloc=remaining; remaining-=alloc; log.discount=alloc; log.finalNominal=log.grossPrice-alloc; log.netProfit=log.finalNominal-log.cogsTotal; } } logs.unshift(...transactionLogs); cart=[]; document.getElementById('cartDiscount').value='0'; document.getElementById('customerName').value=''; renderCart(); saveToCloud(); const totalFinal=transactionLogs.reduce((s,l)=>s+(l.type==='JUAL'?l.finalNominal:0),0); showCombinedReceipt(orderId, transactionLogs, discount, totalFinal, customerName); }
+function checkoutOrder(){ if(cart.length===0)return alert('Keranjang kosong!'); const discount=parseInt(document.getElementById('cartDiscount').value)||0; const customerName=document.getElementById('customerName').value.trim()||'-'; let subtotal=cart.reduce((s,i)=>s+i.subtotal,0); if(discount>subtotal)return alert('Diskon > Subtotal!'); const orderId='ORD-'+Date.now().toString().slice(-8); const transactionLogs=[]; let grossTotal=0; for(let item of cart){ if((inventory[item.productName]||0)<item.totalPcs)return alert('Stok '+item.productName+' kurang!'); inventory[item.productName]-=item.totalPcs; const log={ orderId, date:generateFormattedDate(), product:item.productName, type:'JUAL', qtyInput:item.qty, detail:item.label+' ('+item.totalPcs+' Pcs)', impactStock:'-'+item.totalPcs+' Pcs', finalDeduct:item.totalPcs, grossPrice:item.subtotal, discount:0, cogsTotal:item.cogsTotal, finalNominal:item.subtotal, netProfit:item.subtotal-item.cogsTotal, customerName:customerName }; transactionLogs.push(log); grossTotal+=item.subtotal; } if(transactionLogs.length>0&&discount>0){ let remaining=discount; for(let i=0;i<transactionLogs.length;i++){ let log=transactionLogs[i]; let prop=log.grossPrice/grossTotal; let alloc=Math.round(discount*prop); if(i===transactionLogs.length-1)alloc=remaining; remaining-=alloc; log.discount=alloc; log.finalNominal=log.grossPrice-alloc; log.netProfit=log.finalNominal-log.cogsTotal; } } logs.unshift(...transactionLogs); cart=[]; document.getElementById('cartDiscount').value='0'; document.getElementById('customerName').value=''; renderCart(); saveToCloud(); const totalFinal=transactionLogs.reduce((s,l)=>s+l.finalNominal,0); showCombinedReceipt(orderId, transactionLogs, discount, totalFinal, customerName); }
 
-function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal, customerName){ lastReceiptOrder={orderId, logsList, totalDiscount, grandTotal, customerName}; const modal=document.getElementById('receiptModal'); const body=document.getElementById('receiptBody'); const kasir=currentUserRole==='admin'?'Admin':'Kasir'; const displayDate=formatDisplayDate(logsList[0]?.date||new Date()); const name=customerName||'-'; let html='<div style="text-align:center;border-bottom:2px dashed #ccc;padding-bottom:10px;margin-bottom:10px;"><h2 style="margin:0;color:#d4af37;">MANTUL KITCHEN</h2><p style="margin:2px 0;font-size:0.7rem;color:#888;">- Premium Frozen Food -</p><p style="margin:4px 0 0 0;font-size:0.8rem;color:#555;">📱 WA: 0881-0255-32438</p></div>'; html+='<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#555;"><span>Order: '+orderId+'</span><span>Kasir: '+kasir+'</span></div>'; html+='<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#555;margin-bottom:12px;"><span>Pelanggan: '+name+'</span><span>'+displayDate+'</span></div>'; html+='<div style="border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:8px 0;margin-bottom:10px;"><div style="display:flex;font-weight:bold;font-size:0.8rem;color:#333;border-bottom:1px solid #eee;padding-bottom:4px;"><span style="flex:2;">Item</span><span style="flex:1;text-align:right;">Qty</span><span style="flex:1;text-align:right;">Harga</span><span style="flex:1;text-align:right;">Subtotal</span></div>'; let subDisplay=0; logsList.forEach(log=>{ if(log.type!=='JUAL'){ html+='<div style="display:flex;font-size:0.85rem;padding:4px 0;color:#888;"><span style="flex:2;">'+log.product+'</span><span style="flex:3;text-align:right;">'+log.detail+'</span></div>'; return; } const satuan=log.grossPrice/log.qtyInput; subDisplay+=log.grossPrice; html+='<div style="display:flex;font-size:0.85rem;padding:4px 0;"><span style="flex:2;">'+log.product+'</span><span style="flex:1;text-align:right;">'+log.qtyInput+'</span><span style="flex:1;text-align:right;">'+formatRupiah(satuan)+'</span><span style="flex:1;text-align:right;">'+formatRupiah(log.grossPrice)+'</span></div>'; }); html+='</div>'; if(totalDiscount>0){ html+='<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;"><span>Subtotal</span><span>'+formatRupiah(subDisplay)+'</span></div><div style="display:flex;justify-content:space-between;color:#ff4d4d;"><span>Diskon</span><span>-'+formatRupiah(totalDiscount)+'</span></div></div>'; } html+='<div style="border-top:2px solid #333;padding-top:8px;font-weight:bold;font-size:1.2rem;display:flex;justify-content:space-between;"><span>TOTAL BAYAR</span><span style="color:#d4af37;">'+formatRupiah(grandTotal)+'</span></div>'; html+='<div class="footer-text">Terima kasih telah berbelanja di MANTUL KITCHEN! 🙏<br>📱 WA: 0881-0255-32438<br>📍 Jl. Contoh No. 123, Kota</div>'; body.innerHTML=html; modal.classList.add('active'); }
+function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal, customerName){ lastReceiptOrder={orderId, logsList, totalDiscount, grandTotal, customerName}; const modal=document.getElementById('receiptModal'); const body=document.getElementById('receiptBody'); const kasir=currentUserRole==='admin'?'Admin':'Kasir'; const displayDate=formatDisplayDate(logsList[0]?.date||new Date()); const name=customerName||'-'; let html='<div style="text-align:center;border-bottom:2px dashed #ccc;padding-bottom:10px;margin-bottom:10px;"><h2 style="margin:0;color:#d4af37;">MANTUL KITCHEN</h2><p style="margin:2px 0;font-size:0.7rem;color:#888;">- Premium Frozen Food -</p><p style="margin:4px 0 0 0;font-size:0.8rem;color:#555;">📱 WA: 0881-0255-32438</p></div>'; html+='<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#555;"><span>Order: '+orderId+'</span><span>Kasir: '+kasir+'</span></div>'; html+='<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#555;margin-bottom:12px;"><span>Pelanggan: '+name+'</span><span>'+displayDate+'</span></div>'; html+='<div style="border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:8px 0;margin-bottom:10px;"><div style="display:flex;font-weight:bold;font-size:0.8rem;color:#333;border-bottom:1px solid #eee;padding-bottom:4px;"><span style="flex:2;">Item</span><span style="flex:1;text-align:right;">Qty</span><span style="flex:1;text-align:right;">Harga</span><span style="flex:1;text-align:right;">Subtotal</span></div>'; let subDisplay=0; logsList.forEach(log=>{ const satuan=log.grossPrice/log.qtyInput; subDisplay+=log.grossPrice; html+='<div style="display:flex;font-size:0.85rem;padding:4px 0;"><span style="flex:2;">'+log.product+'</span><span style="flex:1;text-align:right;">'+log.qtyInput+'</span><span style="flex:1;text-align:right;">'+formatRupiah(satuan)+'</span><span style="flex:1;text-align:right;">'+formatRupiah(log.grossPrice)+'</span></div>'; }); html+='</div>'; if(totalDiscount>0){ html+='<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;"><span>Subtotal</span><span>'+formatRupiah(subDisplay)+'</span></div><div style="display:flex;justify-content:space-between;color:#ff4d4d;"><span>Diskon</span><span>-'+formatRupiah(totalDiscount)+'</span></div></div>'; } html+='<div style="border-top:2px solid #333;padding-top:8px;font-weight:bold;font-size:1.2rem;display:flex;justify-content:space-between;"><span>TOTAL BAYAR</span><span style="color:#d4af37;">'+formatRupiah(grandTotal)+'</span></div>'; html+='<div class="footer-text">Terima kasih telah berbelanja di MANTUL KITCHEN! 🙏<br>📱 WA: 0881-0255-32438<br>📍 Jl. Contoh No. 123, Kota</div>'; body.innerHTML=html; modal.classList.add('active'); }
 function closeReceipt(){ document.getElementById('receiptModal').classList.remove('active'); }
 
-function generatePlainReceipt(orderId, logsList, totalDiscount, grandTotal, customerName){ const displayDate=formatDisplayDate(logsList[0]?.date||new Date()); const name=customerName||'-'; let lines=[]; const W=20; const Q=5; const P=12; const SEP=''.padEnd(W+Q+P+2,'-'); lines.push('MANTUL KITCHEN'); lines.push('===================='); lines.push('Pelanggan : '+name); lines.push('Order ID  : '+orderId); lines.push('Tgl       : '+displayDate); lines.push('--------------------'); let header='Item'.padEnd(W)+'Qty'.padStart(Q)+'Total'.padStart(P); lines.push(header); lines.push(SEP); let sub=0; logsList.forEach(log=>{ if(log.type!=='JUAL'){ lines.push(log.product+' '+log.detail); return; } sub+=log.grossPrice; let nm=log.product.length>W?log.product.substring(0,W-3)+'..':log.product; lines.push(nm.padEnd(W)+log.qtyInput.toString().padStart(Q)+log.grossPrice.toLocaleString('id-ID').padStart(P)); }); lines.push(SEP); if(totalDiscount>0){ lines.push('Subtotal'.padEnd(W+Q-8)+sub.toLocaleString('id-ID').padStart(P)); lines.push('Diskon'.padEnd(W+Q-6)+'-'+totalDiscount.toLocaleString('id-ID').padStart(P)); lines.push('--------------------'); } lines.push('TOTAL BAYAR'.padEnd(W+Q-10)+grandTotal.toLocaleString('id-ID').padStart(P)); lines.push('===================='); lines.push('Terima kasih!'); lines.push('📱 WA: 0881-0255-32438'); lines.push('📍 Jl. Contoh No. 123'); return lines.join('\n'); }
+function generatePlainReceipt(orderId, logsList, totalDiscount, grandTotal, customerName){ const displayDate=formatDisplayDate(logsList[0]?.date||new Date()); const name=customerName||'-'; let lines=[]; const W=20; const Q=5; const P=12; const SEP=''.padEnd(W+Q+P+2,'-'); lines.push('MANTUL KITCHEN'); lines.push('===================='); lines.push('Pelanggan : '+name); lines.push('Order ID  : '+orderId); lines.push('Tgl       : '+displayDate); lines.push('--------------------'); let header='Item'.padEnd(W)+'Qty'.padStart(Q)+'Total'.padStart(P); lines.push(header); lines.push(SEP); let sub=0; logsList.forEach(log=>{ sub+=log.grossPrice; let nm=log.product.length>W?log.product.substring(0,W-3)+'..':log.product; lines.push(nm.padEnd(W)+log.qtyInput.toString().padStart(Q)+log.grossPrice.toLocaleString('id-ID').padStart(P)); }); lines.push(SEP); if(totalDiscount>0){ lines.push('Subtotal'.padEnd(W+Q-8)+sub.toLocaleString('id-ID').padStart(P)); lines.push('Diskon'.padEnd(W+Q-6)+'-'+totalDiscount.toLocaleString('id-ID').padStart(P)); lines.push('--------------------'); } lines.push('TOTAL BAYAR'.padEnd(W+Q-10)+grandTotal.toLocaleString('id-ID').padStart(P)); lines.push('===================='); lines.push('Terima kasih!'); lines.push('📱 WA: 0881-0255-32438'); lines.push('📍 Jl. Contoh No. 123'); return lines.join('\n'); }
 function copyReceipt(){ if(!lastReceiptOrder)return; const {orderId,logsList,totalDiscount,grandTotal,customerName}=lastReceiptOrder; const text=generatePlainReceipt(orderId,logsList,totalDiscount,grandTotal,customerName); navigator.clipboard.writeText(text).then(()=>alert('✅ Teks disalin!')); }
 function sendReceiptWA(){ if(!lastReceiptOrder)return; const {orderId,logsList,totalDiscount,grandTotal,customerName}=lastReceiptOrder; const text=generatePlainReceipt(orderId,logsList,totalDiscount,grandTotal,customerName); window.open('https://wa.me/62881025532438?text='+encodeURIComponent(text),'_blank'); }
 function shareReceiptImage(){ if(!lastReceiptOrder)return; html2canvas(document.getElementById('receiptBody'),{scale:2,backgroundColor:'#ffffff',allowTaint:false,useCORS:true}).then(canvas=>{ canvas.toBlob(function(blob){ const file=new File([blob],'Struk_'+lastReceiptOrder.orderId+'.png',{type:'image/png'}); if(navigator.share&&navigator.canShare({files:[file]})){ navigator.share({title:'Struk MANTUL KITCHEN',files:[file]}).catch(()=>{}); } else { const link=document.createElement('a'); link.download='Struk_'+lastReceiptOrder.orderId+'.png'; link.href=URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); alert('✅ Gambar didownload!'); } }); }).catch(err=>alert('Gagal generate gambar: '+err)); }
@@ -335,8 +442,7 @@ function runCalculator(){ if(currentUserRole!=='admin')return; const prod=docume
 
 function loadFromCloud(){ showLoading('🔄 Menyelaraskan Data...'); fetch(CLOUD_URL).then(res=>res.json()).then(data=>{ if(data.inventory)for(let k in data.inventory)inventory[k]=data.inventory[k]; if(data.logs){ logs=data.logs.map(l=>{ if(!l.orderId)l.orderId='LEGACY-'+Date.now().toString().slice(-8); if(!l.customerName)l.customerName='-'; return l; }); } if(data.productCatalog){ productCatalog=data.productCatalog; saveProductCatalog(); } else { loadProductCatalog(); } for(let k in productCatalog)if(!(k in inventory))inventory[k]=0; populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading(); applyDateFilter(currentPeriod||'today'); showSyncBanner('success','✅ Data dimuat dari Cloud.',false); setTimeout(dismissSyncBanner,2000); }).catch(()=>{ loadProductCatalog(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading(); applyDateFilter(currentPeriod||'today'); playBeep(); showSyncBanner('error','⚠️ Gagal konek Cloud! (Data lokal)',true); }); }
 function saveToCloud(){ if(isSyncing)return; isSyncing=true; showLoading('💾 Menyimpan ke Cloud...'); const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),15000); fetch(CLOUD_URL,{method:'POST',mode:'no-cors',signal:ctrl.signal,body:JSON.stringify({type:'SALE',inventory,logs,productCatalog})}).then(()=>{ clearTimeout(tid); hideLoading(); renderDashboard(); saveProductCatalog(); showSyncBanner('success','✅ Tersimpan ke Cloud.',false); setTimeout(dismissSyncBanner,2000); isSyncing=false; }).catch((err)=>{ clearTimeout(tid); console.error(err); hideLoading(); renderDashboard(); saveProductCatalog(); playBeep(); showSyncBanner('error','❌ Gagal sync! Periksa jaringan.',true); isSyncing=false; }); }
-function quickAddStock(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); const prod=document.getElementById('prodSelect').value; if(!prod)return alert('Pilih produk dulu!'); const inp=prompt('Stok MASUK untuk "'+prod+'":','10'); if(inp===null)return; const qty=parseInt(inp); if(isNaN(qty)||qty<=0)return alert('Angka positif!'); inventory[prod]=(inventory[prod]||0)+qty; logs.unshift({orderId:'STOCK-'+Date.now().toString().slice(-8),date:generateFormattedDate(),product:prod,type:'MASUK',qtyInput:qty,detail:'Restock Manual',impactStock:'+'+qty+' Pcs',finalDeduct:qty,customerName:'Admin'}); saveToCloud(); renderDashboard(); alert('✅ Stok "'+prod+'" +'+qty); }
-function undoLastTransaction(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); if(logs.length===0)return alert('Belum ada transaksi.'); const last=logs[0]; if(!last.orderId||last.orderId.startsWith('STOCK-')){ if(!confirm('Batalkan '+last.product+' ('+last.type+')?'))return; if(last.type==='MASUK')inventory[last.product]-=last.qtyInput; else inventory[last.product]+=last.finalDeduct; logs.shift(); saveToCloud(); renderDashboard(); return; } const oid=last.orderId; const toUndo=logs.filter(l=>l.orderId===oid); if(!confirm('Batalkan ORDER '+oid+' ('+toUndo.length+' item)?'))return; for(let l of toUndo){ if(l.type==='MASUK')inventory[l.product]-=l.qtyInput; else if(l.type==='JUAL'||l.type==='TESTER')inventory[l.product]+=l.finalDeduct; } logs=logs.filter(l=>l.orderId!==oid); saveToCloud(); renderDashboard(); alert('✅ Order '+oid+' dibatalkan.'); }
+function undoLastTransaction(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); if(logs.length===0)return alert('Belum ada transaksi.'); const last=logs[0]; if(!last.orderId||last.orderId.startsWith('STOCK-')||last.orderId.startsWith('TEST-')){ if(!confirm('Batalkan '+last.product+' ('+last.type+')?'))return; if(last.type==='MASUK')inventory[last.product]-=last.qtyInput; else if(last.type==='TESTER')inventory[last.product]+=last.finalDeduct; else inventory[last.product]+=last.finalDeduct; logs.shift(); saveToCloud(); renderDashboard(); return; } const oid=last.orderId; const toUndo=logs.filter(l=>l.orderId===oid); if(!confirm('Batalkan ORDER '+oid+' ('+toUndo.length+' item)?'))return; for(let l of toUndo){ if(l.type==='MASUK')inventory[l.product]-=l.qtyInput; else if(l.type==='JUAL'||l.type==='TESTER')inventory[l.product]+=l.finalDeduct; } logs=logs.filter(l=>l.orderId!==oid); saveToCloud(); renderDashboard(); alert('✅ Order '+oid+' dibatalkan.'); }
 function resetSystemData(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); if(prompt('Ketik 8888 untuk HAPUS SEMUA DATA:')==='8888'){ for(let k in productCatalog)inventory[k]=0; logs=[]; saveToCloud(); renderDashboard(); } }
 function exportToExcel(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); let csv="\uFEFFOrder ID,Waktu,Pelanggan,Produk,Aktivitas,Detail,Omset,Diskon,Modal,Laba\n"; logs.forEach(l=>{ csv+='"'+ (l.orderId||'N/A') +'","'+ formatDisplayDate(l.date) +'","'+ (l.customerName||'-') +'","'+ l.product +'","'+ l.type +'","'+ l.detail +'","'+ (l.grossPrice||0) +'","'+ (l.discount||0) +'","'+ (l.cogsTotal||0) +'","'+ (l.netProfit||0) +'"\n'; }); const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='Audit_MantulKitchen.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
 function renderDashboard(){ const stockBody=document.getElementById('stockTableBody'); stockBody.innerHTML=''; const sorted=getSortedProductKeys(); const isAdmin=currentUserRole==='admin'; for(let item of sorted){ if(!(item in inventory))continue; let unit='Pcs'; const variants=getVariants(item); if(variants.length===1&&variants[0].pcsPerPack===1)unit='Pack'; const safe=item.replace(/'/g,"\\'"); const fc=getForecastDays(item); let actions=isAdmin?'<button class="btn-clone" onclick="cloneProduct(\''+safe+'\')">📋</button><button class="btn-edit" onclick="editProduct(\''+safe+'\')">✏️</button><button class="btn-trash" onclick="deleteProduct(\''+safe+'\')">🗑️</button>':'<span style="color:var(--muted);font-size:0.7rem;">(read only)</span>'; stockBody.innerHTML+='<tr><td><b>'+item+'</b></td><td>'+(inventory[item]||0)+' '+unit+'</td><td style="font-size:0.75rem;">'+fc+'</td><td style="text-align:center;white-space:nowrap;">'+actions+'</td></tr>'; } let tRev=0,tVol=0,tDisc=0,tGross=0,tCogs=0,tNet=0; const audit=document.getElementById('auditTableBody'); audit.innerHTML=''; const display=filteredLogs.length>0?filteredLogs:logs; if(display.length===0&&filteredLogs.length===0){ audit.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);">Tidak ada transaksi.</td></tr>'; } else { display.forEach((log,i)=>{ let badge=log.type==='JUAL'?'<span class="badge-out">JUAL</span>':log.type==='TESTER'?'<span class="badge-tester">TESTER</span>':'<span class="badge-in">MASUK</span>'; if(log.type==='JUAL'){ tRev+=log.finalNominal; tDisc+=log.discount; tVol+=log.qtyInput; tGross+=log.grossPrice; tCogs+=log.cogsTotal; tNet+=log.netProfit; } if(log.type==='TESTER'){ tCogs+=log.cogsTotal; tNet+=log.netProfit; } const dt=formatDisplayDate(log.date); const oid=log.orderId||'N/A'; const cust=log.customerName||'-'; let discHtml='-'; if(log.type==='JUAL'&&isAdmin){ discHtml='<input type="number" value="'+log.discount+'" onblur="updateManualDiscount(this,'+i+')" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">'; } else if(log.type==='JUAL'){ discHtml=formatRupiah(log.discount); } audit.innerHTML+='<tr><td><small>'+oid+'</small></td><td><small>'+dt+'</small></td><td><small>'+cust+'</small></td><td><b>'+log.product+'</b><br><small style="color:var(--muted)">'+log.detail+'</small></td><td>'+badge+'</td><td>'+(log.type==='JUAL'?formatRupiah(log.grossPrice):(log.type==='TESTER'?'PROMOSI':'-'))+'</td><td>'+discHtml+'</td><td><span style="color:var(--danger)">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.cogsTotal):'-')+'</span></td><td><b style="'+(log.netProfit<0?'color:var(--danger)':'color:var(--success)')+'">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.netProfit):'-')+'</b></td></tr>'; }); } document.getElementById('sumRevenue').innerText=formatRupiah(tRev); document.getElementById('sumSold').innerText=tVol+' Item'; document.getElementById('sumDiscount').innerText=formatRupiah(tDisc); document.getElementById('profGross').innerText=formatRupiah(tGross); document.getElementById('profCogs').innerText=formatRupiah(tCogs); document.getElementById('profNet').innerText=formatRupiah(tNet); const {top,bottom}=calculatePareto(); document.getElementById('topProducts').innerHTML=top.length===0?'<p style="color:var(--muted);font-size:0.8rem;">Belum ada data.</p>':top.map(([n,q])=>'<div class="pareto-item top"><span class="name">'+n+'</span><span class="val">'+q+' pcs</span></div>').join(''); document.getElementById('bottomProducts').innerHTML=bottom.length===0?'<p style="color:var(--muted);font-size:0.8rem;">Data kosong.</p>':bottom.map(([n,q])=>'<div class="pareto-item bottom"><span class="name">'+n+'</span><span class="val">'+q+' pcs</span></div>').join(''); checkAlertsAndChart(display); }
