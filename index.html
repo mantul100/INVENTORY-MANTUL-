@@ -558,6 +558,8 @@ function saveAppSettings(){
   saveToCloud();
   alert('✅ Pengaturan struk disimpan ke Cloud!');
 }
+applyTheme(currentUserRole || 'admin');
+}
 
 // ============================================================
 // DATA & DEFAULT PRODUCTS
@@ -816,6 +818,114 @@ function playBeep(){ try{ const ctx=new(window.AudioContext||window.webkitAudioC
 function showSyncBanner(type,msg,retry=false){ const b=document.getElementById('syncStatusBanner'); b.className='sync-banner '+type; b.style.display='flex'; let btn=''; if(retry)btn+='<button class="btn-retry" onclick="retrySync()">🔄 Coba Lagi</button>'; btn+='<button class="btn-close" onclick="dismissSyncBanner()">✕ Tutup</button>'; b.innerHTML='<span>'+msg+'</span> <div style="display:flex;gap:8px;">'+btn+'</div>'; }
 function dismissSyncBanner(){ document.getElementById('syncStatusBanner').style.display='none'; }
 function retrySync(){ dismissSyncBanner(); saveToCloud(); }
+
+// ============================================================
+// THEME CUSTOMIZER (PER-ROLE)
+// ============================================================
+const DEFAULT_THEMES = {
+  admin: {
+    bg: '#0b0b0c',
+    card: '#171719',
+    gold: '#d4af37',
+    text: '#f5f5f5',
+    muted: '#bdbdbd',
+    border: '#2a2a2e',
+    input: '#202023'
+  },
+  kasir: {
+    bg: '#f5f7fa',
+    card: '#ffffff',
+    gold: '#0ea5e9',
+    text: '#1a1a2e',
+    muted: '#4a4a6a',
+    border: '#d0d5dd',
+    input: '#f0f2f5'
+  }
+};
+
+function applyTheme(role) {
+  const theme = (appSettings.themes && appSettings.themes[role]) || DEFAULT_THEMES[role] || DEFAULT_THEMES.admin;
+  const root = document.documentElement;
+  root.style.setProperty('--bg', theme.bg);
+  root.style.setProperty('--card', theme.card);
+  root.style.setProperty('--gold', theme.gold);
+  root.style.setProperty('--text', theme.text);
+  root.style.setProperty('--muted', theme.muted);
+  root.style.setProperty('--border', theme.border);
+  root.style.setProperty('--input', theme.input);
+  
+  // Update color picker UI jika elemen ada
+  const accentEl = document.getElementById('themeAccent');
+  const bgEl = document.getElementById('themeBg');
+  const cardEl = document.getElementById('themeCard');
+  if (accentEl) accentEl.value = theme.gold;
+  if (bgEl) bgEl.value = theme.bg;
+  if (cardEl) cardEl.value = theme.card;
+}
+
+function loadPresetTheme(preset) {
+  const role = currentUserRole || 'admin';
+  let theme;
+  if (preset === 'dark') {
+    theme = DEFAULT_THEMES.admin;
+  } else if (preset === 'light') {
+    theme = DEFAULT_THEMES.kasir;
+  } else if (preset === 'green') {
+    theme = {
+      bg: '#f0fdf4',
+      card: '#ffffff',
+      gold: '#22c55e',
+      text: '#14532d',
+      muted: '#4ade80',
+      border: '#bbf7d0',
+      input: '#dcfce7'
+    };
+  } else if (preset === 'sunset') {
+    theme = {
+      bg: '#1e1b2e',
+      card: '#2d2a44',
+      gold: '#f97316',
+      text: '#fef3c7',
+      muted: '#fb923c',
+      border: '#44403c',
+      input: '#3f3a5a'
+    };
+  }
+  
+  if (!appSettings.themes) appSettings.themes = {};
+  appSettings.themes[role] = theme;
+  saveToCloud();
+  applyTheme(role);
+  // Refresh UI color picker juga
+  const accentEl = document.getElementById('themeAccent');
+  const bgEl = document.getElementById('themeBg');
+  const cardEl = document.getElementById('themeCard');
+  if (accentEl) accentEl.value = theme.gold;
+  if (bgEl) bgEl.value = theme.bg;
+  if (cardEl) cardEl.value = theme.card;
+  alert('✅ Tema "'+preset+'" diterapkan!');
+}
+
+function applyCurrentTheme() {
+  const role = currentUserRole || 'admin';
+  const accent = document.getElementById('themeAccent').value;
+  const bg = document.getElementById('themeBg').value;
+  const card = document.getElementById('themeCard').value;
+  
+  if (!appSettings.themes) appSettings.themes = {};
+  appSettings.themes[role] = {
+    bg: bg,
+    card: card,
+    gold: accent,
+    text: DEFAULT_THEMES[role]?.text || DEFAULT_THEMES.admin.text,
+    muted: DEFAULT_THEMES[role]?.muted || DEFAULT_THEMES.admin.muted,
+    border: DEFAULT_THEMES[role]?.border || DEFAULT_THEMES.admin.border,
+    input: DEFAULT_THEMES[role]?.input || DEFAULT_THEMES.admin.input
+  };
+  saveToCloud();
+  applyTheme(role);
+  alert('✅ Tema kustom disimpan ke Cloud!');
+}
 
 function initApp(){ try{ loadProductCatalog(); populateProductDropdown(); updatePackageOptions(); renderDashboard(); renderCart(); loadFromCloud(); applyRoleUI(); }catch(e){ alert('Error init: '+e.message); console.error(e); } }
 </script>
