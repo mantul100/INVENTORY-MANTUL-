@@ -289,6 +289,8 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
             <button class="btn btn-secondary" onclick="toggleAddMenuForm()">➕ Tambah Menu</button>
             <button class="btn btn-undo" onclick="undoLastTransaction()">↩️ Undo Transaksi</button>
             <button class="btn btn-danger" onclick="resetSystemData()">⚠️ Reset Database</button>
+            <button class="btn btn-secondary" onclick="recalculateStock()" style="background:var(--gold);color:#111;">🔄 Sinkronkan Stok</button>
+            <button class="btn btn-secondary" onclick="adjustStock()" style="background:var(--warning);color:#111;">✏️ Adjust Stok</button>
           </div>
           
           <!-- PENGATURAN STRUK -->
@@ -1538,7 +1540,100 @@ function playBeep(){ try{ const ctx=new(window.AudioContext||window.webkitAudioC
 function showSyncBanner(type,msg,retry=false){ const b=document.getElementById('syncStatusBanner'); b.className='sync-banner '+type; b.style.display='flex'; let btn=''; if(retry)btn+='<button class="btn-retry" onclick="retrySync()">🔄 Coba Lagi</button>'; btn+='<button class="btn-close" onclick="dismissSyncBanner()">✕ Tutup</button>'; b.innerHTML='<span>'+msg+'</span> <div style="display:flex;gap:8px;">'+btn+'</div>'; }
 function dismissSyncBanner(){ document.getElementById('syncStatusBanner').style.display='none'; }
 function retrySync(){ dismissSyncBanner(); saveToCloud(); }
+// ============================================================
+// SINKRONKAN STOK DARI LOGS (Perbaiki semua ketidaksesuaian)
+// ============================================================
+function recalculateStock() {
+  if (currentUserRole !== 'admin') return alert('Akses ditolak!');
+  if (!confirm('Hitung ulang stok dari semua transaksi? Ini akan mengganti stok saat ini.')) return;
+  
+  showLoading('🔄 Menghitung ulang stok...');
+  
+  // Reset inventory ke 0
+  for (let key in productCatalog) {
+    inventory[key] = 0;
+  }
+  
+  // Urutkan logs berdasarkan waktu (dari lama ke baru)
+  let sortedLogs = [...logs].sort((a,b) => parseDate(a.date) - parseDate(b.date));
+  
+  // Proses setiap log
+  sortedLogs.forEach(l => {
+    if (l.type === 'MASUK') {
+      inventory[l.product] = (inventory[l.product] || 0) + (l.qtyInput || 0);
+    } else if (l.type === 'JUAL' || l.type === 'TESTER') {
+      inventory[l.product] = (inventory[l.product] || 0) - (l.finalDeduct || 0);
+    }
+    // Abaikan tipe lain (REVIEW, KOREKSI, dll)
+  });
+  
+  // Simpan ke cloud
+  saveToCloud();
+  renderDashboard();
+  renderMutasi();
+  renderSOH();
+  hideLoading();
+  alert('✅ Stok berhasil disinkronkan dari ' + sortedLogs.length + ' transaksi!');
+}
 
+// ============================================================
+// ADJUST STOK MANUAL (Koreksi stok ke angka tertentu)
+// ============================================================
+function adjustStock() {
+  if (currentUserRole !== 'admin') return alert('Akses ditolak!');
+  
+  // Ambil daftar produk dari catalog
+  const items = Object.keys(productCatalog);
+  if (items.length === 0) return alert('Tidak ada produk!');
+  
+  // Buat daftar pilihan
+  let itemList = items.map((name, idx) => `${idx+1}. ${name} (Stok: ${inventory[name]||0} Pcs)`).join('\n');
+  let selected = prompt(`Pilih produk untuk adjust stok:\n${itemList}\n\nMasukkan nomor produk:`);
+  if (selected === null) return;
+  let idx = parseInt(selected) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= items.length) return alert('Pilihan tidak valid!');
+  
+  const prod = items[idx];
+  const currentStock = inventory[prod] || 0;
+  let newStock = prompt(`Stok saat ini "${prod}" = ${currentStock} Pcs.\nMasukkan stok AKHIR yang diinginkan (angka):`);
+  if (newStock === null) return;
+  let newStockNum = parseInt(newStock);
+  if (isNaN(newStockNum) || newStockNum < 0) return alert('Masukkan angka positif!');
+  
+  const diff = newStockNum - currentStock;
+  if (diff === 0) return alert('Stok sudah sesuai, tidak ada perubahan.');
+  
+  // Konfirmasi
+  if (!confirm(`Ubah stok "${prod}" dari ${currentStock} menjadi ${newStockNum} (${diff > 0 ? '+'+diff : diff} Pcs)?`)) return;
+  
+  // Update inventory
+  inventory[prod] = newStockNum;
+  
+  // Catat sebagai log KOREKSI
+  const logEntry = {
+    orderId: 'ADJ-' + Date.now().toString().slice(-8),
+    date: generateFormattedDate(),
+    product: prod,
+    type: 'KOREKSI',
+    qtyInput: Math.abs(diff),
+    detail: diff > 0 ? `Penyesuaian +${diff} Pcs` : `Penyesuaian ${diff} Pcs`,
+    impactStock: diff > 0 ? `+${diff} Pcs (Koreksi)` : `${diff} Pcs (Koreksi)`,
+    finalDeduct: 0,
+    grossPrice: 0,
+    discount: 0,
+    cogsTotal: 0,
+    finalNominal: 0,
+    netProfit: 0,
+    customerName: 'Admin (Koreksi)'
+  };
+  logs.unshift(logEntry);
+  
+  saveToCloud();
+  renderDashboard();
+  renderMutasi();
+  renderSOH();
+  alert(`✅ Stok "${prod}" diubah menjadi ${newStockNum} Pcs.`);
+}
 async function initApp(){ 
   try{ 
     loadProductCatalog(); 
