@@ -1077,28 +1077,49 @@ function runCalculator(){ if(currentUserRole!=='admin')return; const prod=docume
 async function loadFromCloud(){ 
   showLoading('🔄 Menyelaraskan Data...'); 
   try {
+    console.log('🌐 Memuat data dari cloud...');
     const res = await fetch(CLOUD_URL);
     const data = await res.json();
+    console.log('📦 Data diterima:', data);
     
-    if(data.inventory) for(let k in data.inventory) inventory[k] = data.inventory[k];
+    // Inventory
+    if(data.inventory) {
+      for(let k in data.inventory) inventory[k] = data.inventory[k];
+      console.log('✅ Inventory dimuat:', Object.keys(inventory).length, 'item');
+    }
+    
+    // Logs
     if(data.logs){ 
       logs = data.logs.map(l => { 
         if(!l.orderId) l.orderId = 'LEGACY-'+Date.now().toString().slice(-8); 
         if(!l.customerName) l.customerName = '-'; 
         return l; 
       }); 
+      console.log('✅ Logs dimuat:', logs.length, 'transaksi');
     }
-    if(data.productCatalog){ 
+    
+    // Product Catalog
+    if(data.productCatalog && Object.keys(data.productCatalog).length > 0){ 
       productCatalog = data.productCatalog; 
       saveProductCatalog(); 
+      console.log('✅ Product Catalog dimuat:', Object.keys(productCatalog).length, 'produk');
     } else { 
       loadProductCatalog(); 
+      console.log('⚠️ Product Catalog kosong, menggunakan DEFAULT_PRODUCTS');
     }
+    
+    // App Settings
     if(data.appSettings){ 
       appSettings = data.appSettings; 
       applySettingsToUI(); 
     }
-    for(let k in productCatalog) if(!(k in inventory)) inventory[k] = 0;
+    
+    // Pastikan inventory punya semua produk di catalog
+    for(let k in productCatalog) {
+      if(!(k in inventory)) inventory[k] = 0;
+    }
+    
+    // Render semua
     populateProductDropdown(); 
     updatePackageOptions(); 
     renderDashboard(); 
@@ -1109,8 +1130,10 @@ async function loadFromCloud(){
     applyDateFilter(currentPeriod || 'today'); 
     showSyncBanner('success','✅ Data dimuat dari Cloud.',false); 
     setTimeout(dismissSyncBanner, 2000);
+    console.log('✅ Semua render selesai');
+    
   } catch(e) {
-    console.error('Load Cloud Error:', e);
+    console.error('❌ Load Cloud Error:', e);
     loadProductCatalog(); 
     populateProductDropdown(); 
     updatePackageOptions(); 
@@ -1493,41 +1516,133 @@ function exportSOHCSV(){
   const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='SOH_Nilai.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
   function renderDashboard(){ 
-  const stockBody=document.getElementById('stockTableBody'); stockBody.innerHTML=''; 
-  const sorted=getSortedProductKeys(); const isAdmin=currentUserRole==='admin'; 
-  for(let item of sorted){ if(!(item in inventory))continue; let unit='Pcs'; const variants=getVariants(item); if(variants.length===1&&variants[0].pcsPerPack===1)unit='Pack'; const safe=item.replace(/'/g,"\\'"); const fc=getForecastDays(item); let actions=isAdmin?'<button class="btn-clone" onclick="cloneProduct(\''+safe+'\')">📋</button><button class="btn-edit" onclick="editProduct(\''+safe+'\')">✏️</button><button class="btn-trash" onclick="deleteProduct(\''+safe+'\')">🗑️</button>':'<span style="color:var(--muted);font-size:0.7rem;">(read only)</span>'; 
+  console.log('📊 renderDashboard dipanggil');
+  const stockBody = document.getElementById('stockTableBody');
+  if (!stockBody) { console.error('❌ stockTableBody tidak ditemukan!'); return; }
+  stockBody.innerHTML = '';
+  
+  // Gunakan productCatalog sebagai sumber, fallback ke inventory
+  let items = Object.keys(productCatalog);
+  if (items.length === 0) {
+    items = Object.keys(inventory);
+    console.warn('⚠️ productCatalog kosong, pakai inventory sebagai fallback');
+  }
+  if (items.length === 0) {
+    stockBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);">Belum ada produk.</td></tr>';
+    console.warn('⚠️ Tidak ada produk sama sekali');
+    return;
+  }
+  
+  const isAdmin = currentUserRole === 'admin';
+  
+  // Sortir
+  let sorted = items;
+  if(currentSortMode === 'az') sorted = items.sort((a,b) => a.localeCompare(b));
+  else if(currentSortMode === 'za') sorted = items.sort((a,b) => b.localeCompare(a));
+  else if(currentSortMode === 'qty_asc') sorted = items.sort((a,b) => (inventory[a]||0) - (inventory[b]||0));
+  else if(currentSortMode === 'qty_desc') sorted = items.sort((a,b) => (inventory[b]||0) - (inventory[a]||0));
+  
+  let html = '';
+  sorted.forEach(item => {
+    const qty = inventory[item] || 0;
+    let unit = 'Pcs';
+    const variants = getVariants(item);
+    if(variants.length === 1 && variants[0].pcsPerPack === 1) unit = 'Pack';
+    const fc = getForecastDays(item) || '-';
+    const safe = item.replace(/'/g, "\\'");
+    let actions = '';
+    if(isAdmin) {
+      actions = `<button class="btn-clone" onclick="cloneProduct('${safe}')">📋</button>
+                 <button class="btn-edit" onclick="editProduct('${safe}')">✏️</button>
+                 <button class="btn-trash" onclick="deleteProduct('${safe}')">🗑️</button>`;
+    } else {
+      actions = '<span style="color:var(--muted);font-size:0.7rem;">(read only)</span>';
+    }
     actions += ` <button class="btn btn-secondary" style="padding:2px 6px;font-size:0.6rem;width:auto;" onclick="goToMutation('${safe}')">🔍 Mutasi</button>`;
-    stockBody.innerHTML+='<tr><td><b>'+item+'</b></td><td>'+(inventory[item]||0)+' '+unit+'</td><td style="font-size:0.75rem;">'+fc+'</td><td style="text-align:center;white-space:nowrap;">'+actions+'</td></tr>'; 
-  } 
+    html += `<tr><td><b>${item}</b></td><td>${qty} ${unit}</td><td style="font-size:0.75rem;">${fc}</td><td style="text-align:center;white-space:nowrap;">${actions}</td></tr>`;
+  });
+  stockBody.innerHTML = html;
+  
+  // === RENDER JURNAL (AUDIT) ===
   let tRev=0,tVol=0,tDisc=0,tGross=0,tCogs=0,tNet=0,tTrans=0; 
-  const audit=document.getElementById('auditTableBody'); audit.innerHTML=''; 
-  const display=filteredLogs.length>0?filteredLogs:logs; 
-  if(display.length===0&&filteredLogs.length===0){ audit.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--muted);">Tidak ada transaksi.</td></tr>'; } 
-  else { 
+  const audit = document.getElementById('auditTableBody');
+  if (!audit) return;
+  audit.innerHTML = ''; 
+  const display = filteredLogs.length > 0 ? filteredLogs : logs; 
+  if(display.length === 0){ 
+    audit.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);">Tidak ada transaksi.</td></tr>'; 
+  } else { 
     const uniqueOrders = new Set();
-    display.forEach((log,i)=>{ 
-      let badge=log.type==='JUAL'?'<span class="badge-out">JUAL</span>':log.type==='TESTER'?'<span class="badge-tester">TESTER</span>':'<span class="badge-in">MASUK</span>'; 
-      if(log.type==='JUAL'){ tRev+=log.finalNominal; tDisc+=log.discount; tVol+=log.qtyInput; tGross+=log.grossPrice; tCogs+=log.cogsTotal; tNet+=log.netProfit; uniqueOrders.add(log.orderId); } 
-      if(log.type==='TESTER'){ tCogs+=log.cogsTotal; tNet+=log.netProfit; } 
-      const dt=formatDisplayDate(log.date); const oid=log.orderId||'N/A'; const cust=log.customerName||'-'; 
-      let discHtml='-'; if(log.type==='JUAL'&&isAdmin){ discHtml='<input type="number" value="'+log.discount+'" onblur="updateManualDiscount(this,'+i+')" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">'; } else if(log.type==='JUAL'){ discHtml=formatRupiah(log.discount); } 
-      let reprintBtn = (log.type==='JUAL' || log.type==='TESTER') ? `<button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;width:auto;" onclick="reprintReceipt('${oid}')">🔄</button>` : '-';
-      let deleteBtn = (isAdmin) ? `<button class="btn btn-delete" onclick="deleteTransaction('${oid}')">🗑️</button>` : '-';
-      audit.innerHTML+='<tr><td><small>'+oid+'</small></td><td><small>'+dt+'</small></td><td><small>'+cust+'</small></td><td><b>'+log.product+'</b><br><small style="color:var(--muted)">'+log.detail+'</small></td><td>'+badge+'</td><td>'+(log.type==='JUAL'?formatRupiah(log.grossPrice):(log.type==='TESTER'?'PROMOSI':'-'))+'</td><td>'+discHtml+'</td><td><span style="color:var(--danger)">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.cogsTotal):'-')+'</span></td><td><b style="'+(log.netProfit<0?'color:var(--danger)':'color:var(--success)')+'">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.netProfit):'-')+'</b></td><td>'+reprintBtn+' '+deleteBtn+'</td></tr>'; 
+    display.forEach((log, i) => { 
+      let badge = log.type === 'JUAL' ? '<span class="badge-out">JUAL</span>' : 
+                   log.type === 'TESTER' ? '<span class="badge-tester">TESTER</span>' : 
+                   '<span class="badge-in">MASUK</span>'; 
+      if(log.type === 'JUAL'){ 
+        tRev += log.finalNominal || 0; 
+        tDisc += log.discount || 0; 
+        tVol += log.qtyInput || 0; 
+        tGross += log.grossPrice || 0; 
+        tCogs += log.cogsTotal || 0; 
+        tNet += log.netProfit || 0; 
+        uniqueOrders.add(log.orderId); 
+      } 
+      if(log.type === 'TESTER'){ 
+        tCogs += log.cogsTotal || 0; 
+        tNet += log.netProfit || 0; 
+      } 
+      const dt = formatDisplayDate(log.date) || log.date; 
+      const oid = log.orderId || 'N/A'; 
+      const cust = log.customerName || '-'; 
+      let discHtml = '-'; 
+      if(log.type === 'JUAL' && isAdmin){ 
+        discHtml = `<input type="number" value="${log.discount || 0}" onblur="updateManualDiscount(this, ${i})" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">`; 
+      } else if(log.type === 'JUAL'){ 
+        discHtml = formatRupiah(log.discount || 0); 
+      } 
+      let reprintBtn = (log.type === 'JUAL' || log.type === 'TESTER') ? 
+        `<button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;width:auto;" onclick="reprintReceipt('${oid}')">🔄</button>` : '-';
+      let deleteBtn = (isAdmin) ? 
+        `<button class="btn btn-delete" onclick="deleteTransaction('${oid}')">🗑️</button>` : '-';
+      audit.innerHTML += `<tr>
+        <td><small>${oid}</small></td>
+        <td><small>${dt}</small></td>
+        <td><small>${cust}</small></td>
+        <td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail || ''}</small></td>
+        <td>${badge}</td>
+        <td>${log.type === 'JUAL' ? formatRupiah(log.grossPrice || 0) : (log.type === 'TESTER' ? 'PROMOSI' : '-')}</td>
+        <td>${discHtml}</td>
+        <td><span style="color:var(--danger)">${(log.type === 'JUAL' || log.type === 'TESTER') ? formatRupiah(log.cogsTotal || 0) : '-'}</span></td>
+        <td><b style="${log.netProfit < 0 ? 'color:var(--danger)' : 'color:var(--success)'}">${(log.type === 'JUAL' || log.type === 'TESTER') ? formatRupiah(log.netProfit || 0) : '-'}</b></td>
+        <td>${reprintBtn} ${deleteBtn}</td>
+      </tr>`; 
     }); 
     tTrans = uniqueOrders.size;
   } 
-  document.getElementById('sumRevenue').innerText=formatRupiah(tRev); 
-  document.getElementById('sumSold').innerText=tVol+' Item'; 
-  document.getElementById('sumDiscount').innerText=formatRupiah(tDisc); 
-  document.getElementById('sumTransaction').innerText=tTrans;
-  document.getElementById('profGross').innerText=formatRupiah(tGross); 
-  document.getElementById('profCogs').innerText=formatRupiah(tCogs); 
-  document.getElementById('profNet').innerText=formatRupiah(tNet); 
-  document.getElementById('profCount').innerText=tTrans;
-  const {top,bottom}=calculatePareto(); 
-  document.getElementById('topProducts').innerHTML=top.length===0?'<p style="color:var(--muted);font-size:0.8rem;">Belum ada data.</p>':top.map(([n,q])=>'<div class="pareto-item top"><span class="name">'+n+'</span><span class="val">'+q+' pcs</span></div>').join(''); 
-  document.getElementById('bottomProducts').innerHTML=bottom.length===0?'<p style="color:var(--muted);font-size:0.8rem;">Data kosong.</p>':bottom.map(([n,q])=>'<div class="pareto-item bottom"><span class="name">'+n+'</span><span class="val">'+q+' pcs</span></div>').join(''); 
+  
+  // Update summary
+  document.getElementById('sumRevenue').innerText = formatRupiah(tRev); 
+  document.getElementById('sumSold').innerText = tVol + ' Item'; 
+  document.getElementById('sumDiscount').innerText = formatRupiah(tDisc); 
+  document.getElementById('sumTransaction').innerText = tTrans;
+  document.getElementById('profGross').innerText = formatRupiah(tGross); 
+  document.getElementById('profCogs').innerText = formatRupiah(tCogs); 
+  document.getElementById('profNet').innerText = formatRupiah(tNet); 
+  document.getElementById('profCount').innerText = tTrans;
+  
+  // Pareto
+  const {top, bottom} = calculatePareto(); 
+  const topEl = document.getElementById('topProducts');
+  if(topEl) {
+    topEl.innerHTML = top.length === 0 ? '<p style="color:var(--muted);font-size:0.8rem;">Belum ada data.</p>' : 
+      top.map(([n,q]) => `<div class="pareto-item top"><span class="name">${n}</span><span class="val">${q} pcs</span></div>`).join('');
+  }
+  const bottomEl = document.getElementById('bottomProducts');
+  if(bottomEl) {
+    bottomEl.innerHTML = bottom.length === 0 ? '<p style="color:var(--muted);font-size:0.8rem;">Data kosong.</p>' : 
+      bottom.map(([n,q]) => `<div class="pareto-item bottom"><span class="name">${n}</span><span class="val">${q} pcs</span></div>`).join('');
+  }
+  
+  // Chart
   checkAlertsAndChart(display); 
 }
 
