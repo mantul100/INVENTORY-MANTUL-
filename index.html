@@ -1409,9 +1409,28 @@ function renderSOH(){
   const keyword = document.getElementById('sohSearch').value.trim().toLowerCase();
   const sort = document.getElementById('sohSort').value;
   
+  // [FIX] Ambil dari productCatalog, jika kosong gunakan inventory
   let items = Object.keys(productCatalog);
+  if (items.length === 0) {
+    console.warn('⚠️ productCatalog kosong, menggunakan inventory sebagai fallback.');
+    items = Object.keys(inventory);
+  }
+  // Jika masih kosong, tampilkan pesan
+  if (items.length === 0) {
+    const tbody = document.getElementById('sohTableBody');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Belum ada produk / stok.</td></tr>';
+    document.getElementById('sohTotalValue').innerText = 'Rp 0';
+    document.getElementById('sohTotalQty').innerText = '0 Pcs';
+    document.getElementById('sohTotalRetail').innerText = 'Rp 0';
+    document.getElementById('sohTotalMargin').innerText = 'Rp 0';
+    document.getElementById('sohTotalItem').innerText = '0';
+    return;
+  }
+  
+  // Filter berdasarkan keyword
   if(keyword) items = items.filter(k => k.toLowerCase().includes(keyword));
   
+  // Sortir
   if(sort === 'az') items.sort((a,b) => a.localeCompare(b));
   else if(sort === 'za') items.sort((a,b) => b.localeCompare(a));
   else if(sort === 'value_desc') items.sort((a,b) => ((inventory[b]||0)*getCogs(b)) - ((inventory[a]||0)*getCogs(a)));
@@ -1420,57 +1439,55 @@ function renderSOH(){
   const tbody = document.getElementById('sohTableBody');
   tbody.innerHTML = '';
   
-  if(items.length === 0) { 
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Tidak ada data produk.</td></tr>'; 
-  } else {
-    let totalQty=0, totalNilaiHPP=0, totalNilaiRetail=0, totalMargin=0, totalItems=0;
+  let totalQty=0, totalNilaiHPP=0, totalNilaiRetail=0, totalMargin=0, totalItems=0;
+  
+  items.forEach(item => {
+    const qty = inventory[item] || 0;
+    const hpp = getCogs(item);
+    const retail = getRetailPrice(item);
+    const margin = retail - hpp;
+    const nilaiHPP = qty * hpp;
+    const nilaiRetail = qty * retail;
+    const totalMarginItem = qty * margin;
     
-    items.forEach(item => {
-      const qty = inventory[item] || 0;
-      const hpp = getCogs(item);
-      const retail = getRetailPrice(item);
-      const margin = retail - hpp;
-      const nilaiHPP = qty * hpp;
-      const nilaiRetail = qty * retail;
-      const totalMarginItem = qty * margin;
-      
-      totalQty += qty;
-      totalNilaiHPP += nilaiHPP;
-      totalNilaiRetail += nilaiRetail;
-      totalMargin += totalMarginItem;
-      if(qty > 0) totalItems++;
-      
-      const statusColor = qty > 0 ? 'var(--text)' : 'var(--muted)';
-      tbody.innerHTML += `<tr style="color:${statusColor};">
-        <td><b>${item}</b></td>
-        <td>${qty} Pcs</td>
-        <td>${formatRupiah(hpp)}</td>
-        <td>${formatRupiah(retail)}</td>
-        <td>${formatRupiah(margin)}</td>
-        <td>${formatRupiah(nilaiHPP)}</td>
-        <td style="color:var(--success);">${formatRupiah(nilaiRetail)}</td>
-        <td style="color:var(--gold);">${formatRupiah(totalMarginItem)}</td>
-      </tr>`;
-    });
+    totalQty += qty;
+    totalNilaiHPP += nilaiHPP;
+    totalNilaiRetail += nilaiRetail;
+    totalMargin += totalMarginItem;
+    if(qty > 0) totalItems++;
     
-    tbody.innerHTML += `
-      <tr style="border-top:3px solid var(--gold);font-weight:bold;background:var(--card);">
-        <td><b>TOTAL</b></td>
-        <td><b>${totalQty} Pcs</b></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td>${formatRupiah(totalNilaiHPP)}</td>
-        <td style="color:var(--success);"><b>${formatRupiah(totalNilaiRetail)}</b></td>
-        <td style="color:var(--gold);"><b>${formatRupiah(totalMargin)}</b></td>
-      </tr>
-    `;
-    
-    document.getElementById('sohTotalValue').innerText = formatRupiah(totalNilaiHPP);
-    document.getElementById('sohTotalQty').innerText = totalQty + ' Pcs';
-    document.getElementById('sohTotalRetail').innerText = formatRupiah(totalNilaiRetail);
-    document.getElementById('sohTotalMargin').innerText = formatRupiah(totalMargin);
-    document.getElementById('sohTotalItem').innerText = totalItems + ' / ' + items.length;
+    const statusColor = qty > 0 ? 'var(--text)' : 'var(--muted)';
+    tbody.innerHTML += `<tr style="color:${statusColor};">
+      <td><b>${item}</b></td>
+      <td>${qty} Pcs</td>
+      <td>${formatRupiah(hpp)}</td>
+      <td>${formatRupiah(retail)}</td>
+      <td>${formatRupiah(margin)}</td>
+      <td>${formatRupiah(nilaiHPP)}</td>
+      <td style="color:var(--success);">${formatRupiah(nilaiRetail)}</td>
+      <td style="color:var(--gold);">${formatRupiah(totalMarginItem)}</td>
+    </tr>`;
+  });
+  
+  // TOTAL ROW
+  tbody.innerHTML += `
+    <tr style="border-top:3px solid var(--gold);font-weight:bold;background:var(--card);">
+      <td><b>TOTAL</b></td>
+      <td><b>${totalQty} Pcs</b></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>${formatRupiah(totalNilaiHPP)}</td>
+      <td style="color:var(--success);"><b>${formatRupiah(totalNilaiRetail)}</b></td>
+      <td style="color:var(--gold);"><b>${formatRupiah(totalMargin)}</b></td>
+    </tr>
+  `;
+  
+  document.getElementById('sohTotalValue').innerText = formatRupiah(totalNilaiHPP);
+  document.getElementById('sohTotalQty').innerText = totalQty + ' Pcs';
+  document.getElementById('sohTotalRetail').innerText = formatRupiah(totalNilaiRetail);
+  document.getElementById('sohTotalMargin').innerText = formatRupiah(totalMargin);
+  document.getElementById('sohTotalItem').innerText = totalItems + ' / ' + items.length;
   }
 }
 
