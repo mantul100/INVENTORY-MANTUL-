@@ -939,7 +939,27 @@ function renderCart(){ const container=document.getElementById('cartItemsContain
 function updateCartSummary(){ let sub=cart.reduce((s,i)=>s+i.subtotal,0); const disc=parseInt(document.getElementById('cartDiscount').value)||0; document.getElementById('cartSubtotal').innerText=formatRupiah(sub); document.getElementById('cartGrandTotal').innerText=formatRupiah(Math.max(0,sub-disc)); }
 
 function checkoutOrder(){ if(cart.length===0)return alert('Keranjang kosong!'); const discount=parseInt(document.getElementById('cartDiscount').value)||0; const customerName=document.getElementById('customerName').value.trim()||'-'; let subtotal=cart.reduce((s,i)=>s+i.subtotal,0); if(discount>subtotal)return alert('Diskon > Subtotal!'); const orderId='ORD-'+Date.now().toString().slice(-8); const transactionLogs=[]; let grossTotal=0; for(let item of cart){ if((inventory[item.productName]||0)<item.totalPcs)return alert('Stok '+item.productName+' kurang!'); inventory[item.productName]-=item.totalPcs; const log={ orderId, date:generateFormattedDate(), product:item.productName, type:'JUAL', qtyInput:item.qty, detail:item.label+' ('+item.totalPcs+' Pcs)', impactStock:'Keluar '+item.totalPcs+' Pcs', finalDeduct:item.totalPcs, grossPrice:item.subtotal, discount:0, cogsTotal:item.cogsTotal, finalNominal:item.subtotal, netProfit:item.subtotal-item.cogsTotal, customerName:customerName }; transactionLogs.push(log); grossTotal+=item.subtotal; } if(transactionLogs.length>0&&discount>0){ let remaining=discount; for(let i=0;i<transactionLogs.length;i++){ let log=transactionLogs[i]; let prop=log.grossPrice/grossTotal; let alloc=Math.round(discount*prop); if(i===transactionLogs.length-1)alloc=remaining; remaining-=alloc; log.discount=alloc; log.finalNominal=log.grossPrice-alloc; log.netProfit=log.finalNominal-log.cogsTotal; } } logs.unshift(...transactionLogs); cart=[]; document.getElementById('cartDiscount').value='0'; document.getElementById('customerName').value=''; renderCart(); saveToCloud(); const totalFinal=transactionLogs.reduce((s,l)=>s+l.finalNominal,0); showCombinedReceipt(orderId, transactionLogs, discount, totalFinal, customerName, false); }
-
+// ============================================================
+// FORMAT VARIAN STRUK (Ringkas & Jelas)
+// ============================================================
+function formatVarianDetail(detail) {
+  if (!detail) return '';
+  // Cek apakah ada "Pack isi X"
+  var match = detail.match(/Pack isi (\d+)/);
+  if (match) {
+    return 'isi ' + match[1];
+  }
+  // Jika "Pack" tanpa isi (misal Bakpao), tidak tambahan
+  if (detail.indexOf('Pack') !== -1 && detail.indexOf('Pack isi') === -1) {
+    return '';
+  }
+  // Jika "Pcs" tanpa bundling, tidak tambahan
+  if (detail.indexOf('Pcs') !== -1) {
+    return '';
+  }
+  // Fallback: return kosong
+  return '';
+}
 function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal, customerName, isDuplicate){
   lastReceiptOrder = { orderId, logsList, totalDiscount, grandTotal, customerName, isDuplicate };
   const modal = document.getElementById('receiptModal');
@@ -967,7 +987,8 @@ function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal, custo
     const satuan = log.grossPrice / log.qtyInput;
     subDisplay += log.grossPrice;
     // Tampilkan produk + varian (detail)
-    var itemDisplay = log.product + ' (' + log.detail + ')';
+    var varianRingkas = formatVarianDetail(log.detail);
+    var itemDisplay = log.product + (varianRingkas ? ' (' + varianRingkas + ')' : '');
     html += '<div style="display:flex;font-size:0.85rem;padding:4px 0;"><span style="flex:2;">' + itemDisplay + '</span><span style="flex:1;text-align:right;">' + log.qtyInput + '</span><span style="flex:1;text-align:right;">' + formatRupiah(satuan) + '</span><span style="flex:1;text-align:right;">' + formatRupiah(log.grossPrice) + '</span></div>';
   });
   html += '<div class="receipt-divider"></div>';
@@ -1014,7 +1035,7 @@ function generatePlainReceipt(orderId, logsList, totalDiscount, grandTotal, cust
     // Opsi A: 2 baris per item
     var itemName = log.product;
     if (itemName.length > W) itemName = itemName.substring(0, W - 3) + '..';
-    var varian = log.detail || '';
+    var varian = formatVarianDetail(log.detail) || '';
     if (varian.length > W - 2) varian = varian.substring(0, W - 5) + '..';
     lines.push(itemName.padEnd(W) + ' '.padStart(Q) + ' '.padStart(P));
     lines.push('  ' + varian.padEnd(W - 2) + log.qtyInput.toString().padStart(Q) + log.grossPrice.toLocaleString('id-ID').padStart(P));
