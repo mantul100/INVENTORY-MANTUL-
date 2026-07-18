@@ -3,7 +3,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN v8.8 - FULL UPGRADE</title>
+<title>MANTUL KITCHEN v8.9 - FINAL</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -158,7 +158,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 </div>
 <div class="container">
   <div class="header">
-    <h1>MANTUL KITCHEN v8.8</h1>
+    <h1>MANTUL KITCHEN v8.9</h1>
     <div class="right-group">
       <div class="user-badge" id="userBadge">👤 Admin Mode</div>
       <button class="btn-refresh" onclick="refreshData()" title="Refresh data tanpa reload halaman">🔄 Refresh</button>
@@ -381,7 +381,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
     </div>
   </div>
 
-  <!-- ===================== TAB MUTASI STOK ===================== -->
+  <!-- ===================== TAB MUTASI STOK (DENGAN RETAIL & MARGIN) ===================== -->
   <div id="tabMutasi" class="tab-content">
     <div class="summary-grid">
       <div class="stat-card"><h3>Total IN</h3><div class="val" id="mutasiTotalIN" style="color:var(--success)">0 Pcs</div></div>
@@ -410,7 +410,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
         <button class="btn btn-excel" style="padding:6px 12px;width:auto;margin:0;" onclick="exportMutasiCSV()">📥 CSV</button>
       </div>
       <div class="table-wrapper">
-        <table><thead><tr><th>Item</th><th>Awal (Pcs)</th><th>Awal (Rp)</th><th>Masuk (Pcs)</th><th>Masuk (Rp)</th><th>Keluar (Pcs)</th><th>Keluar (Rp)</th><th>Akhir (Pcs)</th><th>Akhir (Rp)</th></tr></thead><tbody id="mutasiTableBody"></tbody></table>
+        <table><thead><tr><th>Item</th><th>Awal (Pcs)</th><th>Awal (Rp)</th><th>Masuk (Pcs)</th><th>Masuk (Rp)</th><th>Keluar (Pcs)</th><th>Keluar (Rp)</th><th>Retail / Pcs</th><th>Akhir (Pcs)</th><th>Akhir (HPP)</th><th>Akhir (Retail)</th><th>Margin Total</th></tr></thead><tbody id="mutasiTableBody"></tbody></table>
       </div>
     </div>
   </div>
@@ -443,13 +443,13 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
     </div>
   </div>
 
-  <!-- ===================== TAB SOH & NILAI ===================== -->
+  <!-- ===================== TAB SOH & NILAI (DENGAN RETAIL & MARGIN) ===================== -->
   <div id="tabSOH" class="tab-content">
     <div class="summary-grid">
-      <div class="stat-card"><h3>Total Nilai Stok</h3><div class="val" id="sohTotalValue" style="color:var(--gold)">Rp 0</div></div>
+      <div class="stat-card"><h3>Total Nilai Stok (HPP)</h3><div class="val" id="sohTotalValue" style="color:var(--gold)">Rp 0</div></div>
       <div class="stat-card"><h3>Total Qty Stok</h3><div class="val" id="sohTotalQty">0 Pcs</div></div>
-      <div class="stat-card"><h3>Potensi Omset</h3><div class="val" id="sohPotentialRevenue" style="color:var(--success)">Rp 0</div></div>
-      <div class="stat-card"><h3>Total Item</h3><div class="val" id="sohTotalItem">0</div></div>
+      <div class="stat-card"><h3>Total Nilai Retail</h3><div class="val" id="sohTotalRetail" style="color:var(--success)">Rp 0</div></div>
+      <div class="stat-card"><h3>Total Margin</h3><div class="val" id="sohTotalMargin" style="color:var(--gold)">Rp 0</div></div>
     </div>
     <div class="box">
       <h2>📊 STOCK ON HAND (SOH) & NILAI</h2>
@@ -464,7 +464,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
         <button class="btn btn-excel" style="padding:6px 12px;width:auto;margin:0;" onclick="exportSOHCSV()">📥 CSV</button>
       </div>
       <div class="table-wrapper">
-        <table><thead><tr><th>Item</th><th>Stok (Pcs)</th><th>HPP / Pcs</th><th>Total Nilai Stok</th><th>Harga Jual Rata-rata</th><th>Potensi Omset</th></tr></thead><tbody id="sohTableBody"></tbody></table>
+        <table><thead><tr><th>Item</th><th>Stok (Pcs)</th><th>HPP / Pcs</th><th>Retail / Pcs</th><th>Margin / Pcs</th><th>Nilai (HPP)</th><th>Nilai (Retail)</th><th>Total Margin</th></tr></thead><tbody id="sohTableBody"></tbody></table>
       </div>
     </div>
   </div>
@@ -533,13 +533,11 @@ function applyRoleUI(){
   if(toolsBox) toolsBox.style.display = isAdmin ? 'block' : 'none';
   if(exportBtn) exportBtn.style.display = isAdmin ? 'block' : 'none';
   
-  // Tampilkan/Sembunyikan Tab berdasarkan role
   const tabs = ['btnTabMutasi', 'btnTabRevenue', 'btnTabSOH'];
   tabs.forEach(id => {
     const el = document.getElementById(id);
     if(el) el.style.display = isAdmin ? 'inline-block' : 'none';
   });
-  // Jika tab aktif adalah tab admin, pindahkan ke dashboard
   if(!isAdmin){
     const active = document.querySelector('.tab-content.active');
     if(active && ['tabMutasi','tabRevenue','tabSOH'].includes(active.id)){
@@ -568,7 +566,7 @@ function applyRoleUI(){
 }
 
 // ============================================================
-// THEME CUSTOMIZER (PER-ROLE)
+// THEME CUSTOMIZER
 // ============================================================
 const DEFAULT_THEMES = {
   admin: { bg:'#0b0b0c', card:'#171719', gold:'#d4af37', text:'#f5f5f5', muted:'#bdbdbd', border:'#2a2a2e', input:'#202023' },
@@ -780,7 +778,7 @@ function updateVisibilityButtons() {
 }
 
 // ============================================================
-// DATA & DEFAULT PRODUCTS
+// DATA & HELPERS (TERMASUK RETAIL)
 // ============================================================
 const NOW=Date.now();
 const DEFAULT_PRODUCTS={ "Dimsum Premium":{cogs:2200,createdAt:NOW,updatedAt:NOW,variants:[{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp35.000)",pcsPerPack:10,pricePerPack:35000}]}, "Gyoza Premium":{cogs:2200,createdAt:NOW,updatedAt:NOW,variants:[{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp33.000)",pcsPerPack:10,pricePerPack:33000},{label:"Pack isi 20 (Rp65.000)",pcsPerPack:20,pricePerPack:65000}]}, "Wonton Udang Premium":{cogs:3500,createdAt:NOW,updatedAt:NOW,variants:[{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000},{label:"Pack isi 10 (Rp50.000)",pcsPerPack:10,pricePerPack:50000}]} };
@@ -791,6 +789,13 @@ function loadProductCatalog(){ const stored=localStorage.getItem('productCatalog
 function saveProductCatalog(){ localStorage.setItem('productCatalog',JSON.stringify(productCatalog)); }
 function getCogs(n){ return productCatalog[n]?productCatalog[n].cogs:0; }
 function getVariants(n){ return productCatalog[n]?productCatalog[n].variants:[]; }
+function getRetailPrice(item) {
+  const variants = getVariants(item);
+  if (!variants || variants.length === 0) return 0;
+  let total = 0;
+  variants.forEach(v => { total += v.pricePerPack / v.pcsPerPack; });
+  return total / variants.length;
+}
 
 function applyDateFilter(mode){ document.querySelectorAll('.date-filter button').forEach(b=>b.classList.remove('active')); const today=new Date(); let start=new Date(), end=new Date(); if(mode==='today'){ start=new Date(today.getFullYear(),today.getMonth(),today.getDate()); end=new Date(today.getFullYear(),today.getMonth(),today.getDate(),23,59,59); document.querySelector('.date-filter button:nth-child(2)').classList.add('active'); } else if(mode==='week'){ const day=today.getDay()||7; start=new Date(today.getFullYear(),today.getMonth(),today.getDate()-day+1); end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+(7-day)); document.querySelector('.date-filter button:nth-child(3)').classList.add('active'); } else if(mode==='month'){ start=new Date(today.getFullYear(),today.getMonth(),1); end=new Date(today.getFullYear(),today.getMonth()+1,0); document.querySelector('.date-filter button:nth-child(4)').classList.add('active'); } else if(mode==='all'){ start=new Date(2000,0,1); end=new Date(2100,0,1); document.querySelector('.date-filter button:nth-child(5)').classList.add('active'); } else if(mode==='custom'){ const s=document.getElementById('startDate').value; const e=document.getElementById('endDate').value; if(s)start=new Date(s); if(e)end=new Date(e); if(!s||!e)return; } currentPeriod=mode; filteredLogs=logs.filter(l=>{ const d=parseDate(l.date); return d>=start&&d<=end; }); renderDashboard(); }
 function calculatePareto(){ const sales={}; filteredLogs.forEach(l=>{ if(l.type==='JUAL'){ if(!sales[l.product])sales[l.product]=0; sales[l.product]+=l.qtyInput; } }); const sorted=Object.entries(sales).sort((a,b)=>b[1]-a[1]); return {top:sorted.slice(0,5), bottom:sorted.slice(-5).reverse()}; }
@@ -1124,7 +1129,7 @@ function resetSystemData(){ if(currentUserRole!=='admin')return alert('Akses dit
 function exportToExcel(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); let csv="\uFEFFOrder ID,Waktu,Pelanggan,Item,Varian,Aktivitas,Qty,Omset Kotor,Diskon,Omset Bersih,Modal,Laba\n"; logs.forEach(l=>{ csv+='"'+ (l.orderId||'N/A') +'","'+ formatDisplayDate(l.date) +'","'+ (l.customerName||'-') +'","'+ l.product +'","'+ l.detail +'","'+ l.type +'","'+ (l.qtyInput||0) +'","'+ (l.grossPrice||0) +'","'+ (l.discount||0) +'","'+ (l.finalNominal||0) +'","'+ (l.cogsTotal||0) +'","'+ (l.netProfit||0) +'"\n'; }); const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='Jurnal_MantulKitchen.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
 
 // ============================================================
-// MUTASI STOK (FULL REWRITE - RUNNING BALANCE + NILAI)
+// MUTASI STOK (DENGAN RETAIL & MARGIN)
 // ============================================================
 let mutasiFilter = { period:'today', start:null, end:null, item:'', sort:'az' };
 
@@ -1146,14 +1151,12 @@ function renderMutasi(){
   mutasiFilter.item = itemFilter;
   mutasiFilter.sort = sort;
   
-  // 1. Filter logs berdasarkan periode
   let filtered = logs.filter(l => {
     if(!mutasiFilter.start || !mutasiFilter.end) return true;
     const d = parseDate(l.date);
     return d >= mutasiFilter.start && d <= mutasiFilter.end;
   });
   
-  // 2. Hitung Stok AWAL (sebelum periode) per item
   let stockAwal = {};
   let logsBefore = logs.filter(l => {
     if(!mutasiFilter.start) return false;
@@ -1166,29 +1169,33 @@ function renderMutasi(){
     else if(l.type === 'JUAL' || l.type === 'TESTER') stockAwal[l.product] -= l.finalDeduct;
   });
   
-  // 3. Filter berdasarkan item (jika ada)
   if(itemFilter) filtered = filtered.filter(l => l.product.toLowerCase().includes(itemFilter));
-  
-  // 4. Urutkan berdasarkan Waktu (untuk running balance)
   filtered.sort((a,b) => parseDate(a.date) - parseDate(b.date));
   
-  // 5. Bangun laporan per item (Agregasi + Detail)
   let report = {};
   let runningStock = {...stockAwal};
   
   filtered.forEach(l => {
     const key = l.product;
+    const hpp = getCogs(key);
+    const retail = getRetailPrice(key);
+    const margin = retail - hpp;
+    
     if(!report[key]) {
       report[key] = { 
         item: key, 
+        retailPrice: retail,
+        marginPerPcs: margin,
         awal: stockAwal[key] || 0, 
-        awalNilai: (stockAwal[key] || 0) * getCogs(key),
+        awalNilai: (stockAwal[key] || 0) * hpp,
         masuk: 0, 
         masukNilai: 0, 
         keluar: 0, 
         keluarNilai: 0,
         akhir: 0,
-        akhirNilai: 0,
+        akhirNilaiHPP: 0,
+        akhirNilaiRetail: 0,
+        akhirMargin: 0,
         details: []
       };
     }
@@ -1197,16 +1204,18 @@ function renderMutasi(){
     if(l.type === 'MASUK') { 
       inQty = l.qtyInput; 
       report[key].masuk += inQty; 
-      report[key].masukNilai += inQty * getCogs(key);
+      report[key].masukNilai += inQty * hpp;
     } else if(l.type === 'JUAL' || l.type === 'TESTER') { 
       outQty = l.finalDeduct; 
       report[key].keluar += outQty; 
-      report[key].keluarNilai += outQty * getCogs(key);
+      report[key].keluarNilai += outQty * hpp;
     }
     
     runningStock[key] = (runningStock[key] || 0) + inQty - outQty;
     report[key].akhir = runningStock[key];
-    report[key].akhirNilai = runningStock[key] * getCogs(key);
+    report[key].akhirNilaiHPP = runningStock[key] * hpp;
+    report[key].akhirNilaiRetail = runningStock[key] * retail;
+    report[key].akhirMargin = runningStock[key] * margin;
     
     report[key].details.push({
       date: l.date,
@@ -1218,29 +1227,30 @@ function renderMutasi(){
     });
   });
   
-  // 6. Sortir berdasarkan pilihan
   let keys = Object.keys(report);
   if(sort === 'az') keys.sort((a,b) => a.localeCompare(b));
   else if(sort === 'za') keys.sort((a,b) => b.localeCompare(a));
   else if(sort === 'in_desc') keys.sort((a,b) => report[b].masuk - report[a].masuk);
   else if(sort === 'out_desc') keys.sort((a,b) => report[b].keluar - report[a].keluar);
   
-  // 7. Render Tabel
   const tbody = document.getElementById('mutasiTableBody');
   tbody.innerHTML = '';
   
   if(keys.length === 0) { 
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);">Tidak ada mutasi.</td></tr>'; 
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted);">Tidak ada mutasi.</td></tr>'; 
   } else {
     let totalAwal=0, totalMasuk=0, totalKeluar=0, totalAkhir=0;
+    let totalAkhirRetail=0, totalAkhirMargin=0;
+    
     keys.forEach(key => {
       const r = report[key];
       totalAwal += r.awal;
       totalMasuk += r.masuk;
       totalKeluar += r.keluar;
       totalAkhir += r.akhir;
+      totalAkhirRetail += r.akhirNilaiRetail;
+      totalAkhirMargin += r.akhirMargin;
       
-      // Main row item
       tbody.innerHTML += `
         <tr style="border-top:2px solid var(--gold);background:var(--gold-light);">
           <td><b>${r.item}</b></td>
@@ -1250,12 +1260,14 @@ function renderMutasi(){
           <td>${formatRupiah(r.masukNilai)}</td>
           <td><b>${r.keluar} Pcs</b></td>
           <td>${formatRupiah(r.keluarNilai)}</td>
+          <td>${formatRupiah(r.retailPrice)}</td>
           <td><b style="color:var(--gold);">${r.akhir} Pcs</b></td>
-          <td><b style="color:var(--gold);">${formatRupiah(r.akhirNilai)}</b></td>
+          <td>${formatRupiah(r.akhirNilaiHPP)}</td>
+          <td style="color:var(--success);">${formatRupiah(r.akhirNilaiRetail)}</td>
+          <td style="color:var(--gold);">${formatRupiah(r.akhirMargin)}</td>
         </tr>
       `;
       
-      // Detail sub-rows (running per transaction)
       r.details.forEach(d => {
         const badge = d.type === 'MASUK' ? '<span class="badge-in">IN</span>' : '<span class="badge-out">OUT</span>';
         tbody.innerHTML += `
@@ -1266,14 +1278,14 @@ function renderMutasi(){
             <td>${d.inQty ? formatRupiah(d.inQty * getCogs(key)) : '-'}</td>
             <td>${d.outQty ? d.outQty : '-'}</td>
             <td>${d.outQty ? formatRupiah(d.outQty * getCogs(key)) : '-'}</td>
-            <td><b>${d.running} Pcs</b></td>
             <td></td>
+            <td><b>${d.running} Pcs</b></td>
+            <td colspan="3"></td>
           </tr>
         `;
       });
     });
     
-    // Total Row
     tbody.innerHTML += `
       <tr style="border-top:3px solid var(--gold);font-weight:bold;background:var(--card);">
         <td><b>TOTAL</b></td>
@@ -1283,8 +1295,11 @@ function renderMutasi(){
         <td>${formatRupiah(totalMasuk * 1000)}</td>
         <td><b>${totalKeluar} Pcs</b></td>
         <td>${formatRupiah(totalKeluar * 1000)}</td>
+        <td></td>
         <td><b>${totalAkhir} Pcs</b></td>
-        <td><b>${formatRupiah(totalAkhir * 1000)}</b></td>
+        <td>${formatRupiah(totalAkhir * 1000)}</td>
+        <td style="color:var(--success);"><b>${formatRupiah(totalAkhirRetail)}</b></td>
+        <td style="color:var(--gold);"><b>${formatRupiah(totalAkhirMargin)}</b></td>
       </tr>
     `;
     
@@ -1297,13 +1312,13 @@ function renderMutasi(){
 
 function exportMutasiCSV(){
   if(currentUserRole!=='admin')return alert('Akses ditolak!');
-  let csv="\uFEFFItem,Awal (Pcs),Awal (Rp),Masuk (Pcs),Masuk (Rp),Keluar (Pcs),Keluar (Rp),Akhir (Pcs),Akhir (Rp)\n";
+  let csv="\uFEFFItem,Awal (Pcs),Awal (Rp),Masuk (Pcs),Masuk (Rp),Keluar (Pcs),Keluar (Rp),Retail/Pcs,Akhir (Pcs),Akhir (HPP),Akhir (Retail),Margin Total\n";
   const tbody = document.getElementById('mutasiTableBody');
   const rows = tbody.querySelectorAll('tr');
   rows.forEach(row => {
     const cols = row.querySelectorAll('td');
-    if(cols.length===9 && !row.querySelector('td[style*="padding-left"]')) {
-      csv += `"${cols[0].innerText}","${cols[1].innerText}","${cols[2].innerText}","${cols[3].innerText}","${cols[4].innerText}","${cols[5].innerText}","${cols[6].innerText}","${cols[7].innerText}","${cols[8].innerText}"\n`;
+    if(cols.length===12 && !row.querySelector('td[style*="padding-left"]')) {
+      csv += `"${cols[0].innerText}","${cols[1].innerText}","${cols[2].innerText}","${cols[3].innerText}","${cols[4].innerText}","${cols[5].innerText}","${cols[6].innerText}","${cols[7].innerText}","${cols[8].innerText}","${cols[9].innerText}","${cols[10].innerText}","${cols[11].innerText}"\n`;
     }
   });
   const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='Mutasi_Stok.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
@@ -1386,13 +1401,12 @@ function exportRevenueCSV(){
 }
 
 // ============================================================
-// SOH (STOCK ON HAND) & NILAI - SHOW ALL ITEMS
+// SOH (STOCK ON HAND) & NILAI (DENGAN RETAIL & MARGIN)
 // ============================================================
 function renderSOH(){
   const keyword = document.getElementById('sohSearch').value.trim().toLowerCase();
   const sort = document.getElementById('sohSort').value;
   
-  // Ambil semua produk dari katalog (termasuk stok 0)
   let items = Object.keys(productCatalog);
   if(keyword) items = items.filter(k => k.toLowerCase().includes(keyword));
   
@@ -1405,21 +1419,23 @@ function renderSOH(){
   tbody.innerHTML = '';
   
   if(items.length === 0) { 
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Tidak ada data produk.</td></tr>'; 
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Tidak ada data produk.</td></tr>'; 
   } else {
-    let totalValue=0, totalQty=0, potentialRev=0, totalItems=0;
+    let totalQty=0, totalNilaiHPP=0, totalNilaiRetail=0, totalMargin=0, totalItems=0;
+    
     items.forEach(item => {
       const qty = inventory[item] || 0;
       const hpp = getCogs(item);
-      const value = qty * hpp;
-      const variants = getVariants(item);
-      let avgPrice = 0;
-      if(variants.length > 0) avgPrice = variants.reduce((s,v) => s + v.pricePerPack, 0) / variants.length;
-      const potRev = qty * avgPrice;
+      const retail = getRetailPrice(item);
+      const margin = retail - hpp;
+      const nilaiHPP = qty * hpp;
+      const nilaiRetail = qty * retail;
+      const totalMarginItem = qty * margin;
       
-      totalValue += value;
       totalQty += qty;
-      potentialRev += potRev;
+      totalNilaiHPP += nilaiHPP;
+      totalNilaiRetail += nilaiRetail;
+      totalMargin += totalMarginItem;
       if(qty > 0) totalItems++;
       
       const statusColor = qty > 0 ? 'var(--text)' : 'var(--muted)';
@@ -1427,26 +1443,43 @@ function renderSOH(){
         <td><b>${item}</b></td>
         <td>${qty} Pcs</td>
         <td>${formatRupiah(hpp)}</td>
-        <td>${formatRupiah(value)}</td>
-        <td>${formatRupiah(avgPrice)}</td>
-        <td>${formatRupiah(potRev)}</td>
+        <td>${formatRupiah(retail)}</td>
+        <td>${formatRupiah(margin)}</td>
+        <td>${formatRupiah(nilaiHPP)}</td>
+        <td style="color:var(--success);">${formatRupiah(nilaiRetail)}</td>
+        <td style="color:var(--gold);">${formatRupiah(totalMarginItem)}</td>
       </tr>`;
     });
-    document.getElementById('sohTotalValue').innerText = formatRupiah(totalValue);
+    
+    tbody.innerHTML += `
+      <tr style="border-top:3px solid var(--gold);font-weight:bold;background:var(--card);">
+        <td><b>TOTAL</b></td>
+        <td><b>${totalQty} Pcs</b></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>${formatRupiah(totalNilaiHPP)}</td>
+        <td style="color:var(--success);"><b>${formatRupiah(totalNilaiRetail)}</b></td>
+        <td style="color:var(--gold);"><b>${formatRupiah(totalMargin)}</b></td>
+      </tr>
+    `;
+    
+    document.getElementById('sohTotalValue').innerText = formatRupiah(totalNilaiHPP);
     document.getElementById('sohTotalQty').innerText = totalQty + ' Pcs';
-    document.getElementById('sohPotentialRevenue').innerText = formatRupiah(potentialRev);
+    document.getElementById('sohTotalRetail').innerText = formatRupiah(totalNilaiRetail);
+    document.getElementById('sohTotalMargin').innerText = formatRupiah(totalMargin);
     document.getElementById('sohTotalItem').innerText = totalItems + ' / ' + items.length;
   }
 }
 
 function exportSOHCSV(){
   if(currentUserRole!=='admin')return alert('Akses ditolak!');
-  let csv="\uFEFFItem,Stok (Pcs),HPP per Pcs,Total Nilai Stok,Harga Jual Rata-rata,Potensi Omset\n";
+  let csv="\uFEFFItem,Stok (Pcs),HPP/Pcs,Retail/Pcs,Margin/Pcs,Nilai (HPP),Nilai (Retail),Total Margin\n";
   const tbody = document.getElementById('sohTableBody');
   const rows = tbody.querySelectorAll('tr');
   rows.forEach(row => {
     const cols = row.querySelectorAll('td');
-    if(cols.length===6) csv += `"${cols[0].innerText}","${cols[1].innerText}","${cols[2].innerText}","${cols[3].innerText}","${cols[4].innerText}","${cols[5].innerText}"\n`;
+    if(cols.length===8) csv += `"${cols[0].innerText}","${cols[1].innerText}","${cols[2].innerText}","${cols[3].innerText}","${cols[4].innerText}","${cols[5].innerText}","${cols[6].innerText}","${cols[7].innerText}"\n`;
   });
   const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='SOH_Nilai.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
