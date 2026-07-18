@@ -3,7 +3,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN v8.7 BY AN - FULL UPGRADE</title>
+<title>MANTUL KITCHEN v8.8 - FULL UPGRADE</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -73,6 +73,8 @@ body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
 .btn-orange { background:#ff9800; color:#111; }
 .btn-delete { background:transparent; border:1px solid var(--danger); color:var(--danger); padding:4px 8px; font-size:0.7rem; width:auto; border-radius:4px; cursor:pointer; }
 .btn-delete:hover { background:var(--danger); color:#fff; }
+.btn-toggle { background:var(--input); color:var(--text); border:1px solid var(--border); padding:8px 12px; border-radius:8px; cursor:pointer; font-size:0.8rem; width:auto; }
+.btn-toggle:hover { background:var(--gold); color:#111; }
 .table-wrapper { overflow-x:auto; margin-top:15px; border-radius:8px; border:1px solid var(--border); }
 table { width:100%; border-collapse:collapse; text-align:left; font-size:0.85rem; }
 th, td { padding:10px 12px; border-bottom:1px solid var(--border); }
@@ -138,14 +140,12 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 .theme-picker-row input[type="color"] { flex:1; min-width:50px; height:40px; background:transparent; border:1px solid var(--border); border-radius:8px; padding:2px; cursor:pointer; }
 .theme-preset-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; }
 .theme-preset-grid .btn { padding:8px; font-size:0.75rem; margin-bottom:0; border-radius:6px; }
-/* SHOW/HIDE */
-.visibility-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
-.visibility-grid label { display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--muted); cursor:pointer; }
-.visibility-grid input[type="checkbox"] { width:16px; height:16px; accent-color:var(--gold); }
-@media (max-width:480px){ .theme-preset-grid { grid-template-columns:repeat(2,1fr); } .summary-grid { grid-template-columns:repeat(2,1fr); } }
+/* SHOW/HIDE TOGGLE BUTTONS */
+.visibility-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:10px; }
+.visibility-grid .btn-toggle { padding:8px 6px; font-size:0.7rem; border-radius:6px; text-align:center; }
+@media (max-width:480px){ .theme-preset-grid { grid-template-columns:repeat(2,1fr); } .summary-grid { grid-template-columns:repeat(2,1fr); } .visibility-grid { grid-template-columns:1fr 1fr; } }
 </style>
 </head>
-
 // === PART 2/12 ===
 <body>
 <div id="pinOverlay">
@@ -158,7 +158,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
 </div>
 <div class="container">
   <div class="header">
-    <h1>MANTUL KITCHEN v8.7</h1>
+    <h1>MANTUL KITCHEN v8.8</h1>
     <div class="right-group">
       <div class="user-badge" id="userBadge">👤 Admin Mode</div>
       <button class="btn-refresh" onclick="refreshData()" title="Refresh data tanpa reload halaman">🔄 Refresh</button>
@@ -226,8 +226,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
           </div>
           <button class="btn btn-add" id="actionButton" onclick="processAction()">➕ Tambahkan ke Keranjang</button>
         </div>
-
-// === PART 3/12 ===
+        // === PART 3/12 ===
         <!-- BOX KERANJANG -->
         <div class="box" id="boxCart" style="display:block;">
           <h2>🧺 KERANJANG <span class="badge-cart" id="cartCount">0 Item</span></h2>
@@ -244,18 +243,18 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
           </div>
         </div>
 
-        <!-- BOX SHOW/HIDE (Untuk semua user) -->
+        <!-- BOX SHOW/HIDE (Tombol Toggle) -->
         <div class="box" id="boxVisibility">
           <h2>👁️ TAMPILKAN / SEMBUNYIKAN</h2>
           <div class="visibility-grid">
-            <label><input type="checkbox" id="visInput" checked onchange="applyVisibility()"> Input Produk</label>
-            <label><input type="checkbox" id="visCart" checked onchange="applyVisibility()"> Keranjang</label>
-            <label><input type="checkbox" id="visTheme" checked onchange="applyVisibility()"> Tema & Tampilan</label>
-            <label><input type="checkbox" id="visTools" checked onchange="applyVisibility()"> Admin Tools</label>
-            <label><input type="checkbox" id="visStock" checked onchange="applyVisibility()"> Tabel Stok</label>
-            <label><input type="checkbox" id="visChart" checked onchange="applyVisibility()"> Grafik Penjualan</label>
+            <button class="btn-toggle" id="visBtnInput" onclick="toggleVisibility('input')" style="display:flex;align-items:center;justify-content:center;gap:4px;">👁️ Input</button>
+            <button class="btn-toggle" id="visBtnCart" onclick="toggleVisibility('cart')" style="display:flex;align-items:center;justify-content:center;gap:4px;">👁️ Keranjang</button>
+            <button class="btn-toggle" id="visBtnTheme" onclick="toggleVisibility('theme')" style="display:flex;align-items:center;justify-content:center;gap:4px;">👁️ Tema</button>
+            <button class="btn-toggle" id="visBtnTools" onclick="toggleVisibility('tools')" style="display:flex;align-items:center;justify-content:center;gap:4px;">👁️ Tools</button>
+            <button class="btn-toggle" id="visBtnStock" onclick="toggleVisibility('stock')" style="display:flex;align-items:center;justify-content:center;gap:4px;">👁️ Stok</button>
+            <button class="btn-toggle" id="visBtnChart" onclick="toggleVisibility('chart')" style="display:flex;align-items:center;justify-content:center;gap:4px;">👁️ Grafik</button>
           </div>
-          <div style="margin-top:8px;font-size:0.65rem;color:var(--muted);text-align:center;">⚡ Pengaturan tersimpan otomatis (berlaku per role)</div>
+          <div style="margin-top:8px;font-size:0.65rem;color:var(--muted);text-align:center;">⚡ Klik tombol untuk toggle (tersimpan per role di Cloud)</div>
         </div>
 
         <!-- BOX THEME CUSTOMIZER -->
@@ -323,8 +322,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
             <div class="preview-row total-line"><span>Harga Jual Ideal:</span><span id="calcIdealPrice" style="color:var(--success)">Rp 0</span></div>
           </div>
         </div>
-
-// === PART 4/12 ===
+        // === PART 4/12 ===
         <!-- FORM TAMBAH MENU (tersembunyi) -->
         <div id="addMenuForm">
           <h3 id="formTitle">➕ Tambah Produk Baru</h3>
@@ -412,7 +410,7 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
         <button class="btn btn-excel" style="padding:6px 12px;width:auto;margin:0;" onclick="exportMutasiCSV()">📥 CSV</button>
       </div>
       <div class="table-wrapper">
-        <table><thead><tr><th>Tanggal</th><th>Item</th><th>Varian</th><th>Aktivitas</th><th>IN (Pcs)</th><th>OUT (Pcs)</th><th>Sisa Stok</th></tr></thead><tbody id="mutasiTableBody"></tbody></table>
+        <table><thead><tr><th>Item</th><th>Awal (Pcs)</th><th>Awal (Rp)</th><th>Masuk (Pcs)</th><th>Masuk (Rp)</th><th>Keluar (Pcs)</th><th>Keluar (Rp)</th><th>Akhir (Pcs)</th><th>Akhir (Rp)</th></tr></thead><tbody id="mutasiTableBody"></tbody></table>
       </div>
     </div>
   </div>
@@ -485,7 +483,6 @@ th { color:var(--gold); background:rgba(255,255,255,0.03); text-transform:upperc
     </div>
   </div>
 </div>
-
 // === PART 5/12 ===
 <script>
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzI6-_z0LtWs6hC9M0oSak_DdYLtTHBAQqZsQV4CIYAbCmMeW_t3y8yLULYiQZuDiav/exec";
@@ -567,6 +564,7 @@ function applyRoleUI(){
   applySettingsToUI();
   document.body.classList.toggle('kasir-mode', !isAdmin);
   applyVisibility();
+  updateVisibilityButtons();
 }
 
 // ============================================================
@@ -633,8 +631,7 @@ function applyCurrentTheme() {
   applyTheme(role);
   alert('✅ Tema kustom disimpan ke Cloud!');
 }
-
-// === PART 6/12 ===
+  // === PART 6/12 ===
 // ============================================================
 // UPDATE ACTION BUTTON & SATUAN
 // ============================================================
@@ -663,7 +660,7 @@ function updateActionButton(){
 }
 
 // ============================================================
-// SETTINGS UI
+// SETTINGS UI & TOGGLE VISIBILITY
 // ============================================================
 function applySettingsToUI(){
   console.log('🔄 applySettingsToUI dipanggil. appSettings:', appSettings);
@@ -684,17 +681,9 @@ function applySettingsToUI(){
   set('setAddressText', s.addressText);
   set('setWAText', s.waText);
   set('setFooterText', s.footerText);
-  // Visibility
-  const vis = s.visibility || {};
-  const role = currentUserRole || 'admin';
-  const roleVis = vis[role] || {};
-  document.getElementById('visInput').checked = roleVis.input !== false;
-  document.getElementById('visCart').checked = roleVis.cart !== false;
-  document.getElementById('visTheme').checked = roleVis.theme !== false;
-  document.getElementById('visTools').checked = roleVis.tools !== false;
-  document.getElementById('visStock').checked = roleVis.stock !== false;
-  document.getElementById('visChart').checked = roleVis.chart !== false;
+  
   applyVisibility();
+  updateVisibilityButtons();
   applyTheme(currentUserRole || 'admin');
 }
 
@@ -714,16 +703,6 @@ function collectSettingsFromUI(){
   appSettings.addressText = get('setAddressText') || '';
   appSettings.waText = get('setWAText') || '';
   appSettings.footerText = get('setFooterText') || '';
-  // Visibility
-  const role = currentUserRole || 'admin';
-  if(!appSettings.visibility) appSettings.visibility = {};
-  if(!appSettings.visibility[role]) appSettings.visibility[role] = {};
-  appSettings.visibility[role].input = document.getElementById('visInput').checked;
-  appSettings.visibility[role].cart = document.getElementById('visCart').checked;
-  appSettings.visibility[role].theme = document.getElementById('visTheme').checked;
-  appSettings.visibility[role].tools = document.getElementById('visTools').checked;
-  appSettings.visibility[role].stock = document.getElementById('visStock').checked;
-  appSettings.visibility[role].chart = document.getElementById('visChart').checked;
 }
 
 function saveAppSettings(){
@@ -759,7 +738,6 @@ function applyVisibility(){
     stock: document.getElementById('boxStock'),
     chart: document.getElementById('boxChart')
   };
-  // Tools only for admin
   if(role !== 'admin' && boxes.tools) boxes.tools.style.display = 'none';
   else if(boxes.tools) boxes.tools.style.display = (vis.tools !== false) ? 'block' : 'none';
   
@@ -768,6 +746,37 @@ function applyVisibility(){
   if(boxes.theme) boxes.theme.style.display = (vis.theme !== false) ? 'block' : 'none';
   if(boxes.stock) boxes.stock.style.display = (vis.stock !== false) ? 'block' : 'none';
   if(boxes.chart) boxes.chart.style.display = (vis.chart !== false) ? 'block' : 'none';
+}
+
+function toggleVisibility(component) {
+  const role = currentUserRole || 'admin';
+  if(!appSettings.visibility) appSettings.visibility = {};
+  if(!appSettings.visibility[role]) appSettings.visibility[role] = {};
+  
+  const current = appSettings.visibility[role][component];
+  appSettings.visibility[role][component] = (current === undefined) ? false : !current;
+  
+  updateVisibilityButtons();
+  applyVisibility();
+  saveToCloud();
+}
+
+function updateVisibilityButtons() {
+  const role = currentUserRole || 'admin';
+  const vis = (appSettings.visibility && appSettings.visibility[role]) || {};
+  const components = ['input', 'cart', 'theme', 'tools', 'stock', 'chart'];
+  const labels = {
+    input: 'Input', cart: 'Keranjang', theme: 'Tema', 
+    tools: 'Tools', stock: 'Stok', chart: 'Grafik'
+  };
+  components.forEach(c => {
+    const btn = document.getElementById('visBtn' + c.charAt(0).toUpperCase() + c.slice(1));
+    if(!btn) return;
+    const isVisible = (vis[c] === undefined) ? true : vis[c];
+    btn.innerHTML = (isVisible ? '👁️' : '👁️‍🗨️') + ' ' + labels[c];
+    btn.style.opacity = isVisible ? '1' : '0.5';
+    btn.style.borderColor = isVisible ? 'var(--gold)' : 'var(--danger)';
+  });
 }
 
 // ============================================================
@@ -802,8 +811,7 @@ function switchTab(t){
   else if(t==='revenue') renderRevenue();
   else if(t==='soh') renderSOH();
 }
-
-// === PART 7/12 ===
+  // === PART 7/12 ===
 // ============================================================
 // CRUD MENU
 // ============================================================
@@ -902,8 +910,7 @@ function processAction(){
   document.getElementById('txQty').value='1';
   updateItemPreview();
 }
-
-// === PART 8/12 ===
+  // === PART 8/12 ===
 function removeFromCart(index){ if(index>=0&&index<cart.length){ cart.splice(index,1); renderCart(); } }
 function clearCart(){ if(cart.length===0)return; if(confirm('Kosongkan keranjang?')){ cart=[]; renderCart(); } }
 function renderCart(){ const container=document.getElementById('cartItemsContainer'); const summary=document.getElementById('cartSummary'); const count=document.getElementById('cartCount'); count.innerText=cart.length+' Item'; if(cart.length===0){ container.innerHTML='<div class="empty-cart-msg">Keranjang kosong.</div>'; summary.style.display='none'; return; } let html='', subtotal=0; cart.forEach((item,idx)=>{ subtotal+=item.subtotal; html+='<div class="cart-item-row"><div class="item-info"><b>'+item.productName+'</b><br><small style="color:var(--muted);">'+item.label+' x '+item.qty+'</small></div><div class="item-price">'+formatRupiah(item.subtotal)+'</div><div class="item-actions"><button class="btn-remove-cart" onclick="removeFromCart('+idx+')">✕</button></div></div>'; }); container.innerHTML=html; summary.style.display='block'; document.getElementById('cartSubtotal').innerText=formatRupiah(subtotal); updateCartSummary(); }
@@ -951,8 +958,7 @@ function showCombinedReceipt(orderId, logsList, totalDiscount, grandTotal, custo
   modal.classList.add('active');
 }
 function closeReceipt(){ document.getElementById('receiptModal').classList.remove('active'); }
-
-// === PART 9/12 ===
+  // === PART 9/12 ===
 function generatePlainReceipt(orderId, logsList, totalDiscount, grandTotal, customerName, isDuplicate){
   const displayDate=formatDisplayDate(logsList[0]?.date||new Date());
   const name=customerName||'-';
@@ -999,7 +1005,7 @@ function searchReceipt(){
     let discHtml='-';
     if(log.type==='JUAL' && isAdmin){ discHtml='<input type="number" value="'+log.discount+'" onblur="updateManualDiscount(this,'+i+')" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">'; } else if(log.type==='JUAL'){ discHtml=formatRupiah(log.discount); }
     let reprintBtn = (log.type==='JUAL' || log.type==='TESTER') ? `<button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;width:auto;" onclick="reprintReceipt('${oid}')">🔄 Cetak</button>` : '-';
-    let deleteBtn = (isAdmin && (log.type==='JUAL' || log.type==='TESTER' || log.type==='MASUK')) ? `<button class="btn btn-delete" onclick="deleteTransaction('${oid}')">🗑️ Hapus</button>` : '-';
+    let deleteBtn = (isAdmin && (log.type==='JUAL' || log.type==='TESTER' || log.type==='MASUK')) ? `<button class="btn btn-delete" onclick="deleteTransaction('${oid}')">🗑️</button>` : '-';
     auditBody.innerHTML += `<tr><td><small>${oid}</small></td><td><small>${dt}</small></td><td><small>${cust}</small></td><td><b>${log.product}</b><br><small style="color:var(--muted)">${log.detail}</small></td><td>${badge}</td><td>${(log.type==='JUAL')?formatRupiah(log.grossPrice):(log.type==='TESTER'?'PROMOSI':'-')}</td><td>${discHtml}</td><td><span style="color:var(--danger)">${(log.type==='JUAL'||log.type==='TESTER')?formatRupiah(log.cogsTotal):'-'}</span></td><td><b style="${log.netProfit<0?'color:var(--danger)':'color:var(--success)'}">${(log.type==='JUAL'||log.type==='TESTER')?formatRupiah(log.netProfit):'-'}</b></td><td>${reprintBtn} ${deleteBtn}</td></tr>`;
   });
 }
@@ -1010,7 +1016,6 @@ function deleteTransaction(orderId){
   const related = logs.filter(l => l.orderId === orderId);
   if(related.length===0)return alert('Transaksi tidak ditemukan!');
   if(!confirm(`Hapus ORDER ${orderId} (${related.length} item)? Stok akan dikembalikan.`)) return;
-  // Reverse stock
   for(let l of related){
     if(l.type==='MASUK') inventory[l.product] -= l.qtyInput;
     else if(l.type==='JUAL' || l.type==='TESTER') inventory[l.product] += l.finalDeduct;
@@ -1032,8 +1037,7 @@ function reprintReceipt(orderId){
   const customerName = related[0]?.customerName || '-';
   showCombinedReceipt(orderId, related, totalDiscount, grandTotal, customerName, true);
 }
-
-// === PART 10/12 ===
+  // === PART 10/12 ===
 // ============================================================
 // SYNC, REFRESH, RENDER
 // ============================================================
@@ -1120,7 +1124,7 @@ function resetSystemData(){ if(currentUserRole!=='admin')return alert('Akses dit
 function exportToExcel(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); let csv="\uFEFFOrder ID,Waktu,Pelanggan,Item,Varian,Aktivitas,Qty,Omset Kotor,Diskon,Omset Bersih,Modal,Laba\n"; logs.forEach(l=>{ csv+='"'+ (l.orderId||'N/A') +'","'+ formatDisplayDate(l.date) +'","'+ (l.customerName||'-') +'","'+ l.product +'","'+ l.detail +'","'+ l.type +'","'+ (l.qtyInput||0) +'","'+ (l.grossPrice||0) +'","'+ (l.discount||0) +'","'+ (l.finalNominal||0) +'","'+ (l.cogsTotal||0) +'","'+ (l.netProfit||0) +'"\n'; }); const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='Jurnal_MantulKitchen.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
 
 // ============================================================
-// MUTASI STOK
+// MUTASI STOK (FULL REWRITE - RUNNING BALANCE + NILAI)
 // ============================================================
 let mutasiFilter = { period:'today', start:null, end:null, item:'', sort:'az' };
 
@@ -1142,64 +1146,169 @@ function renderMutasi(){
   mutasiFilter.item = itemFilter;
   mutasiFilter.sort = sort;
   
+  // 1. Filter logs berdasarkan periode
   let filtered = logs.filter(l => {
     if(!mutasiFilter.start || !mutasiFilter.end) return true;
     const d = parseDate(l.date);
     return d >= mutasiFilter.start && d <= mutasiFilter.end;
   });
+  
+  // 2. Hitung Stok AWAL (sebelum periode) per item
+  let stockAwal = {};
+  let logsBefore = logs.filter(l => {
+    if(!mutasiFilter.start) return false;
+    const d = parseDate(l.date);
+    return d < mutasiFilter.start;
+  });
+  logsBefore.forEach(l => {
+    if(!stockAwal[l.product]) stockAwal[l.product] = 0;
+    if(l.type === 'MASUK') stockAwal[l.product] += l.qtyInput;
+    else if(l.type === 'JUAL' || l.type === 'TESTER') stockAwal[l.product] -= l.finalDeduct;
+  });
+  
+  // 3. Filter berdasarkan item (jika ada)
   if(itemFilter) filtered = filtered.filter(l => l.product.toLowerCase().includes(itemFilter));
   
-  // Sort by item
-  if(sort==='az') filtered.sort((a,b)=>a.product.localeCompare(b.product));
-  else if(sort==='za') filtered.sort((a,b)=>b.product.localeCompare(a.product));
-  else if(sort==='in_desc') filtered.sort((a,b)=>(b.type==='MASUK'?b.qtyInput:0) - (a.type==='MASUK'?a.qtyInput:0));
-  else if(sort==='out_desc') filtered.sort((a,b)=>(b.type==='JUAL'?b.qtyInput:0) - (a.type==='JUAL'?a.qtyInput:0));
+  // 4. Urutkan berdasarkan Waktu (untuk running balance)
+  filtered.sort((a,b) => parseDate(a.date) - parseDate(b.date));
   
-  // Calculate running stock per item
-  let stockMap = {};
-  let rows = [];
-  for(let l of filtered){
+  // 5. Bangun laporan per item (Agregasi + Detail)
+  let report = {};
+  let runningStock = {...stockAwal};
+  
+  filtered.forEach(l => {
     const key = l.product;
-    if(!stockMap[key]) stockMap[key] = inventory[key] || 0;
-    let sisa = stockMap[key];
-    if(l.type==='MASUK'){ sisa += l.qtyInput; rows.push({...l, sisa}); }
-    else { sisa -= l.finalDeduct; rows.push({...l, sisa}); }
-    stockMap[key] = sisa;
-  }
+    if(!report[key]) {
+      report[key] = { 
+        item: key, 
+        awal: stockAwal[key] || 0, 
+        awalNilai: (stockAwal[key] || 0) * getCogs(key),
+        masuk: 0, 
+        masukNilai: 0, 
+        keluar: 0, 
+        keluarNilai: 0,
+        akhir: 0,
+        akhirNilai: 0,
+        details: []
+      };
+    }
+    
+    let inQty = 0, outQty = 0;
+    if(l.type === 'MASUK') { 
+      inQty = l.qtyInput; 
+      report[key].masuk += inQty; 
+      report[key].masukNilai += inQty * getCogs(key);
+    } else if(l.type === 'JUAL' || l.type === 'TESTER') { 
+      outQty = l.finalDeduct; 
+      report[key].keluar += outQty; 
+      report[key].keluarNilai += outQty * getCogs(key);
+    }
+    
+    runningStock[key] = (runningStock[key] || 0) + inQty - outQty;
+    report[key].akhir = runningStock[key];
+    report[key].akhirNilai = runningStock[key] * getCogs(key);
+    
+    report[key].details.push({
+      date: l.date,
+      inQty: inQty,
+      outQty: outQty,
+      running: runningStock[key],
+      type: l.type,
+      detail: l.detail
+    });
+  });
   
+  // 6. Sortir berdasarkan pilihan
+  let keys = Object.keys(report);
+  if(sort === 'az') keys.sort((a,b) => a.localeCompare(b));
+  else if(sort === 'za') keys.sort((a,b) => b.localeCompare(a));
+  else if(sort === 'in_desc') keys.sort((a,b) => report[b].masuk - report[a].masuk);
+  else if(sort === 'out_desc') keys.sort((a,b) => report[b].keluar - report[a].keluar);
+  
+  // 7. Render Tabel
   const tbody = document.getElementById('mutasiTableBody');
   tbody.innerHTML = '';
-  if(rows.length===0){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);">Tidak ada mutasi.</td></tr>'; }
-  else {
-    let totalIN=0,totalOUT=0;
-    rows.forEach(r => {
-      const badge = r.type==='MASUK'?'<span class="badge-in">MASUK</span>':r.type==='TESTER'?'<span class="badge-tester">TESTER</span>':'<span class="badge-out">JUAL</span>';
-      const inQty = r.type==='MASUK' ? r.qtyInput : 0;
-      const outQty = (r.type==='JUAL'||r.type==='TESTER') ? r.finalDeduct : 0;
-      totalIN += inQty; totalOUT += outQty;
-      tbody.innerHTML += `<tr><td>${formatDisplayDate(r.date)}</td><td><b>${r.product}</b></td><td><small>${r.detail}</small></td><td>${badge}</td><td>${inQty||'-'}</td><td>${outQty||'-'}</td><td>${r.sisa} Pcs</td></tr>`;
+  
+  if(keys.length === 0) { 
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);">Tidak ada mutasi.</td></tr>'; 
+  } else {
+    let totalAwal=0, totalMasuk=0, totalKeluar=0, totalAkhir=0;
+    keys.forEach(key => {
+      const r = report[key];
+      totalAwal += r.awal;
+      totalMasuk += r.masuk;
+      totalKeluar += r.keluar;
+      totalAkhir += r.akhir;
+      
+      // Main row item
+      tbody.innerHTML += `
+        <tr style="border-top:2px solid var(--gold);background:var(--gold-light);">
+          <td><b>${r.item}</b></td>
+          <td>${r.awal} Pcs</td>
+          <td>${formatRupiah(r.awalNilai)}</td>
+          <td><b>${r.masuk} Pcs</b></td>
+          <td>${formatRupiah(r.masukNilai)}</td>
+          <td><b>${r.keluar} Pcs</b></td>
+          <td>${formatRupiah(r.keluarNilai)}</td>
+          <td><b style="color:var(--gold);">${r.akhir} Pcs</b></td>
+          <td><b style="color:var(--gold);">${formatRupiah(r.akhirNilai)}</b></td>
+        </tr>
+      `;
+      
+      // Detail sub-rows (running per transaction)
+      r.details.forEach(d => {
+        const badge = d.type === 'MASUK' ? '<span class="badge-in">IN</span>' : '<span class="badge-out">OUT</span>';
+        tbody.innerHTML += `
+          <tr style="border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--muted);">
+            <td style="padding-left:20px;">↳ ${formatDisplayDate(d.date)}</td>
+            <td></td><td></td>
+            <td>${d.inQty ? d.inQty : '-'}</td>
+            <td>${d.inQty ? formatRupiah(d.inQty * getCogs(key)) : '-'}</td>
+            <td>${d.outQty ? d.outQty : '-'}</td>
+            <td>${d.outQty ? formatRupiah(d.outQty * getCogs(key)) : '-'}</td>
+            <td><b>${d.running} Pcs</b></td>
+            <td></td>
+          </tr>
+        `;
+      });
     });
-    document.getElementById('mutasiTotalIN').innerText = totalIN + ' Pcs';
-    document.getElementById('mutasiTotalOUT').innerText = totalOUT + ' Pcs';
-    const currentStock = Object.values(inventory).reduce((a,b)=>a+b,0);
-    document.getElementById('mutasiSisaStok').innerText = currentStock + ' Pcs';
-    document.getElementById('mutasiTotalItem').innerText = Object.keys(inventory).length;
+    
+    // Total Row
+    tbody.innerHTML += `
+      <tr style="border-top:3px solid var(--gold);font-weight:bold;background:var(--card);">
+        <td><b>TOTAL</b></td>
+        <td>${totalAwal} Pcs</td>
+        <td>${formatRupiah(totalAwal * 1000)}</td>
+        <td><b>${totalMasuk} Pcs</b></td>
+        <td>${formatRupiah(totalMasuk * 1000)}</td>
+        <td><b>${totalKeluar} Pcs</b></td>
+        <td>${formatRupiah(totalKeluar * 1000)}</td>
+        <td><b>${totalAkhir} Pcs</b></td>
+        <td><b>${formatRupiah(totalAkhir * 1000)}</b></td>
+      </tr>
+    `;
+    
+    document.getElementById('mutasiTotalIN').innerText = totalMasuk + ' Pcs';
+    document.getElementById('mutasiTotalOUT').innerText = totalKeluar + ' Pcs';
+    document.getElementById('mutasiSisaStok').innerText = totalAkhir + ' Pcs';
+    document.getElementById('mutasiTotalItem').innerText = keys.length;
   }
 }
 
 function exportMutasiCSV(){
   if(currentUserRole!=='admin')return alert('Akses ditolak!');
-  let csv="\uFEFFTanggal,Item,Varian,Aktivitas,IN (Pcs),OUT (Pcs),Sisa Stok\n";
+  let csv="\uFEFFItem,Awal (Pcs),Awal (Rp),Masuk (Pcs),Masuk (Rp),Keluar (Pcs),Keluar (Rp),Akhir (Pcs),Akhir (Rp)\n";
   const tbody = document.getElementById('mutasiTableBody');
   const rows = tbody.querySelectorAll('tr');
   rows.forEach(row => {
     const cols = row.querySelectorAll('td');
-    if(cols.length===7) csv += `"${cols[0].innerText}","${cols[1].innerText}","${cols[2].innerText}","${cols[3].innerText}","${cols[4].innerText}","${cols[5].innerText}","${cols[6].innerText}"\n`;
+    if(cols.length===9 && !row.querySelector('td[style*="padding-left"]')) {
+      csv += `"${cols[0].innerText}","${cols[1].innerText}","${cols[2].innerText}","${cols[3].innerText}","${cols[4].innerText}","${cols[5].innerText}","${cols[6].innerText}","${cols[7].innerText}","${cols[8].innerText}"\n`;
+    }
   });
   const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='Mutasi_Stok.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
-
-// === PART 11/12 ===
+  // === PART 11/12 ===
 // ============================================================
 // PENDAPATAN (REVENUE)
 // ============================================================
@@ -1222,7 +1331,6 @@ function renderRevenue(){
   if(revenueFilter.start && revenueFilter.end){
     filtered = filtered.filter(l => { const d=parseDate(l.date); return d>=revenueFilter.start && d<=revenueFilter.end; });
   }
-  // Aggregate by date
   let daily = {};
   filtered.forEach(l => {
     const key = formatDisplayDate(l.date);
@@ -1238,7 +1346,6 @@ function renderRevenue(){
   const dataNet = labels.map(k=>daily[k].net);
   const dataProfit = labels.map(k=>daily[k].profit);
   
-  // Summary
   let totalGross = dataGross.reduce((a,b)=>a+b,0);
   let totalDisc = labels.reduce((a,k)=>a+daily[k].disc,0);
   let totalNet = dataNet.reduce((a,b)=>a+b,0);
@@ -1248,7 +1355,6 @@ function renderRevenue(){
   document.getElementById('revNet').innerText = formatRupiah(totalNet);
   document.getElementById('revProfit').innerText = formatRupiah(totalProfit);
   
-  // Table
   const tbody = document.getElementById('revenueTableBody');
   tbody.innerHTML = '';
   if(labels.length===0){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);">Tidak ada data.</td></tr>'; }
@@ -1258,7 +1364,6 @@ function renderRevenue(){
     });
   }
   
-  // Chart
   const ctx = document.getElementById('revenueChart').getContext('2d');
   if(revenueChartInstance) revenueChartInstance.destroy();
   revenueChartInstance = new Chart(ctx, {
@@ -1281,40 +1386,56 @@ function exportRevenueCSV(){
 }
 
 // ============================================================
-// SOH (STOCK ON HAND) & NILAI
+// SOH (STOCK ON HAND) & NILAI - SHOW ALL ITEMS
 // ============================================================
 function renderSOH(){
   const keyword = document.getElementById('sohSearch').value.trim().toLowerCase();
   const sort = document.getElementById('sohSort').value;
-  let items = Object.keys(inventory).filter(k => inventory[k] > 0);
+  
+  // Ambil semua produk dari katalog (termasuk stok 0)
+  let items = Object.keys(productCatalog);
   if(keyword) items = items.filter(k => k.toLowerCase().includes(keyword));
   
-  // Sort
-  if(sort==='az') items.sort((a,b)=>a.localeCompare(b));
-  else if(sort==='za') items.sort((a,b)=>b.localeCompare(a));
-  else if(sort==='value_desc') items.sort((a,b)=>(inventory[b]*getCogs(b))-(inventory[a]*getCogs(a)));
-  else if(sort==='qty_desc') items.sort((a,b)=>(inventory[b]||0)-(inventory[a]||0));
+  if(sort === 'az') items.sort((a,b) => a.localeCompare(b));
+  else if(sort === 'za') items.sort((a,b) => b.localeCompare(a));
+  else if(sort === 'value_desc') items.sort((a,b) => ((inventory[b]||0)*getCogs(b)) - ((inventory[a]||0)*getCogs(a)));
+  else if(sort === 'qty_desc') items.sort((a,b) => (inventory[b]||0) - (inventory[a]||0));
   
   const tbody = document.getElementById('sohTableBody');
   tbody.innerHTML = '';
-  if(items.length===0){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);">Tidak ada stok.</td></tr>'; }
-  else {
-    let totalValue=0, totalQty=0, potentialRev=0;
+  
+  if(items.length === 0) { 
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Tidak ada data produk.</td></tr>'; 
+  } else {
+    let totalValue=0, totalQty=0, potentialRev=0, totalItems=0;
     items.forEach(item => {
-      const qty = inventory[item]||0;
+      const qty = inventory[item] || 0;
       const hpp = getCogs(item);
       const value = qty * hpp;
       const variants = getVariants(item);
       let avgPrice = 0;
-      if(variants.length>0){ avgPrice = variants.reduce((s,v)=>s+v.pricePerPack,0)/variants.length; }
+      if(variants.length > 0) avgPrice = variants.reduce((s,v) => s + v.pricePerPack, 0) / variants.length;
       const potRev = qty * avgPrice;
-      totalValue += value; totalQty += qty; potentialRev += potRev;
-      tbody.innerHTML += `<tr><td><b>${item}</b></td><td>${qty} Pcs</td><td>${formatRupiah(hpp)}</td><td>${formatRupiah(value)}</td><td>${formatRupiah(avgPrice)}</td><td>${formatRupiah(potRev)}</td></tr>`;
+      
+      totalValue += value;
+      totalQty += qty;
+      potentialRev += potRev;
+      if(qty > 0) totalItems++;
+      
+      const statusColor = qty > 0 ? 'var(--text)' : 'var(--muted)';
+      tbody.innerHTML += `<tr style="color:${statusColor};">
+        <td><b>${item}</b></td>
+        <td>${qty} Pcs</td>
+        <td>${formatRupiah(hpp)}</td>
+        <td>${formatRupiah(value)}</td>
+        <td>${formatRupiah(avgPrice)}</td>
+        <td>${formatRupiah(potRev)}</td>
+      </tr>`;
     });
     document.getElementById('sohTotalValue').innerText = formatRupiah(totalValue);
     document.getElementById('sohTotalQty').innerText = totalQty + ' Pcs';
     document.getElementById('sohPotentialRevenue').innerText = formatRupiah(potentialRev);
-    document.getElementById('sohTotalItem').innerText = items.length;
+    document.getElementById('sohTotalItem').innerText = totalItems + ' / ' + items.length;
   }
 }
 
@@ -1329,13 +1450,11 @@ function exportSOHCSV(){
   });
   const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='SOH_Nilai.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
-
-// === PART 12/12 ===
+  // === PART 12/12 ===
 function renderDashboard(){ 
   const stockBody=document.getElementById('stockTableBody'); stockBody.innerHTML=''; 
   const sorted=getSortedProductKeys(); const isAdmin=currentUserRole==='admin'; 
   for(let item of sorted){ if(!(item in inventory))continue; let unit='Pcs'; const variants=getVariants(item); if(variants.length===1&&variants[0].pcsPerPack===1)unit='Pack'; const safe=item.replace(/'/g,"\\'"); const fc=getForecastDays(item); let actions=isAdmin?'<button class="btn-clone" onclick="cloneProduct(\''+safe+'\')">📋</button><button class="btn-edit" onclick="editProduct(\''+safe+'\')">✏️</button><button class="btn-trash" onclick="deleteProduct(\''+safe+'\')">🗑️</button>':'<span style="color:var(--muted);font-size:0.7rem;">(read only)</span>'; 
-    // Add link to mutation
     actions += ` <button class="btn btn-secondary" style="padding:2px 6px;font-size:0.6rem;width:auto;" onclick="goToMutation('${safe}')">🔍 Mutasi</button>`;
     stockBody.innerHTML+='<tr><td><b>'+item+'</b></td><td>'+(inventory[item]||0)+' '+unit+'</td><td style="font-size:0.75rem;">'+fc+'</td><td style="text-align:center;white-space:nowrap;">'+actions+'</td></tr>'; 
   } 
