@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MANTUL KITCHEN v9.0 SKU</title>
+<title>MANTUL KITCHEN v9.1 SKU</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="pinOverlay"><h1>🔐 MANTUL KITCHEN</h1><p style="color:var(--muted);margin-bottom:10px;">Masukkan PIN</p><input type="password" id="pinInput" maxlength="4" placeholder="****" onkeydown="if(event.key==='Enter') verifyPin()"><button onclick="verifyPin()">Buka Sistem</button><div id="pinError" class="error"></div><div style="margin-top:30px;font-size:0.7rem;color:var(--muted);">Admin: 1234 | Kasir: 0000</div></div>
-<div class="container"><div class="header"><h1>MANTUL KITCHEN v9.0 SKU</h1><div class="right-group"><div class="user-badge" id="userBadge">👤 Admin Mode</div><button class="btn-refresh" onclick="refreshData()">🔄 Refresh</button></div></div>
+<div class="container"><div class="header"><h1>MANTUL KITCHEN v9.1 SKU</h1><div class="right-group"><div class="user-badge" id="userBadge">👤 Admin Mode</div><button class="btn-refresh" onclick="refreshData()">🔄 Refresh</button></div></div>
 <div id="syncStatusBanner" class="sync-banner" style="display:none;"></div><div id="syncIndicator" class="loading-status">🔄 Sedang Menghubungkan ke Server Cloud...</div>
 <div class="tab-navigation"><button id="btnTabDashboard" class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button><button id="btnTabProfit" class="tab-btn" onclick="switchTab('profit')">📜 Jurnal</button><button id="btnTabMutasi" class="tab-btn" onclick="switchTab('mutasi')">📦 Mutasi Stok</button><button id="btnTabRevenue" class="tab-btn" onclick="switchTab('revenue')">💰 Pendapatan</button><button id="btnTabSOH" class="tab-btn" onclick="switchTab('soh')">📊 SOH & Nilai</button></div>
 <!-- TAB DASHBOARD -->
@@ -76,6 +76,42 @@ function formatRupiah(n){ return "Rp "+Math.round(n).toLocaleString('id-ID'); }
 function formatNumber(n){ return Math.round(n).toLocaleString('id-ID'); }
 
 function generateSKU(index){ return 'M-'+String(index+1).padStart(3,'0'); }
+
+function playSyncSound(success) {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        if (success) {
+            osc.frequency.value = 880;
+            osc.type = 'sine';
+            gain.gain.value = 0.2;
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+            setTimeout(() => {
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.frequency.value = 1100;
+                osc2.type = 'sine';
+                gain2.gain.value = 0.15;
+                osc2.start();
+                osc2.stop(ctx.currentTime + 0.15);
+                setTimeout(() => ctx.close(), 300);
+            }, 200);
+        } else {
+            osc.frequency.value = 400;
+            osc.type = 'sawtooth';
+            gain.gain.value = 0.15;
+            osc.start();
+            osc.stop(ctx.currentTime + 0.4);
+            setTimeout(() => ctx.close(), 500);
+        }
+    } catch(e) { console.log('Audio error'); }
+}
 
 function verifyPin() {
   try {
@@ -528,7 +564,38 @@ async function loadFromCloud(){
   }
 }
 
-function saveToCloud(){ if(isSyncing)return; isSyncing=true; showLoading('💾 Menyimpan...'); collectSettingsFromUI(); const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),15000); fetch(CLOUD_URL,{method:'POST',mode:'no-cors',signal:ctrl.signal,body:JSON.stringify({type:'SALE',inventory,logs,productCatalog,appSettings})}).then(()=>{ clearTimeout(tid); hideLoading(); renderDashboard(); saveProductCatalog(); showSyncBanner('success','✅ Tersimpan ke Cloud.',false); setTimeout(dismissSyncBanner,2000); isSyncing=false; }).catch((err)=>{ clearTimeout(tid); console.error(err); hideLoading(); renderDashboard(); saveProductCatalog(); playBeep(); showSyncBanner('error','❌ Gagal sync!',true); isSyncing=false; }); }
+function saveToCloud(){ 
+  if(isSyncing) return;
+  isSyncing=true; 
+  showLoading('💾 Menyimpan ke Cloud...'); 
+  collectSettingsFromUI(); 
+  const ctrl=new AbortController(); 
+  const tid=setTimeout(()=>ctrl.abort(),15000); 
+  fetch(CLOUD_URL,{
+    method:'POST',
+    mode:'no-cors',
+    signal:ctrl.signal,
+    body:JSON.stringify({type:'SALE',inventory,logs,productCatalog,appSettings})
+  }).then(()=>{ 
+    clearTimeout(tid); 
+    hideLoading(); 
+    renderDashboard(); 
+    saveProductCatalog(); 
+    playSyncSound(true);
+    showSyncBanner('success','✅ Data berhasil tersimpan ke Cloud!',false); 
+    setTimeout(dismissSyncBanner,3000); 
+    isSyncing=false; 
+  }).catch((err)=>{ 
+    clearTimeout(tid); 
+    console.error(err); 
+    hideLoading(); 
+    renderDashboard(); 
+    saveProductCatalog(); 
+    playSyncSound(false);
+    showSyncBanner('error','❌ Gagal menyimpan ke Cloud! Periksa koneksi.',true); 
+    isSyncing=false; 
+  }); 
+}
 
 function undoLastTransaction(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); if(logs.length===0)return alert('Belum ada transaksi.'); const last=logs[0]; if(!last.orderId||last.orderId.startsWith('STOCK-')||last.orderId.startsWith('TEST-')){ if(!confirm('Batalkan '+last.productName+' ('+last.type+')?'))return; if(last.type==='MASUK')inventory[last.sku]-=last.qtyInput; else if(last.type==='TESTER')inventory[last.sku]+=last.finalDeduct; else inventory[last.sku]+=last.finalDeduct; logs.shift(); saveToCloud(); renderDashboard(); return; } const oid=last.orderId; const toUndo=logs.filter(l=>l.orderId===oid); if(!confirm('Batalkan ORDER '+oid+' ('+toUndo.length+' item)?'))return; for(let l of toUndo){ if(l.type==='MASUK')inventory[l.sku]-=l.qtyInput; else if(l.type==='JUAL'||l.type==='TESTER')inventory[l.sku]+=l.finalDeduct; } logs=logs.filter(l=>l.orderId!==oid); saveToCloud(); renderDashboard(); alert('✅ Order '+oid+' dibatalkan.'); }
 function resetSystemData(){ if(currentUserRole!=='admin')return alert('Akses ditolak!'); if(prompt('Ketik 8888 untuk HAPUS SEMUA DATA:')==='8888'){ for(let k in productCatalog) inventory[k]=0; logs=[]; saveToCloud(); renderDashboard(); } }
