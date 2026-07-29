@@ -388,10 +388,26 @@ function applySettingsToUI(){
 }
 function collectSettingsFromUI(){
   try {
-    const get=(id)=>{ const el=document.getElementById(id); if(!el) return null; if(el.type==='checkbox') return el.checked; return el.value; };
-    appSettings.showSlogan=get('setShowSlogan'); appSettings.showAddress=get('setShowAddress'); appSettings.showWA=get('setShowWA'); appSettings.showFooter=get('setShowFooter'); appSettings.showDuplicate=get('setShowDuplicate');
-    appSettings.sloganText=get('setSloganText')||''; appSettings.addressText=get('setAddressText')||''; appSettings.waText=get('setWAText')||''; appSettings.footerText=get('setFooterText')||'';
-  } catch(e) { console.error('Error collectSettingsFromUI:', e); }
+    const get = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      if (el.type === 'checkbox') return el.checked;
+      return el.value;
+    };
+    appSettings.showSlogan = get('setShowSlogan') !== null ? get('setShowSlogan') : true;
+    appSettings.showAddress = get('setShowAddress') !== null ? get('setShowAddress') : true;
+    appSettings.showWA = get('setShowWA') !== null ? get('setShowWA') : true;
+    appSettings.showFooter = get('setShowFooter') !== null ? get('setShowFooter') : true;
+    appSettings.showDuplicate = get('setShowDuplicate') !== null ? get('setShowDuplicate') : true;
+    appSettings.sloganText = get('setSloganText') || '';
+    appSettings.addressText = get('setAddressText') || '';
+    appSettings.waText = get('setWAText') || '';
+    appSettings.footerText = get('setFooterText') || '';
+    console.log('✅ collectSettingsFromUI selesai:', appSettings);
+  } catch(e) {
+    console.error('❌ Error collectSettingsFromUI:', e);
+    // Jangan biarkan error ini menghentikan proses save
+  }
 }
 function saveAppSettings(){ collectSettingsFromUI(); saveToCloud(); alert('✅ Pengaturan disimpan ke Cloud!'); }
 function resetStrukDefault(){
@@ -908,62 +924,102 @@ async function loadFromCloud(){
     setTimeout(dismissSyncBanner,2000);
     console.log('✅ Semua render selesai');
   } catch(e) {
-    console.error('❌ Load Cloud Error:', e);
-    hideLoading();
-    // Fallback ke default
-    try {
-      let tempCatalog={}; let idx=0; for(let name in DEFAULT_PRODUCTS){ let sku=generateSKU(idx); tempCatalog[sku]={sku:sku, name:name, cogs:DEFAULT_PRODUCTS[name].cogs, variants:DEFAULT_PRODUCTS[name].variants, createdAt:Date.now(), updatedAt:Date.now()}; idx++; } productCatalog=tempCatalog;
-      populateProductDropdown(); updatePackageOptions(); renderDashboard(); applyDateFilter(currentPeriod||'today');
-    } catch(e2) { console.error('Fallback error:', e2); }
-    playBeep(); 
-    showSyncBanner('error','⚠️ Gagal konek Cloud! (Data lokal) - '+e.message, true);
+  console.error('❌ Load Cloud Error:', e);
+  // Hanya fallback jika catalog benar-benar kosong
+  if (Object.keys(productCatalog).length === 0) {
+    let tempCatalog={}; let idx=0; for(let name in DEFAULT_PRODUCTS){ let sku=generateSKU(idx); tempCatalog[sku]={sku:sku, name:name, cogs:DEFAULT_PRODUCTS[name].cogs, variants:DEFAULT_PRODUCTS[name].variants, createdAt:Date.now(), updatedAt:Date.now()}; idx++; } productCatalog=tempCatalog;
   }
+  populateProductDropdown(); updatePackageOptions(); renderDashboard(); hideLoading(); applyDateFilter(currentPeriod||'today'); playBeep(); showSyncBanner('error','⚠️ Gagal konek Cloud! (Data lokal)',true);
 }
 
 // ============================================================
 // SAVE TO CLOUD - DENGAN SOUND NOTIFIKASI
 // ============================================================
-function saveToCloud(){ 
-  if(isSyncing) return;
+async function saveToCloud(){ 
+  if (isSyncing) {
+    console.log('⏳ Sync sedang berjalan, lewati...');
+    return;
+  }
   try {
-    isSyncing=true; 
+    isSyncing = true; 
     showLoading('💾 Menyimpan ke Cloud...'); 
     collectSettingsFromUI(); 
-    const ctrl=new AbortController(); 
-    const tid=setTimeout(()=>ctrl.abort(),15000); 
-    fetch(CLOUD_URL,{
-      method:'POST',
-      mode:'no-cors',
-      signal:ctrl.signal,
-      body:JSON.stringify({type:'SALE',inventory,logs,productCatalog,appSettings})
-    }).then(()=>{ 
-      clearTimeout(tid); 
+    
+    // Siapkan data
+    const payload = {
+      type: 'SALE',
+      inventory: inventory || {},
+      logs: logs || [],
+      productCatalog: productCatalog || {},
+      appSettings: appSettings || {}
+    };
+    
+    // Batasi logs jika terlalu banyak (ambil 500 terakhir untuk mengurangi payload)
+    if (payload.logs.length > 500) {
+      console.warn('⚠️ Logs terlalu banyak (' + payload.logs.length + '), kirim 500 terakhir');
+      payload.logs = payload.logs.slice(0, 500);
+    }
+    
+    console.log('📦 Payload size:', JSON.stringify(payload).length, 'bytes');
+    
+    // Retry mechanism (3 kali percobaan)
+    let success = false;
+    let attempts = 0;
+    let lastError = null;
+    
+    while (attempts < 3 && !success) {
+      attempts++;
+      try {
+        console.log('🔄 Percobaan save ke-' + attempts);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 detik timeout
+        
+        const response = await fetch(CLOUD_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          signal: controller.signal,
+          body: JSON.stringify(payload)
+        });
+        
+        clearTimeout(timeoutId);
+        // Karena mode 'no-cors', kita tidak bisa baca response, tapi fetch selesai = sukses
+        success = true;
+        console.log('✅ Save attempt ' + attempts + ' berhasil');
+        break;
+        
+      } catch(fetchError) {
+        lastError = fetchError;
+        console.warn('⚠️ Percobaan ' + attempts + ' gagal:', fetchError.message);
+        if (attempts < 3) {
+          const waitTime = 2000 * attempts;
+          console.log('⏳ Tunggu ' + waitTime + 'ms sebelum percobaan ulang...');
+          await new Promise(r => setTimeout(r, waitTime));
+        }
+      }
+    }
+    
+    if (success) {
       hideLoading(); 
       renderDashboard(); 
       saveProductCatalog(); 
       playSyncSound(true);
-      showSyncBanner('success','✅ Data berhasil tersimpan ke Cloud!',false); 
-      setTimeout(dismissSyncBanner,3000); 
-      isSyncing=false; 
-    }).catch((err)=>{ 
-      clearTimeout(tid); 
-      console.error(err); 
-      hideLoading(); 
-      renderDashboard(); 
-      saveProductCatalog(); 
-      playSyncSound(false);
-      showSyncBanner('error','❌ Gagal menyimpan ke Cloud! Periksa koneksi. (Error: '+err.message+')',true); 
-      isSyncing=false; 
-    }); 
+      showSyncBanner('success', '✅ Data berhasil tersimpan ke Cloud!', false); 
+      setTimeout(dismissSyncBanner, 3000); 
+      console.log('✅ Save to Cloud selesai');
+    } else {
+      throw new Error('Gagal setelah 3 kali percobaan. Error terakhir: ' + (lastError ? lastError.message : 'Unknown'));
+    }
+    
+    isSyncing = false; 
+    
   } catch(e) {
-    console.error('Error saveToCloud:', e);
+    console.error('❌ Error saveToCloud:', e);
     hideLoading();
     playSyncSound(false);
-    showSyncBanner('error','❌ Error: '+e.message,true);
-    isSyncing=false;
+    showSyncBanner('error', '❌ Gagal menyimpan! Coba lagi. (Error: ' + e.message + ')', true);
+    isSyncing = false;
   }
 }
-
 // ============================================================
 // UNDO, RESET, EXPORT
 // ============================================================
