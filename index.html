@@ -408,7 +408,6 @@ function collectSettingsFromUI(){
     console.error('❌ Error collectSettingsFromUI:', e);
     // Jangan biarkan error ini menghentikan proses save
   }
-}
 function saveAppSettings(){ collectSettingsFromUI(); saveToCloud(); alert('✅ Pengaturan disimpan ke Cloud!'); }
 function resetStrukDefault(){
   if(!confirm('Reset semua pengaturan struk ke default?')) return;
