@@ -1066,7 +1066,6 @@ async function loadFromCloud() {
     playBeep();
     showSyncBanner('error', '⚠️ Gagal konek Cloud! (Data lokal) - ' + e.message, true);
   }
-}
 
 // ============================================================
 // SAVE TO CLOUD - DENGAN SOUND NOTIFIKASI
@@ -1149,7 +1148,7 @@ async function saveToCloud() {
     showSyncBanner('error', '❌ Gagal menyimpan! Coba lagi. (Error: ' + e.message + ')', true);
     isSyncing = false;
   }
-}
+
 // ============================================================
 // UNDO, RESET, EXPORT
 // ============================================================
