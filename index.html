@@ -1144,20 +1144,50 @@ async function initApp(){
 }
 
 // ============================================================
-// PERBAIKAN EXPORT & IMPORT CSV (Dashboard)
+// EXPORT & IMPORT CSV SESUAI TEMPLATE AUDIT
 // ============================================================
 
-// EXPORT CSV - Langsung menggunakan fungsi Jurnal yang sudah terbukti berfungsi 100%
+// EXPORT CSV - Format sesuai template audit (Order ID, Waktu, Pelanggan, Produk, Aktivitas, Detail, Omset, Diskon, Modal, Laba)
 function exportBackupCSV() {
-    showLoading('📤 Mengekspor CSV...');
-    exportToExcel(); // Memanggil fungsi lokal yang sudah aman
-    hideLoading();
-    showSyncBanner('success', '✅ CSV berhasil diekspor!', false);
-    setTimeout(dismissSyncBanner, 3000);
+    try {
+        if (currentUserRole !== 'admin') return alert('Akses ditolak!');
+        showLoading('📤 Mengekspor CSV...');
+        
+        var csv = "\uFEFFOrder ID,Waktu,Pelanggan,Produk,Aktivitas,Detail,Omset,Diskon,Modal,Laba\n";
+        logs.forEach(function(l) {
+            var oid = l.orderId || 'N/A';
+            var waktu = formatDisplayDate(l.date) || l.date || '';
+            var cust = l.customerName || '-';
+            var prod = l.productName || l.product || '';
+            var akt = l.type || 'JUAL';
+            var detail = l.detail || '';
+            var omset = l.type === 'JUAL' ? (l.finalNominal || l.grossPrice || 0) : 0;
+            var diskon = l.discount || 0;
+            var modal = l.cogsTotal || 0;
+            var laba = l.netProfit || 0;
+            
+            csv += '"' + oid + '","' + waktu + '","' + cust + '","' + prod + '","' + akt + '","' + detail + '","' + omset + '","' + diskon + '","' + modal + '","' + laba + '"\n';
+        });
+        
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+        link.download = 'Audit_MantulKitchen.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        hideLoading();
+        showSyncBanner('success', '✅ CSV berhasil diekspor sesuai template!', false);
+        setTimeout(dismissSyncBanner, 3000);
+    } catch(e) {
+        hideLoading();
+        alert('❌ Error Export CSV: ' + e.message);
+    }
 }
 
-// IMPORT CSV - Menggunakan JSON stringify + mode: 'no-cors' agar lolos dari blokir CORS browser
+// IMPORT CSV - Membaca template audit dan mengirimkannya otomatis ke Cloud/Sheet
 function importBackupCSV() {
+    if (currentUserRole !== 'admin') return alert('Akses ditolak!');
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = '.csv';
@@ -1167,13 +1197,12 @@ function importBackupCSV() {
         var reader = new FileReader();
         reader.onload = function(ev) {
             var csvData = ev.target.result;
-            if (!confirm('⚠️ Ini akan MENIMPA semua data logs di server!\nLanjutkan?')) return;
-            showLoading('📥 Mengunggah CSV ke Cloud...');
+            if (!confirm('⚠️ Peringatan: Import CSV ini akan MENIMPA data log di server dengan data dari file.\nLanjutkan?')) return;
             
-            // Ubah payload menjadi JSON standar (bukan FormData)
-            var payload = { type: 'IMPORT_CSV', csvData: csvData };
+            showLoading('📥 Mengunggah dan Memproses CSV...');
             
-            // Wajib menggunakan mode: 'no-cors' seperti saat menyimpan transaksi
+            var payload = { type: 'IMPORT_TEMPLATE_CSV', csvData: csvData };
+            
             fetch(CLOUD_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -1181,8 +1210,8 @@ function importBackupCSV() {
             })
             .then(function() {
                 hideLoading();
-                alert('✅ Data CSV berhasil dikirim ke server. Silakan tunggu beberapa detik dan tekan Refresh.');
-                setTimeout(refreshData, 2000);
+                alert('✅ Data CSV berhasil dikirim ke server. Sistem akan menyinkronkan data, silakan klik Refresh dalam beberapa detik.');
+                setTimeout(refreshData, 3000);
             })
             .catch(function(err) {
                 hideLoading();
