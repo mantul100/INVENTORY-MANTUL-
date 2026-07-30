@@ -1290,7 +1290,7 @@ function importBackupCSV() {
                         var orderId = cols[0];
                         var waktu = cols[1] || generateFormattedDate();
                         var pelanggan = cols[2] || '-';
-                        var produk = cols[3] || '';
+                        var produk = (cols[3] || '').trim(); // Aman dari undefined
                         var aktivitas = cols[4] || 'JUAL';
                         var detail = cols[5] || '';
                         var omset = parseFloat(cols[6]) || 0;
@@ -1298,20 +1298,22 @@ function importBackupCSV() {
                         var modal = parseFloat(cols[8]) || 0;
                         var laba = parseFloat(cols[9]) || 0;
                         
-                        // Mapping otomatis nama produk ke SKU
+                        // Mapping otomatis nama produk ke SKU secara aman
                         var matchedSku = null;
-                        for (var sKey in productCatalog) {
-                            if (productCatalog[sKey].name.toLowerCase() === produk.toLowerCase()) {
-                                matchedSku = sKey;
-                                break;
-                            }
-                        }
-                        // Fallback jika belum ada di katalog tapi namanya mirip
-                        if (!matchedSku) {
-                            for (var sKey2 in productCatalog) {
-                                if (produk.toLowerCase().indexOf(productCatalog[sKey2].name.toLowerCase()) !== -1) {
-                                    matchedSku = sKey2;
+                        if (produk) {
+                            for (var sKey in productCatalog) {
+                                if (productCatalog[sKey] && (productCatalog[sKey].name || '').toLowerCase() === produk.toLowerCase()) {
+                                    matchedSku = sKey;
                                     break;
+                                }
+                            }
+                            if (!matchedSku) {
+                                for (var sKey2 in productCatalog) {
+                                    var catName = (productCatalog[sKey2] && productCatalog[sKey2].name) ? productCatalog[sKey2].name : '';
+                                    if (catName && produk.toLowerCase().indexOf(catName.toLowerCase()) !== -1) {
+                                        matchedSku = sKey2;
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -1337,24 +1339,22 @@ function importBackupCSV() {
                     }
                 }
                 
-                // Masukkan ke logs global
                 logs = logsParsed;
                 
-                // Hitung ulang stok otomatis berdasarkan transaksi keluar/masuk
+                // Hitung ulang stok otomatis
                 for (var key in productCatalog) inventory[key] = 0;
                 logs.forEach(function(l) {
                     if (l.sku && inventory[l.sku] !== undefined) {
                         if (l.type === 'MASUK') {
                             inventory[l.sku] += l.qtyInput;
                         } else if (l.type === 'JUAL' || l.type === 'TESTER') {
-                            var matchPcs = l.detail.match(/\((\d+)\s*Pcs\)/i);
-                            var pcs = matchPcs ? parseInt(matchPcs[1]) : 5; // default paketan
+                            var matchPcs = (l.detail || '').match(/\((\d+)\s*Pcs\)/i);
+                            var pcs = matchPcs ? parseInt(matchPcs[1]) : 5;
                             inventory[l.sku] -= pcs;
                         }
                     }
                 });
                 
-                // Render ulang seluruh tampilan seketika
                 renderDashboard();
                 renderMutasi();
                 renderRevenue();
@@ -1362,8 +1362,6 @@ function importBackupCSV() {
                 
                 hideLoading();
                 showSyncBanner('success', '✅ CSV berhasil dimuat! Menyimpan ke Google Sheet...', false);
-                
-                // Simpan otomatis ke Cloud/Sheet di background
                 saveToCloud();
                 
             } catch (err) {
