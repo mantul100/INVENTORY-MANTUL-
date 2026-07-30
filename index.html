@@ -1246,6 +1246,23 @@ function exportBackupCSV() {
 
 function importBackupCSV() {
     if (currentUserRole !== 'admin') return alert('Akses ditolak!');
+    
+    // Pastikan katalog produk standar selalu ada sebelum import
+    if (!productCatalog || Object.keys(productCatalog).length === 0) {
+        productCatalog = {
+            "M-001": { sku: "M-001", name: "Dimsum Premium", cogs: 2200, variants: [{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp35.000)",pcsPerPack:10,pricePerPack:35000}] },
+            "M-002": { sku: "M-002", name: "Gyoza Premium", cogs: 2200, variants: [{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp33.000)",pcsPerPack:10,pricePerPack:33000},{label:"Pack isi 20 (Rp65.000)",pcsPerPack:20,pricePerPack:65000}] },
+            "M-003": { sku: "M-003", name: "Dimsum Jumbo", cogs: 2700, variants: [{label:"Pack isi 16 (Rp60.000)",pcsPerPack:16,pricePerPack:60000}] },
+            "M-004": { sku: "M-004", name: "Gyoza Jumbo", cogs: 2700, variants: [{label:"Pcs (Rp3.750)",pcsPerPack:1,pricePerPack:3750}] },
+            "M-005": { sku: "M-005", name: "Wonton Udang Premium", cogs: 3500, variants: [{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000},{label:"Pack isi 10 (Rp50.000)",pcsPerPack:10,pricePerPack:50000}] },
+            "M-006": { sku: "M-006", name: "Lumpia Kulit Tahu Ayam", cogs: 3600, variants: [{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000}] },
+            "M-007": { sku: "M-007", name: "Lumpia Kulit Tahu Udang", cogs: 4000, variants: [{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000}] },
+            "M-008": { sku: "M-008", name: "Steam Ceker Lada Hitam", cogs: 9000, variants: [{label:"Pack",pcsPerPack:1,pricePerPack:15000}] },
+            "M-009": { sku: "M-009", name: "Bakpao Karakter Premium", cogs: 14000, variants: [{label:"Pack",pcsPerPack:1,pricePerPack:25000}] }
+        };
+        saveProductCatalog();
+    }
+
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = '.csv';
@@ -1290,7 +1307,7 @@ function importBackupCSV() {
                         var orderId = cols[0];
                         var waktu = cols[1] || generateFormattedDate();
                         var pelanggan = cols[2] || '-';
-                        var produk = (cols[3] || '').trim(); // Aman dari undefined
+                        var produk = (cols[3] || '').trim();
                         var aktivitas = cols[4] || 'JUAL';
                         var detail = cols[5] || '';
                         var omset = parseFloat(cols[6]) || 0;
@@ -1298,19 +1315,22 @@ function importBackupCSV() {
                         var modal = parseFloat(cols[8]) || 0;
                         var laba = parseFloat(cols[9]) || 0;
                         
-                        // Mapping otomatis nama produk ke SKU secara aman
+                        // Pencocokan nama produk ke SKU secara akurat
                         var matchedSku = null;
                         if (produk) {
                             for (var sKey in productCatalog) {
-                                if (productCatalog[sKey] && (productCatalog[sKey].name || '').toLowerCase() === produk.toLowerCase()) {
+                                var catObj = productCatalog[sKey];
+                                var catName = catObj && catObj.name ? catObj.name.trim().toLowerCase() : '';
+                                if (catName === produk.toLowerCase()) {
                                     matchedSku = sKey;
                                     break;
                                 }
                             }
                             if (!matchedSku) {
                                 for (var sKey2 in productCatalog) {
-                                    var catName = (productCatalog[sKey2] && productCatalog[sKey2].name) ? productCatalog[sKey2].name : '';
-                                    if (catName && produk.toLowerCase().indexOf(catName.toLowerCase()) !== -1) {
+                                    var catObj2 = productCatalog[sKey2];
+                                    var catName2 = catObj2 && catObj2.name ? catObj2.name.trim().toLowerCase() : '';
+                                    if (catName2 && produk.toLowerCase().indexOf(catName2) !== -1) {
                                         matchedSku = sKey2;
                                         break;
                                     }
@@ -1323,7 +1343,7 @@ function importBackupCSV() {
                             date: waktu,
                             sku: matchedSku,
                             product: produk,
-                            productName: produk,
+                            productName: produk, // Pastikan nama produk tersimpan utuh
                             type: aktivitas,
                             qtyInput: 1,
                             detail: detail,
