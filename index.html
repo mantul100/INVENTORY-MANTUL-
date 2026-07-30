@@ -1255,25 +1255,113 @@ function importBackupCSV() {
         var reader = new FileReader();
         reader.onload = function(ev) {
             var csvData = ev.target.result;
-            if (!confirm('⚠️ Peringatan: Import CSV ini akan MENIMPA data log di server dengan data dari file.\nLanjutkan?')) return;
+            if (!confirm('⚠️ Peringatan: Import CSV ini akan memuat data ke dashboard dan menimpa data server.\nLanjutkan?')) return;
             
-            showLoading('📥 Mengunggah dan Memproses CSV...');
-            var payload = { type: 'IMPORT_TEMPLATE_CSV', csvData: csvData };
+            showLoading('📥 Mengurai dan Memproses CSV...');
             
-            fetch(CLOUD_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify(payload)
-            })
-            .then(function() {
+            try {
+                // Parsing CSV sederhana baris per baris secara lokal agar instan
+                var lines = csvData.split('\n').filter(function(line) { return line.trim() !== ''; });
+                if (lines.length < 2) throw new Error("File CSV kosong atau tidak valid.");
+                
+                var logsParsed = [];
+                
+                for (var i = 1; i < lines.length; i++) {
+                    var rowStr = lines[i].trim();
+                    if (rowStr === '') continue;
+                    
+                    var cols = [];
+                    var inQuotes = false;
+                    var currentVal = '';
+                    
+                    for (var c = 0; c < rowStr.length; c++) {
+                        var char = rowStr[c];
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            cols.push(currentVal.trim().replace(/^"|"$/g, ''));
+                            currentVal = '';
+                        } else {
+                            currentVal += char;
+                        }
+                    }
+                    cols.push(currentVal.trim().replace(/^"|"$/g, ''));
+                    
+                    if (cols.length >= 10 && cols[0]) {
+                        var orderId = cols[0];
+                        var waktu = cols[1] || generateFormattedDate();
+                        var pelanggan = cols[2] || '-';
+                        var produk = cols[3] || '';
+                        var aktivitas = cols[4] || 'JUAL';
+                        var detail = cols[5] || '';
+                        var omset = parseFloat(cols[6]) || 0;
+                        var diskon = parseFloat(cols[7]) || 0;
+                        var modal = parseFloat(cols[8]) || 0;
+                        var laba = parseFloat(cols[9]) || 0;
+                        
+                        // Cari SKU berdasarkan nama produk jika ada di katalog
+                        var matchedSku = null;
+                        for (var sKey in productCatalog) {
+                            if (productCatalog[sKey].name.toLowerCase() === produk.toLowerCase()) {
+                                matchedSku = sKey;
+                                break;
+                            }
+                        }
+                        
+                        logsParsed.push({
+                            orderId: orderId,
+                            date: waktu,
+                            sku: matchedSku,
+                            product: produk,
+                            productName: produk,
+                            type: aktivitas,
+                            qtyInput: 1,
+                            detail: detail,
+                            impactStock: aktivitas === 'JUAL' ? 'Keluar' : 'Masuk',
+                            finalDeduct: 0,
+                            grossPrice: omset + diskon,
+                            discount: diskon,
+                            cogsTotal: modal,
+                            finalNominal: omset,
+                            netProfit: laba,
+                            customerName: pelanggan
+                        });
+                    }
+                }
+                
+                // Masukkan langsung ke state global aplikasi
+                logs = logsParsed;
+                
+                // Hitung ulang stok secara otomatis dari data log yang diimport
+                for (var key in productCatalog) inventory[key] = 0;
+                logs.forEach(function(l) {
+                    if (l.sku && inventory[l.sku] !== undefined) {
+                        if (l.type === 'MASUK') inventory[l.sku] += l.qtyInput;
+                        else if (l.type === 'JUAL' || l.type === 'TESTER') {
+                            // Ambil angka pcs dari detail jika ada, misal "(5 Pcs)"
+                            var matchPcs = l.detail.match(/$$(\d+)\s*Pcs$$/i);
+                            var pcs = matchPcs ? parseInt(matchPcs[1]) : 1;
+                            inventory[l.sku] -= pcs;
+                        }
+                    }
+                });
+                
+                // Render ulang dashboard dan jurnal secara instan!
+                renderDashboard();
+                renderMutasi();
+                renderRevenue();
+                renderSOH();
+                
                 hideLoading();
-                alert('✅ Data CSV berhasil dikirim ke server. Sistem sedang menyinkronkan ke Sheet, silakan klik Refresh dalam 3 detik.');
-                setTimeout(refreshData, 3000);
-            })
-            .catch(function(err) {
+                showSyncBanner('success', '✅ CSV berhasil dimuat ke dashboard! Menyinkronkan ke Cloud...', false);
+                
+                // Kirim state lengkap ke Cloud di background
+                saveToCloud();
+                
+            } catch (err) {
                 hideLoading();
-                alert('❌ Error upload: ' + err.message);
-            });
+                alert('❌ Gagal memproses CSV: ' + err.message);
+            }
         };
         reader.readAsText(file);
     };
