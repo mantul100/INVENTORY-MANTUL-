@@ -1215,6 +1215,86 @@ async function initApp(){
         console.error('❌ Error initApp:', e);
         alert('⚠️ Terjadi error saat inisialisasi aplikasi:\n' + e.message + '\n\nCoba refresh halaman atau hubungi admin.');
     } 
+// ============================================================
+// PERBAIKAN EXPORT & IMPORT CSV (Dashboard)
+// ============================================================
+
+// EXPORT CSV (Dashboard) - pakai fetch + Blob
+function exportBackupCSV() {
+  showLoading('📤 Mengekspor CSV...');
+  
+  // Gunakan fetch tanpa mode: 'no-cors' agar bisa baca response
+  fetch(CLOUD_URL + '?action=export')
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function(csvData) {
+      hideLoading();
+      // Buat file CSV
+      var blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'Audit_MantulKitchen.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      showSyncBanner('success', '✅ CSV berhasil diekspor!', false);
+      setTimeout(dismissSyncBanner, 3000);
+    })
+    .catch(function(err) {
+      hideLoading();
+      console.error('Export error:', err);
+      alert('❌ Gagal export: ' + err.message);
+      showSyncBanner('error', '❌ Gagal export CSV: ' + err.message, true);
+    });
+}
+
+// IMPORT CSV (Dashboard) - pakai fetch + FormData
+function importBackupCSV() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv';
+  input.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var csvData = ev.target.result;
+      if (!confirm('⚠️ Ini akan MENIMPA semua data logs di server!\nLanjutkan?')) return;
+      showLoading('📥 Mengunggah CSV...');
+      var formData = new FormData();
+      formData.append('file', new Blob([csvData], { type: 'text/csv' }), 'Audit_MantulKitchen.csv');
+      
+      // JANGAN pakai mode: 'no-cors' agar bisa baca response
+      fetch(CLOUD_URL, {
+        method: 'POST',
+        body: formData
+      })
+      .then(function(res) { return res.text(); })
+      .then(function(text) {
+        hideLoading();
+        try {
+          var result = JSON.parse(text);
+          if (result.status === 'success') {
+            alert('✅ Import berhasil! ' + result.message);
+            refreshData();
+          } else {
+            alert('❌ Gagal: ' + result.message);
+          }
+        } catch(e) {
+          alert('❌ Response dari server (bukan JSON): ' + text);
+        }
+      })
+      .catch(function(err) {
+        hideLoading();
+        alert('❌ Error upload: ' + err.message);
+      });
+    };
+    reader.readAsText(file);
+  };
+  input.click();
 }
 </script>
 </body>
