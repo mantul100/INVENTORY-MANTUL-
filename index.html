@@ -393,7 +393,35 @@ var revenueChartInstance=null;
 
 function loadProductCatalog(){ try { var stored=localStorage.getItem('productCatalog'); if(stored){ try{ productCatalog=JSON.parse(stored); } catch(e){ productCatalog={}; } } else { productCatalog={}; } } catch(e){ productCatalog={}; } }
 function saveProductCatalog(){ try { localStorage.setItem('productCatalog',JSON.stringify(productCatalog)); } catch(e){} }
-function getProductName(sku){ try { return productCatalog[sku]?productCatalog[sku].name:sku; } catch(e){ return sku; } }
+// Perbaiki fungsi getProductName agar tidak pernah undefined
+function getProductName(sku){ 
+    try { 
+        if (productCatalog && productCatalog[sku]) {
+            return productCatalog[sku].name || productCatalog[sku].productName || DEFAULT_PRODUCT_NAMES[sku] || sku; 
+        }
+        var fallbackNames = {
+            "M-001": "Dimsum Premium", "M-002": "Gyoza Premium", "M-003": "Dimsum Jumbo",
+            "M-004": "Gyoza Jumbo", "M-005": "Wonton Udang Premium", "M-006": "Lumpia Kulit Tahu Ayam",
+            "M-007": "Lumpia Kulit Tahu Udang", "M-008": "Steam Ceker Lada Hitam", "M-009": "Bakpao Karakter Premium"
+        };
+        return fallbackNames[sku] || sku;
+    } catch(e){ 
+        return sku; 
+    } 
+}
+
+// Perbaiki fungsi getProductList agar nama produk selalu valid
+function getProductList(){ 
+    try { 
+        return getSkuList().map(function(sku){ 
+            var name = getProductName(sku);
+            return { sku: sku, name: name }; 
+        }); 
+    } catch(e){ 
+        return []; 
+    } 
+}
+
 function getCogs(sku){ try { return productCatalog[sku]?productCatalog[sku].cogs:0; } catch(e){ return 0; } }
 function getVariants(sku){ try { return productCatalog[sku]?productCatalog[sku].variants:[]; } catch(e){ return []; } }
 function getRetailPrice(sku){ try { var variants=getVariants(sku); if(!variants||variants.length===0)return 0; var total=0; variants.forEach(function(v){ total+=v.pricePerPack/v.pcsPerPack; }); return total/variants.length; } catch(e){ return 0; } }
