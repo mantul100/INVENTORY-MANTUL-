@@ -176,7 +176,7 @@ th{color:var(--gold);background:rgba(255,255,255,0.03);text-transform:uppercase;
 </div>
 <div id="receiptModal" class="receipt-modal"><div class="receipt-content"><div id="receiptBody"></div><div class="actions"><button class="btn-copy" onclick="copyReceipt()">📋 Salin Teks</button><button class="btn-wa" onclick="sendReceiptWA()">📱 Kirim Teks WA</button><button class="btn-share-img" onclick="shareReceiptImage()">🖼️ Share Gambar</button><button class="btn-pdf" onclick="downloadReceiptPDF()">📄 Download PDF</button><button class="btn-close-modal" onclick="closeReceipt()">✕ Tutup</button></div></div></div>
 <script>
-    // =====================================================================
+// =====================================================================
 // PART B - JAVASCRIPT LENGKAP (TANPA RINGKASAN)
 // =====================================================================
 
@@ -188,7 +188,7 @@ var appSettings = { showSlogan:true, showAddress:true, showWA:true, showFooter:t
 var isMigrated = false;
 
 // ============================================================
-// FALLBACK NAMA PRODUK (HARDCODED)
+// FALLBACK NAMA PRODUK (HARDCODED + M-010 DITAMBAHKAN)
 // ============================================================
 var FALLBACK_PRODUCT_NAMES = {
     "M-001": "Dimsum Premium",
@@ -199,11 +199,25 @@ var FALLBACK_PRODUCT_NAMES = {
     "M-006": "Lumpia Kulit Tahu Ayam",
     "M-007": "Lumpia Kulit Tahu Udang",
     "M-008": "Steam Ceker Lada Hitam",
-    "M-009": "Bakpao Karakter Premium"
+    "M-009": "Bakpao Karakter Premium",
+    "M-010": "Dimsum Goreng Lumer"
+};
+
+var DEFAULT_PRODUCTS = {
+    "Dimsum Premium":{cogs:2200,variants:[{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp35.000)",pcsPerPack:10,pricePerPack:35000}]},
+    "Gyoza Premium":{cogs:2200,variants:[{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp33.000)",pcsPerPack:10,pricePerPack:33000},{label:"Pack isi 20 (Rp65.000)",pcsPerPack:20,pricePerPack:65000}]},
+    "Dimsum Jumbo":{cogs:2700,variants:[{label:"Pack isi 16 (Rp60.000)",pcsPerPack:16,pricePerPack:60000}]},
+    "Gyoza Jumbo":{cogs:2700,variants:[{label:"Pcs (Rp3.750)",pcsPerPack:1,pricePerPack:3750}]},
+    "Wonton Udang Premium":{cogs:3500,variants:[{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000},{label:"Pack isi 10 (Rp50.000)",pcsPerPack:10,pricePerPack:50000}]},
+    "Lumpia Kulit Tahu Ayam":{cogs:3600,variants:[{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000}]},
+    "Lumpia Kulit Tahu Udang":{cogs:4000,variants:[{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000}]},
+    "Steam Ceker Lada Hitam":{cogs:9000,variants:[{label:"Pack",pcsPerPack:1,pricePerPack:15000}]},
+    "Bakpao Karakter Premium":{cogs:14000,variants:[{label:"Pack",pcsPerPack:1,pricePerPack:25000}]},
+    "Dimsum Goreng Lumer":{cogs:20000,variants:[{label:"Pack isi 3 (Rp25.000)",pcsPerPack:3,pricePerPack:25000}]}
 };
 
 // ============================================================
-// VALIDASI PRODUCT CATALOG
+// VALIDASI PRODUCT CATALOG (MEMPERBAIKI DROPDOWN VARIAN)
 // ============================================================
 function validateAndFixProductCatalog(catalog) {
     if (!catalog || typeof catalog !== 'object') return catalog;
@@ -215,18 +229,19 @@ function validateAndFixProductCatalog(catalog) {
             continue;
         }
         var name = item.name || item.productName || '';
-        if (!name || name === sku) {
-            if (FALLBACK_PRODUCT_NAMES[sku]) {
-                name = FALLBACK_PRODUCT_NAMES[sku];
-            } else {
-                name = sku;
-            }
+        if (!name || name === sku) name = FALLBACK_PRODUCT_NAMES[sku] || sku;
+        
+        var variants = Array.isArray(item.variants) ? item.variants : [];
+        // RECOVERY: Jika varian kosong, tarik dari default master data
+        if (variants.length === 0 && DEFAULT_PRODUCTS[name]) {
+            variants = DEFAULT_PRODUCTS[name].variants;
         }
+        
         fixed[sku] = {
             sku: sku,
             name: name,
-            cogs: item.cogs || 0,
-            variants: Array.isArray(item.variants) ? item.variants : []
+            cogs: item.cogs || (DEFAULT_PRODUCTS[name] ? DEFAULT_PRODUCTS[name].cogs : 0),
+            variants: variants
         };
     }
     return fixed;
@@ -320,7 +335,7 @@ function verifyPin() {
 function applyRoleUI() {
     try {
         var isAdmin = (currentUserRole === 'admin');
-        var toolsBox = document.getElementById('adminToolsBox');
+        var toolsBox = document.getElementById('adminToolsBox'); // Box might not exist by this ID, checked below
         var exportBtn = document.getElementById('exportBtn');
         if(toolsBox) toolsBox.style.display = isAdmin ? 'block' : 'none';
         if(exportBtn) exportBtn.style.display = isAdmin ? 'block' : 'none';
@@ -329,7 +344,7 @@ function applyRoleUI() {
         if(!isAdmin){ var active = document.querySelector('.tab-content.active'); if(active && ['tabMutasi','tabRevenue','tabSOH'].indexOf(active.id) !== -1) switchTab('dashboard'); }
         var actionType = document.getElementById('actionType');
         if(!isAdmin){ for(var i=0;i<actionType.options.length;i++){ if(actionType.options[i].value==='MASUK'||actionType.options[i].value==='TESTER') actionType.options[i].style.display='none'; } actionType.value='JUAL'; } else { for(var j=0;j<actionType.options.length;j++) actionType.options[j].style.display='block'; }
-        var inputBox = document.getElementById('inputBox');
+        var inputBox = document.getElementById('boxInput'); // Corrected ID
         if(inputBox) inputBox.classList.toggle('kasir-mode', !isAdmin);
         updateActionButton();
         applySettingsToUI();
@@ -451,17 +466,6 @@ function updateVisibilityButtons(){
 // PRODUCT CATALOG & STOCK
 // ============================================================
 var NOW=Date.now();
-var DEFAULT_PRODUCTS = {
-    "Dimsum Premium":{cogs:2200,variants:[{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp35.000)",pcsPerPack:10,pricePerPack:35000}]},
-    "Gyoza Premium":{cogs:2200,variants:[{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp33.000)",pcsPerPack:10,pricePerPack:33000},{label:"Pack isi 20 (Rp65.000)",pcsPerPack:20,pricePerPack:65000}]},
-    "Dimsum Jumbo":{cogs:2700,variants:[{label:"Pack isi 16 (Rp60.000)",pcsPerPack:16,pricePerPack:60000}]},
-    "Gyoza Jumbo":{cogs:2700,variants:[{label:"Pcs (Rp3.750)",pcsPerPack:1,pricePerPack:3750}]},
-    "Wonton Udang Premium":{cogs:3500,variants:[{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000},{label:"Pack isi 10 (Rp50.000)",pcsPerPack:10,pricePerPack:50000}]},
-    "Lumpia Kulit Tahu Ayam":{cogs:3600,variants:[{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000}]},
-    "Lumpia Kulit Tahu Udang":{cogs:4000,variants:[{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000}]},
-    "Steam Ceker Lada Hitam":{cogs:9000,variants:[{label:"Pack",pcsPerPack:1,pricePerPack:15000}]},
-    "Bakpao Karakter Premium":{cogs:14000,variants:[{label:"Pack",pcsPerPack:1,pricePerPack:25000}]}
-};
 var productCatalog={}, inventory={}, logs=[], salesChartInstance=null, variantRows=[], editingProductName=null, filteredLogs=[];
 var revenueChartInstance=null;
 
@@ -558,7 +562,7 @@ function saveNewProduct(){
         }
         if(isNew&&productCatalog[targetSku]){ if(!confirm('Nama "'+name+'" mungkin sudah ada. Timpa?'))return; }
         productCatalog[targetSku]={ sku:targetSku, name:name, cogs:cogs, variants:variantRows.map(function(v){ return {label:v.label.trim(), pcsPerPack:v.pcsPerPack, pricePerPack:v.pricePerPack}; }), createdAt:productCatalog[targetSku]?productCatalog[targetSku].createdAt:now, updatedAt:now };
-        if(isNew) inventory[targetSku]=stock; else inventory[targetSku]=stock;
+        inventory[targetSku]=stock;
         saveProductCatalog();
         saveToCloud();
         populateProductDropdown();
@@ -571,7 +575,7 @@ function saveNewProduct(){
 }
 
 // ============================================================
-// PREVIEW & ACTION
+// PREVIEW & ACTION (DENGAN VALIDASI STOK)
 // ============================================================
 function updateItemPreview(){
     try {
@@ -618,6 +622,7 @@ function processAction(){
         }
         var subtotal=pack.pricePerPack*qty;
         var cogsTotal=totalPcs*getCogs(sku);
+        
         if(action==='MASUK' || action==='TESTER'){
             if(currentUserRole!=='admin')return alert('Hanya Admin!');
             if(action==='MASUK'){
@@ -627,7 +632,7 @@ function processAction(){
                 saveToCloud(); renderDashboard();
                 alert('✅ Stok "'+prodName+'" bertambah '+totalPcs+' Pcs');
             } else if(action==='TESTER'){
-                if((inventory[sku]||0)<totalPcs)return alert('Stok tidak cukup! Butuh '+totalPcs+' Pcs');
+                if((inventory[sku]||0)<totalPcs)return alert('⚠️ Stok tidak cukup! Sisa stok '+(inventory[sku]||0)+' Pcs, tapi butuh '+totalPcs+' Pcs');
                 inventory[sku]-=totalPcs;
                 var log2={ orderId:'TEST-'+Date.now().toString().slice(-8), date:generateFormattedDate(), sku:sku, product:prodName, type:'TESTER', qtyInput:qty, detail:pack.label+' (-'+totalPcs+' Pcs Promo)', impactStock:'Keluar '+totalPcs+' Pcs', finalDeduct:totalPcs, grossPrice:0, discount:0, cogsTotal:cogsTotal, finalNominal:0, netProfit:-cogsTotal, customerName:'Admin', productName:prodName };
                 logs.unshift(log2);
@@ -638,12 +643,14 @@ function processAction(){
             updateItemPreview();
             return;
         }
-        if((inventory[sku]||0)<totalPcs)return alert('Stok kurang! Butuh '+totalPcs+' Pcs');
+        
+        // VALIDASI STOK SEBELUM TAMBAH KE KERANJANG
+        if((inventory[sku]||0)<totalPcs)return alert('⚠️ Stok tidak cukup! Sisa stok '+(inventory[sku]||0)+' Pcs, tapi butuh '+totalPcs+' Pcs');
         var existing=cart.findIndex(function(item){ return item.sku===sku&&item.variantIndex===idx; });
         if(existing!==-1){
             var newQty=cart[existing].qty+qty;
             var newTotal=cart[existing].pcsPerPack*newQty;
-            if((inventory[sku]||0)<newTotal)return alert('Stok kurang! Total '+newTotal+' Pcs');
+            if((inventory[sku]||0)<newTotal)return alert('⚠️ Stok tidak cukup! Anda butuh total '+newTotal+' Pcs');
             cart[existing].qty=newQty;
             cart[existing].totalPcs=newTotal;
             cart[existing].subtotal=cart[existing].pricePerPack*newQty;
@@ -666,7 +673,7 @@ function renderCart(){ try { var container=document.getElementById('cartItemsCon
 function updateCartSummary(){ try { var sub=cart.reduce(function(s,i){ return s+i.subtotal; },0); var disc=parseInt(document.getElementById('cartDiscount').value)||0; document.getElementById('cartSubtotal').innerText=formatRupiah(sub); document.getElementById('cartGrandTotal').innerText=formatRupiah(Math.max(0,sub-disc)); } catch(e){ console.error('updateCartSummary error:', e); } }
 
 // ============================================================
-// CHECKOUT
+// CHECKOUT (DENGAN VALIDASI STOK EKSTRA AMAN)
 // ============================================================
 function checkoutOrder(){
     try {
@@ -675,17 +682,31 @@ function checkoutOrder(){
         var customerName=document.getElementById('customerName').value.trim()||'-';
         var subtotal=cart.reduce(function(s,i){ return s+i.subtotal; },0);
         if(discount>subtotal)return alert('Diskon > Subtotal!');
+        
+        // VALIDASI STOK BERLAPIS (Anti-Minus)
+        var tempInventory = Object.assign({}, inventory);
+        for(var i=0; i<cart.length; i++){
+            var item = cart[i];
+            if((tempInventory[item.sku]||0) < item.totalPcs) {
+                return alert('⚠️ Transaksi Batal: Stok ' + item.productName + ' tidak mencukupi!\nSisa stok riil: ' + (tempInventory[item.sku]||0) + ' Pcs, tapi keranjang butuh ' + item.totalPcs + ' Pcs.');
+            }
+            tempInventory[item.sku] -= item.totalPcs; // Kurangi dari temporary
+        }
+
         var orderId='ORD-'+Date.now().toString().slice(-8);
         var transactionLogs=[];
         var grossTotal=0;
+        
+        // POTONG STOK ASLI JIKA SUDAH LOLOS VALIDASI
         for(var i=0;i<cart.length;i++){
             var item=cart[i];
-            if((inventory[item.sku]||0)<item.totalPcs)return alert('Stok '+item.productName+' kurang!');
             inventory[item.sku]-=item.totalPcs;
             var log={ orderId:orderId, date:generateFormattedDate(), sku:item.sku, product:item.productName, type:'JUAL', qtyInput:item.qty, detail:item.label+' ('+item.totalPcs+' Pcs)', impactStock:'Keluar '+item.totalPcs+' Pcs', finalDeduct:item.totalPcs, grossPrice:item.subtotal, discount:0, cogsTotal:item.cogsTotal, finalNominal:item.subtotal, netProfit:item.subtotal-item.cogsTotal, customerName:customerName, productName:item.productName };
             transactionLogs.push(log);
             grossTotal+=item.subtotal;
         }
+        
+        // DISTRIBUSI DISKON
         if(transactionLogs.length>0&&discount>0){
             var remaining=discount;
             for(var j=0;j<transactionLogs.length;j++){
@@ -699,14 +720,17 @@ function checkoutOrder(){
                 log.netProfit=log.finalNominal-log.cogsTotal;
             }
         }
+        
         logs.unshift.apply(logs, transactionLogs);
         cart=[];
         document.getElementById('cartDiscount').value='0';
         document.getElementById('customerName').value='';
         renderCart();
         saveToCloud();
+        
         var totalFinal=transactionLogs.reduce(function(s,l){ return s+l.finalNominal; },0);
         showCombinedReceipt(orderId, transactionLogs, discount, totalFinal, customerName, false);
+        
     } catch(e){ console.error('checkoutOrder error:', e); alert('⚠️ Error checkout: '+e.message); }
 }
 
@@ -952,11 +976,9 @@ function runCalculator(){
 async function loadFromCloud(){
     try {
         showLoading('🔄 Menyelaraskan Data...');
-        console.log('🌐 Memuat data dari cloud...');
         var res = await fetch(CLOUD_URL);
         if (!res.ok) throw new Error('HTTP '+res.status+' - Gagal fetch data');
         var data = await res.json();
-        console.log('📦 Data diterima:', data);
         
         if (data.inventory && Object.keys(data.inventory).length > 0) {
             inventory = data.inventory;
@@ -985,7 +1007,6 @@ async function loadFromCloud(){
         if (!isMigrated && Object.keys(productCatalog).length > 0) {
             var firstKey = Object.keys(productCatalog)[0];
             if (!firstKey.startsWith('M-')) {
-                console.log('🚀 Menjalankan migrasi otomatis ke SKU...');
                 var oldCatalog = productCatalog; 
                 var newCatalog = {};
                 var nameToSku = {};
@@ -1051,7 +1072,6 @@ async function loadFromCloud(){
                 productCatalog = newCatalog;
                 isMigrated = true;
                 saveProductCatalog();
-                console.log('✅ Migrasi SKU selesai.');
             } else {
                 isMigrated = true;
             }
@@ -1081,13 +1101,11 @@ async function loadFromCloud(){
         applyDateFilter(currentPeriod || 'today');
         showSyncBanner('success','✅ Data dimuat dari Cloud.', false);
         setTimeout(dismissSyncBanner, 2000);
-        console.log('✅ Semua render selesai');
         
     } catch(e){
         console.error('❌ Load Cloud Error:', e);
         hideLoading();
         if (Object.keys(productCatalog).length === 0) {
-            console.warn('⚠️ productCatalog kosong, menggunakan DEFAULT_PRODUCTS');
             var fallbackCatalog = {};
             var idx3 = 0;
             for (var defName in DEFAULT_PRODUCTS) {
@@ -1103,8 +1121,6 @@ async function loadFromCloud(){
                 idx3++;
             }
             productCatalog = fallbackCatalog;
-        } else {
-            console.log('✅ productCatalog tetap dipertahankan dari localStorage');
         }
         populateProductDropdown();
         updatePackageOptions();
@@ -1127,7 +1143,6 @@ function saveToCloud(){
         fixProductCatalogBeforeSave();
         var payload={type:'SALE', inventory:inventory||{}, logs:logs||[], productCatalog:productCatalog||{}, appSettings:appSettings||{}};
         if(payload.logs.length>500){ console.warn('⚠️ Logs terlalu banyak ('+payload.logs.length+'), kirim 500 terakhir'); payload.logs=payload.logs.slice(0,500); }
-        console.log('📦 Payload size:', JSON.stringify(payload).length, 'bytes');
         var success=false; var attempts=0; var lastError=null;
         var doFetch = function(){
             return new Promise(function(resolve, reject){
@@ -1142,21 +1157,17 @@ function saveToCloud(){
             while(attempts<3 && !success){
                 attempts++;
                 try {
-                    console.log('🔄 Percobaan save ke-'+attempts);
                     await doFetch();
                     success=true;
-                    console.log('✅ Save attempt '+attempts+' berhasil');
                 } catch(fetchError){
                     lastError=fetchError;
-                    console.warn('⚠️ Percobaan '+attempts+' gagal:', fetchError.message);
-                    if(attempts<3){ var waitTime=2000*attempts; console.log('⏳ Tunggu '+waitTime+'ms...'); await new Promise(function(r){ setTimeout(r, waitTime); }); }
+                    if(attempts<3){ var waitTime=2000*attempts; await new Promise(function(r){ setTimeout(r, waitTime); }); }
                 }
             }
             if(success){
                 hideLoading(); renderDashboard(); saveProductCatalog(); playSyncSound(true);
                 showSyncBanner('success','✅ Data berhasil tersimpan ke Cloud!',false);
                 setTimeout(dismissSyncBanner,3000);
-                console.log('✅ Save to Cloud selesai');
             } else {
                 throw new Error('Gagal setelah 3 kali percobaan. Error: '+(lastError?lastError.message:'Unknown'));
             }
@@ -1201,9 +1212,172 @@ function undoLastTransaction(){
 function resetSystemData(){ try { if(currentUserRole!=='admin')return alert('Akses ditolak!'); if(prompt('Ketik 8888 untuk HAPUS SEMUA DATA:')==='8888'){ for(var k in productCatalog) inventory[k]=0; logs=[]; saveToCloud(); renderDashboard(); } } catch(e){ console.error('resetSystemData error:', e); alert('⚠️ Error: '+e.message); } }
 
 // ============================================================
-// EXPORT CSV (STANDAR)
+// EXPORT CSV (STANDAR) - DENGAN BLOB BROWSER 
 // ============================================================
-function exportToExcel(){ try { if(currentUserRole!=='admin')return alert('Akses ditolak!'); var csv="\uFEFFOrder ID,Waktu,Pelanggan,Produk,Aktivitas,Detail,Omset,Diskon,Modal,Laba\n"; logs.forEach(function(l){ csv+='"'+ (l.orderId||'N/A') +'","'+ (formatDisplayDate(l.date)||l.date||'') +'","'+ (l.customerName||'-') +'","'+ (l.productName||l.product||'') +'","'+ (l.type||'JUAL') +'","'+ (l.detail||'') +'","'+ (l.type==='JUAL'?(l.finalNominal||l.grossPrice||0):0) +'","'+ (l.discount||0) +'","'+ (l.cogsTotal||0) +'","'+ (l.netProfit||0) +'"\n'; }); var link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='Audit_MantulKitchen.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch(e){ console.error('exportToExcel error:', e); alert('⚠️ Error: '+e.message); } }
+function exportBackupCSV() {
+    try {
+        if (currentUserRole !== 'admin') return alert('Akses ditolak!');
+        showLoading('📤 Mengekspor CSV...');
+        var csv = "\uFEFFOrder ID,Waktu,Pelanggan,Produk,Aktivitas,Detail,Omset,Diskon,Modal,Laba\n";
+        logs.forEach(function(l) {
+            var oid = l.orderId || 'N/A';
+            var waktu = formatDisplayDate(l.date) || l.date || '';
+            var cust = l.customerName || '-';
+            var prod = l.productName || l.product || '';
+            var akt = l.type || 'JUAL';
+            var detail = l.detail || '';
+            var omset = l.type === 'JUAL' ? (l.finalNominal || l.grossPrice || 0) : 0;
+            var diskon = l.discount || 0;
+            var modal = l.cogsTotal || 0;
+            var laba = l.netProfit || 0;
+            csv += '"' + oid + '","' + waktu + '","' + cust + '","' + prod + '","' + akt + '","' + detail + '","' + omset + '","' + diskon + '","' + modal + '","' + laba + '"\n';
+        });
+        // EKSEKUSI DOWNLOAD LANGSUNG DARI BROWSER (TANPA FETCH KE BACKEND)
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+        link.download = 'Audit_MantulKitchen.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        hideLoading();
+        showSyncBanner('success', '✅ CSV berhasil diekspor sesuai template!', false);
+        setTimeout(dismissSyncBanner, 3000);
+    } catch(e) {
+        hideLoading();
+        alert('❌ Error Export CSV: ' + e.message);
+    }
+}
+
+// ============================================================
+// IMPORT CSV (RESTORE)
+// ============================================================
+function importBackupCSV() {
+    if (currentUserRole !== 'admin') return alert('Akses ditolak!');
+    
+    // Safety check master data exist
+    if (!productCatalog || Object.keys(productCatalog).length === 0) {
+        productCatalog = DEFAULT_PRODUCTS;
+        saveProductCatalog();
+    }
+    
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            var csvData = ev.target.result;
+            if (!confirm('⚠️ Peringatan: Import CSV ini akan memuat data ke dashboard dan memperbarui Google Sheet.\nLanjutkan?')) return;
+            showLoading('📥 Mengurai dan Memproses CSV...');
+            try {
+                var lines = csvData.split('\n').filter(function(line) { return line.trim() !== ''; });
+                if (lines.length < 2) throw new Error("File CSV kosong atau tidak valid.");
+                var logsParsed = [];
+                for (var i = 1; i < lines.length; i++) {
+                    var rowStr = lines[i].trim();
+                    if (rowStr === '') continue;
+                    var cols = [];
+                    var inQuotes = false;
+                    var currentVal = '';
+                    for (var c = 0; c < rowStr.length; c++) {
+                        var char = rowStr[c];
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            cols.push(currentVal.trim().replace(/^"|"$/g, ''));
+                            currentVal = '';
+                        } else {
+                            currentVal += char;
+                        }
+                    }
+                    cols.push(currentVal.trim().replace(/^"|"$/g, ''));
+                    if (cols.length >= 10 && cols[0]) {
+                        var orderId = cols[0];
+                        var waktu = cols[1] || generateFormattedDate();
+                        var pelanggan = cols[2] || '-';
+                        var produk = (cols[3] || '').trim();
+                        var aktivitas = cols[4] || 'JUAL';
+                        var detail = cols[5] || '';
+                        var omset = parseFloat(cols[6]) || 0;
+                        var diskon = parseFloat(cols[7]) || 0;
+                        var modal = parseFloat(cols[8]) || 0;
+                        var laba = parseFloat(cols[9]) || 0;
+                        var matchedSku = null;
+                        
+                        if (produk) {
+                            for (var sKey in productCatalog) {
+                                var catObj = productCatalog[sKey];
+                                var catName = catObj && catObj.name ? catObj.name.trim().toLowerCase() : '';
+                                if (catName === produk.toLowerCase()) {
+                                    matchedSku = sKey;
+                                    break;
+                                }
+                            }
+                            if (!matchedSku) {
+                                for (var sKey2 in productCatalog) {
+                                    var catObj2 = productCatalog[sKey2];
+                                    var catName2 = catObj2 && catObj2.name ? catObj2.name.trim().toLowerCase() : '';
+                                    if (catName2 && produk.toLowerCase().indexOf(catName2) !== -1) {
+                                        matchedSku = sKey2;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        logsParsed.push({
+                            orderId: orderId,
+                            date: waktu,
+                            sku: matchedSku,
+                            product: produk,
+                            productName: produk,
+                            type: aktivitas,
+                            qtyInput: 1,
+                            detail: detail,
+                            impactStock: aktivitas === 'JUAL' ? 'Keluar' : 'Masuk',
+                            finalDeduct: 0,
+                            grossPrice: omset + diskon,
+                            discount: diskon,
+                            cogsTotal: modal,
+                            finalNominal: omset,
+                            netProfit: laba,
+                            customerName: pelanggan
+                        });
+                    }
+                }
+                logs = logsParsed;
+                
+                for (var key in productCatalog) inventory[key] = 0;
+                logs.forEach(function(l) {
+                    if (l.sku && inventory[l.sku] !== undefined) {
+                        if (l.type === 'MASUK') {
+                            inventory[l.sku] += l.qtyInput;
+                        } else if (l.type === 'JUAL' || l.type === 'TESTER') {
+                            var matchPcs = (l.detail || '').match(/\((\d+)\s*Pcs\)/i);
+                            var pcs = matchPcs ? parseInt(matchPcs[1]) : 5;
+                            inventory[l.sku] -= pcs;
+                        }
+                    }
+                });
+                
+                renderDashboard();
+                renderMutasi();
+                renderRevenue();
+                renderSOH();
+                hideLoading();
+                showSyncBanner('success', '✅ CSV berhasil dimuat! Menyimpan ke Google Sheet...', false);
+                saveToCloud(); // Save to cloud
+            } catch (err) {
+                hideLoading();
+                alert('❌ Gagal memproses CSV: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
 
 // ============================================================
 // MUTASI
@@ -1343,173 +1517,6 @@ function playBeep(){ try{ var ctx=new(window.AudioContext||window.webkitAudioCon
 function showSyncBanner(type,msg,retry){ var b=document.getElementById('syncStatusBanner'); b.className='sync-banner '+type; b.style.display='flex'; var btn=''; if(retry) btn+='<button class="btn-retry" onclick="retrySync()">🔄 Coba Lagi</button>'; btn+='<button class="btn-close" onclick="dismissSyncBanner()">✕ Tutup</button>'; b.innerHTML='<span>'+msg+'</span> <div style="display:flex;gap:8px;">'+btn+'</div>'; }
 function dismissSyncBanner(){ document.getElementById('syncStatusBanner').style.display='none'; }
 function retrySync(){ dismissSyncBanner(); saveToCloud(); }
-
-// ============================================================
-// EXPORT & IMPORT CSV (BACKUP & RESTORE)
-// ============================================================
-function exportBackupCSV() {
-    try {
-        if (currentUserRole !== 'admin') return alert('Akses ditolak!');
-        showLoading('📤 Mengekspor CSV...');
-        var csv = "\uFEFFOrder ID,Waktu,Pelanggan,Produk,Aktivitas,Detail,Omset,Diskon,Modal,Laba\n";
-        logs.forEach(function(l) {
-            var oid = l.orderId || 'N/A';
-            var waktu = formatDisplayDate(l.date) || l.date || '';
-            var cust = l.customerName || '-';
-            var prod = l.productName || l.product || '';
-            var akt = l.type || 'JUAL';
-            var detail = l.detail || '';
-            var omset = l.type === 'JUAL' ? (l.finalNominal || l.grossPrice || 0) : 0;
-            var diskon = l.discount || 0;
-            var modal = l.cogsTotal || 0;
-            var laba = l.netProfit || 0;
-            csv += '"' + oid + '","' + waktu + '","' + cust + '","' + prod + '","' + akt + '","' + detail + '","' + omset + '","' + diskon + '","' + modal + '","' + laba + '"\n';
-        });
-        var link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-        link.download = 'Audit_MantulKitchen.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        hideLoading();
-        showSyncBanner('success', '✅ CSV berhasil diekspor sesuai template!', false);
-        setTimeout(dismissSyncBanner, 3000);
-    } catch(e) {
-        hideLoading();
-        alert('❌ Error Export CSV: ' + e.message);
-    }
-}
-
-function importBackupCSV() {
-    if (currentUserRole !== 'admin') return alert('Akses ditolak!');
-    if (!productCatalog || Object.keys(productCatalog).length === 0) {
-        productCatalog = {
-            "M-001": { sku: "M-001", name: "Dimsum Premium", cogs: 2200, variants: [{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp35.000)",pcsPerPack:10,pricePerPack:35000}] },
-            "M-002": { sku: "M-002", name: "Gyoza Premium", cogs: 2200, variants: [{label:"Pack isi 5 (Rp17.500)",pcsPerPack:5,pricePerPack:17500},{label:"Pack isi 10 (Rp33.000)",pcsPerPack:10,pricePerPack:33000},{label:"Pack isi 20 (Rp65.000)",pcsPerPack:20,pricePerPack:65000}] },
-            "M-003": { sku: "M-003", name: "Dimsum Jumbo", cogs: 2700, variants: [{label:"Pack isi 16 (Rp60.000)",pcsPerPack:16,pricePerPack:60000}] },
-            "M-004": { sku: "M-004", name: "Gyoza Jumbo", cogs: 2700, variants: [{label:"Pcs (Rp3.750)",pcsPerPack:1,pricePerPack:3750}] },
-            "M-005": { sku: "M-005", name: "Wonton Udang Premium", cogs: 3500, variants: [{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000},{label:"Pack isi 10 (Rp50.000)",pcsPerPack:10,pricePerPack:50000}] },
-            "M-006": { sku: "M-006", name: "Lumpia Kulit Tahu Ayam", cogs: 3600, variants: [{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000}] },
-            "M-007": { sku: "M-007", name: "Lumpia Kulit Tahu Udang", cogs: 4000, variants: [{label:"Pack isi 5 (Rp25.000)",pcsPerPack:5,pricePerPack:25000}] },
-            "M-008": { sku: "M-008", name: "Steam Ceker Lada Hitam", cogs: 9000, variants: [{label:"Pack",pcsPerPack:1,pricePerPack:15000}] },
-            "M-009": { sku: "M-009", name: "Bakpao Karakter Premium", cogs: 14000, variants: [{label:"Pack",pcsPerPack:1,pricePerPack:25000}] }
-        };
-        saveProductCatalog();
-    }
-    var input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-            var csvData = ev.target.result;
-            if (!confirm('⚠️ Peringatan: Import CSV ini akan memuat data ke dashboard dan memperbarui Google Sheet.\nLanjutkan?')) return;
-            showLoading('📥 Mengurai dan Memproses CSV...');
-            try {
-                var lines = csvData.split('\n').filter(function(line) { return line.trim() !== ''; });
-                if (lines.length < 2) throw new Error("File CSV kosong atau tidak valid.");
-                var logsParsed = [];
-                for (var i = 1; i < lines.length; i++) {
-                    var rowStr = lines[i].trim();
-                    if (rowStr === '') continue;
-                    var cols = [];
-                    var inQuotes = false;
-                    var currentVal = '';
-                    for (var c = 0; c < rowStr.length; c++) {
-                        var char = rowStr[c];
-                        if (char === '"') {
-                            inQuotes = !inQuotes;
-                        } else if (char === ',' && !inQuotes) {
-                            cols.push(currentVal.trim().replace(/^"|"$/g, ''));
-                            currentVal = '';
-                        } else {
-                            currentVal += char;
-                        }
-                    }
-                    cols.push(currentVal.trim().replace(/^"|"$/g, ''));
-                    if (cols.length >= 10 && cols[0]) {
-                        var orderId = cols[0];
-                        var waktu = cols[1] || generateFormattedDate();
-                        var pelanggan = cols[2] || '-';
-                        var produk = (cols[3] || '').trim();
-                        var aktivitas = cols[4] || 'JUAL';
-                        var detail = cols[5] || '';
-                        var omset = parseFloat(cols[6]) || 0;
-                        var diskon = parseFloat(cols[7]) || 0;
-                        var modal = parseFloat(cols[8]) || 0;
-                        var laba = parseFloat(cols[9]) || 0;
-                        var matchedSku = null;
-                        if (produk) {
-                            for (var sKey in productCatalog) {
-                                var catObj = productCatalog[sKey];
-                                var catName = catObj && catObj.name ? catObj.name.trim().toLowerCase() : '';
-                                if (catName === produk.toLowerCase()) {
-                                    matchedSku = sKey;
-                                    break;
-                                }
-                            }
-                            if (!matchedSku) {
-                                for (var sKey2 in productCatalog) {
-                                    var catObj2 = productCatalog[sKey2];
-                                    var catName2 = catObj2 && catObj2.name ? catObj2.name.trim().toLowerCase() : '';
-                                    if (catName2 && produk.toLowerCase().indexOf(catName2) !== -1) {
-                                        matchedSku = sKey2;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        logsParsed.push({
-                            orderId: orderId,
-                            date: waktu,
-                            sku: matchedSku,
-                            product: produk,
-                            productName: produk,
-                            type: aktivitas,
-                            qtyInput: 1,
-                            detail: detail,
-                            impactStock: aktivitas === 'JUAL' ? 'Keluar' : 'Masuk',
-                            finalDeduct: 0,
-                            grossPrice: omset + diskon,
-                            discount: diskon,
-                            cogsTotal: modal,
-                            finalNominal: omset,
-                            netProfit: laba,
-                            customerName: pelanggan
-                        });
-                    }
-                }
-                logs = logsParsed;
-                for (var key in productCatalog) inventory[key] = 0;
-                logs.forEach(function(l) {
-                    if (l.sku && inventory[l.sku] !== undefined) {
-                        if (l.type === 'MASUK') {
-                            inventory[l.sku] += l.qtyInput;
-                        } else if (l.type === 'JUAL' || l.type === 'TESTER') {
-                            var matchPcs = (l.detail || '').match(/\((\d+)\s*Pcs\)/i);
-                            var pcs = matchPcs ? parseInt(matchPcs[1]) : 5;
-                            inventory[l.sku] -= pcs;
-                        }
-                    }
-                });
-                renderDashboard();
-                renderMutasi();
-                renderRevenue();
-                renderSOH();
-                hideLoading();
-                showSyncBanner('success', '✅ CSV berhasil dimuat! Menyimpan ke Google Sheet...', false);
-                saveToCloud();
-            } catch (err) {
-                hideLoading();
-                alert('❌ Gagal memproses CSV: ' + err.message);
-            }
-        };
-        reader.readAsText(file);
-    };
-    input.click();
-}
 
 // ============================================================
 // INIT APP
