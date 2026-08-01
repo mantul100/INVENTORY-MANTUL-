@@ -528,13 +528,43 @@ function getSkuList(){ try { return Object.keys(productCatalog).sort(); } catch(
 function applyDateFilter(mode){
     try {
         document.querySelectorAll('.date-filter button').forEach(function(b){ b.classList.remove('active'); });
-        var today=new Date(); var start=new Date(), end=new Date();
-        if(mode==='today'){ start=new Date(today.getFullYear(),today.getMonth(),today.getDate()); end=new Date(today.getFullYear(),today.getMonth(),today.getDate(),23,59,59); document.querySelector('.date-filter button:nth-child(2)').classList.add('active'); }
-        else if(mode==='week'){ var day=today.getDay()||7; start=new Date(today.getFullYear(),today.getMonth(),today.getDate()-day+1); end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+(7-day)); document.querySelector('.date-filter button:nth-child(3)').classList.add('active'); }
-        else if(mode==='month'){ start=new Date(today.getFullYear(),today.getMonth(),1); end=new Date(today.getFullYear(),today.getMonth()+1,0); document.querySelector('.date-filter button:nth-child(4)').classList.add('active'); }
-        else if(mode==='all'){ start=new Date(2000,0,1); end=new Date(2100,0,1); document.querySelector('.date-filter button:nth-child(5)').classList.add('active'); }
-        else if(mode==='custom'){ var s=document.getElementById('startDate').value; var e=document.getElementById('endDate').value; if(s)start=new Date(s); if(e)end=new Date(e); if(!s||!e)return; }
-        currentPeriod=mode; filteredLogs=logs.filter(function(l){ var d=parseDate(l.date); return d>=start&&d<=end; }); renderDashboard();
+        var today = new Date(); var start = new Date(), end = new Date();
+        
+        if(mode === 'today'){ 
+            start = new Date(today.getFullYear(), today.getMonth(), today.getDate()); 
+            end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999); 
+            document.querySelector('.date-filter button:nth-child(2)').classList.add('active'); 
+        }
+        else if(mode === 'week'){ 
+            var day = today.getDay() || 7; 
+            start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - day + 1); 
+            end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + (7 - day), 23, 59, 59, 999); 
+            document.querySelector('.date-filter button:nth-child(3)').classList.add('active'); 
+        }
+        else if(mode === 'month'){ 
+            start = new Date(today.getFullYear(), today.getMonth(), 1); 
+            end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999); 
+            document.querySelector('.date-filter button:nth-child(4)').classList.add('active'); 
+        }
+        else if(mode === 'all'){ 
+            start = new Date(2000, 0, 1); 
+            end = new Date(2100, 0, 1, 23, 59, 59, 999); 
+            document.querySelector('.date-filter button:nth-child(5)').classList.add('active'); 
+        }
+        else if(mode === 'custom'){ 
+            var s = document.getElementById('startDate').value; 
+            var e = document.getElementById('endDate').value; 
+            if(s) start = new Date(s); 
+            if(e) { end = new Date(e); end.setHours(23, 59, 59, 999); } 
+            if(!s || !e) return; 
+        }
+        
+        currentPeriod = mode; 
+        filteredLogs = logs.filter(function(l){ 
+            var d = parseDate(l.date); 
+            return d >= start && d <= end; 
+        }); 
+        renderDashboard();
     } catch(e){ console.error('applyDateFilter error:', e); }
 }
 
@@ -1020,7 +1050,7 @@ function runCalculator(){
 }
 
 // ============================================================
-// LOAD FROM CLOUD (FIX MERGE LOGS MULTI-ITEM PER ORDER ID)
+// LOAD FROM CLOUD (FIX MERGE LOGS MULTI-ITEM & ANTI-DUPLIKAT)
 // ============================================================
 async function loadFromCloud(){
     try {
@@ -1033,6 +1063,7 @@ async function loadFromCloud(){
             inventory = data.inventory;
         }
         
+        // FITUR MERGE LOGS ANTI-DUPLIKAT & ANTI-TERPOTONG
         if (data.logs && data.logs.length > 0) {
             var cloudLogs = data.logs.map(function(l){ 
                 if(!l.orderId) l.orderId = 'LEGACY-' + Date.now().toString().slice(-8);
@@ -1042,18 +1073,22 @@ async function loadFromCloud(){
             });
             
             var logMap = {};
-            // Masukkan data lokal dulu
-            logs.forEach(function(l, idx){ 
-                var uniqueKey = (l.orderId || 'ORD') + '_' + (l.sku || 'SKU') + '_' + (l.detail || '') + '_' + idx; 
+            
+            // 1. Masukkan data dari cloud terlebih dahulu
+            cloudLogs.forEach(function(l){ 
+                // Kunci unik: Order ID + SKU + Detail (Dijamin unik per item dalam 1 order)
+                var uniqueKey = (l.orderId || 'ORD') + '_' + (l.sku || 'SKU') + '_' + (l.detail || ''); 
                 logMap[uniqueKey] = l; 
             });
-            // Timpa/tambahkan dari cloud
-            cloudLogs.forEach(function(l, idx){ 
-                var uniqueKey = (l.orderId || 'ORD') + '_' + (l.sku || 'SKU') + '_' + (l.detail || '') + '_' + idx; 
+            
+            // 2. Timpa dengan data lokal (jika ada transaksi baru di sesi browser ini)
+            logs.forEach(function(l){ 
+                var uniqueKey = (l.orderId || 'ORD') + '_' + (l.sku || 'SKU') + '_' + (l.detail || ''); 
                 logMap[uniqueKey] = l; 
             });
             
             logs = Object.values(logMap);
+            // Urutkan dari yang terbaru ke terlama
             logs.sort(function(a, b){ return parseDate(b.date) - parseDate(a.date); });
         }
 
@@ -1358,7 +1393,39 @@ function importBackupCSV() {
 // MUTASI
 // ============================================================
 var mutasiFilter={period:'today', start:null, end:null, item:'', sort:'az'};
-function applyMutasiFilter(mode){ try { var today=new Date(); var start=new Date(), end=new Date(); if(mode==='today'){ start=new Date(today.getFullYear(),today.getMonth(),today.getDate()); end=new Date(today.getFullYear(),today.getMonth(),today.getDate(),23,59,59); } else if(mode==='week'){ var day=today.getDay()||7; start=new Date(today.getFullYear(),today.getMonth(),today.getDate()-day+1); end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+(7-day)); } else if(mode==='month'){ start=new Date(today.getFullYear(),today.getMonth(),1); end=new Date(today.getFullYear(),today.getMonth()+1,0); } else if(mode==='all'){ start=new Date(2000,0,1); end=new Date(2100,0,1); } else if(mode==='custom'){ var s=document.getElementById('mutasiStartDate').value; var e=document.getElementById('mutasiEndDate').value; if(s)start=new Date(s); if(e)end=new Date(e); if(!s||!e)return; } mutasiFilter.period=mode; mutasiFilter.start=start; mutasiFilter.end=end; renderMutasi(); } catch(e){ console.error('applyMutasiFilter error:', e); } }
+function applyMutasiFilter(mode){ 
+    try { 
+        var today = new Date(); var start = new Date(), end = new Date(); 
+        
+        if(mode === 'today'){ 
+            start = new Date(today.getFullYear(), today.getMonth(), today.getDate()); 
+            end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999); 
+        } 
+        else if(mode === 'week'){ 
+            var day = today.getDay() || 7; 
+            start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - day + 1); 
+            end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + (7 - day), 23, 59, 59, 999); 
+        } 
+        else if(mode === 'month'){ 
+            start = new Date(today.getFullYear(), today.getMonth(), 1); 
+            end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999); 
+        } 
+        else if(mode === 'all'){ 
+            start = new Date(2000, 0, 1); 
+            end = new Date(2100, 0, 1, 23, 59, 59, 999); 
+        } 
+        else if(mode === 'custom'){ 
+            var s = document.getElementById('mutasiStartDate').value; 
+            var e = document.getElementById('mutasiEndDate').value; 
+            if(s) start = new Date(s); 
+            if(e) { end = new Date(e); end.setHours(23, 59, 59, 999); } 
+            if(!s || !e) return; 
+        } 
+        
+        mutasiFilter.period = mode; mutasiFilter.start = start; mutasiFilter.end = end; 
+        renderMutasi(); 
+    } catch(e){ console.error('applyMutasiFilter error:', e); } 
+}
 function renderMutasi(){ try { var itemFilter=document.getElementById('mutasiSearchItem').value.trim().toLowerCase(); var sort=document.getElementById('mutasiSort').value; mutasiFilter.item=itemFilter; mutasiFilter.sort=sort; var filtered=logs.filter(function(l){ if(!mutasiFilter.start||!mutasiFilter.end) return true; var d=parseDate(l.date); return d>=mutasiFilter.start&&d<=mutasiFilter.end; }); var stockAwal={}; var logsBefore=logs.filter(function(l){ if(!mutasiFilter.start) return false; var d=parseDate(l.date); return d<mutasiFilter.start; }); logsBefore.forEach(function(l){ if(!l.sku)return; if(!stockAwal[l.sku]) stockAwal[l.sku]=0; if(l.type==='MASUK') stockAwal[l.sku]+=l.qtyInput; else if(l.type==='JUAL'||l.type==='TESTER') stockAwal[l.sku]-=l.finalDeduct; }); if(itemFilter) filtered=filtered.filter(function(l){ var name=(l.productName||l.product||'').toLowerCase(); return name.indexOf(itemFilter)!==-1; }); filtered.sort(function(a,b){ return parseDate(a.date)-parseDate(b.date); }); var report={}; var runningStock=Object.assign({},stockAwal); filtered.forEach(function(l){ if(!l.sku)return; var key=l.sku; var name=l.productName||l.product||key; var hpp=getCogs(key); var retail=getRetailPrice(key); var margin=retail-hpp; if(!report[key]){ report[key]={sku:key, item:name, retailPrice:retail, marginPerPcs:margin, awal:stockAwal[key]||0, awalNilai:(stockAwal[key]||0)*hpp, masuk:0, masukNilai:0, keluar:0, keluarNilai:0, akhir:0, akhirNilaiHPP:0, akhirNilaiRetail:0, akhirMargin:0, details:[]}; } var inQty=0,outQty=0; if(l.type==='MASUK'){ inQty=l.qtyInput; report[key].masuk+=inQty; report[key].masukNilai+=inQty*hpp; } else if(l.type==='JUAL'||l.type==='TESTER'){ outQty=l.finalDeduct; report[key].keluar+=outQty; report[key].keluarNilai+=outQty*hpp; } runningStock[key]=(runningStock[key]||0)+inQty-outQty; report[key].akhir=runningStock[key]; report[key].akhirNilaiHPP=runningStock[key]*hpp; report[key].akhirNilaiRetail=runningStock[key]*retail; report[key].akhirMargin=runningStock[key]*margin; report[key].details.push({date:l.date, inQty:inQty, outQty:outQty, running:runningStock[key], type:l.type, detail:l.detail}); }); var keys=Object.keys(report); if(sort==='az') keys.sort(function(a,b){ return report[a].item.localeCompare(report[b].item); }); else if(sort==='za') keys.sort(function(a,b){ return report[b].item.localeCompare(report[a].item); }); else if(sort==='in_desc') keys.sort(function(a,b){ return report[b].masuk-report[a].masuk; }); else if(sort==='out_desc') keys.sort(function(a,b){ return report[b].keluar-report[a].keluar; }); var tbody=document.getElementById('mutasiTableBody'); tbody.innerHTML=''; if(keys.length===0){ tbody.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--muted);">Tidak ada mutasi.</td></tr>'; } else { var totalAwal=0,totalMasuk=0,totalKeluar=0,totalAkhir=0,totalAkhirRetail=0,totalAkhirMargin=0; keys.forEach(function(key){ var r=report[key]; totalAwal+=r.awal; totalMasuk+=r.masuk; totalKeluar+=r.keluar; totalAkhir+=r.akhir; totalAkhirRetail+=r.akhirNilaiRetail; totalAkhirMargin+=r.akhirMargin; tbody.innerHTML+='<tr style="border-top:2px solid var(--gold);background:var(--gold-light);"><td><b>'+r.sku+'</b></td><td><b>'+r.item+'</b></td><td>'+r.awal+' Pcs</td><td>'+formatRupiah(r.awalNilai)+'</td><td><b>'+r.masuk+' Pcs</b></td><td>'+formatRupiah(r.masukNilai)+'</td><td><b>'+r.keluar+' Pcs</b></td><td>'+formatRupiah(r.keluarNilai)+'</td><td>'+formatRupiah(r.retailPrice)+'</td><td><b style="color:var(--gold);">'+r.akhir+' Pcs</b></td><td>'+formatRupiah(r.akhirNilaiHPP)+'</td><td style="color:var(--success);">'+formatRupiah(r.akhirNilaiRetail)+'</td><td style="color:var(--gold);">'+formatRupiah(r.akhirMargin)+'</td></tr>'; r.details.forEach(function(d){ var badge=d.type==='MASUK'?'<span class="badge-in">IN</span>':'<span class="badge-out">OUT</span>'; tbody.innerHTML+='<tr style="border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--muted);"><td style="padding-left:20px;" colspan="2">↳ '+formatDisplayDate(d.date)+'</td><td></td><td></td><td>'+(d.inQty?d.inQty:'-')+'</td><td>'+(d.inQty?formatRupiah(d.inQty*getCogs(key)):'-')+'</td><td>'+(d.outQty?d.outQty:'-')+'</td><td>'+(d.outQty?formatRupiah(d.outQty*getCogs(key)):'-')+'</td><td></td><td><b>'+d.running+' Pcs</b></td><td colspan="3"></td></tr>'; }); }); tbody.innerHTML+='<tr style="border-top:3px solid var(--gold);font-weight:bold;background:var(--card);"><td colspan="2"><b>TOTAL</b></td><td>'+totalAwal+' Pcs</td><td>'+formatRupiah(totalAwal*1000)+'</td><td><b>'+totalMasuk+' Pcs</b></td><td>'+formatRupiah(totalMasuk*1000)+'</td><td><b>'+totalKeluar+' Pcs</b></td><td>'+formatRupiah(totalKeluar*1000)+'</td><td></td><td><b>'+totalAkhir+' Pcs</b></td><td>'+formatRupiah(totalAkhir*1000)+'</td><td style="color:var(--success);"><b>'+formatRupiah(totalAkhirRetail)+'</b></td><td style="color:var(--gold);"><b>'+formatRupiah(totalAkhirMargin)+'</b></td></tr>'; document.getElementById('mutasiTotalIN').innerText=totalMasuk+' Pcs'; document.getElementById('mutasiTotalOUT').innerText=totalKeluar+' Pcs'; document.getElementById('mutasiSisaStok').innerText=totalAkhir+' Pcs'; document.getElementById('mutasiTotalItem').innerText=keys.length; } } catch(e){ console.error('renderMutasi error:', e); alert('⚠️ Error render mutasi: '+e.message); } }
 function exportMutasiCSV(){ try { if(currentUserRole!=='admin')return alert('Akses ditolak!'); var csv="\uFEFFSKU,Item,Awal (Pcs),Awal (Rp),Masuk (Pcs),Masuk (Rp),Keluar (Pcs),Keluar (Rp),Retail/Pcs,Akhir (Pcs),Akhir (HPP),Akhir (Retail),Margin Total\n"; var tbody=document.getElementById('mutasiTableBody'); var rows=tbody.querySelectorAll('tr'); rows.forEach(function(row){ var cols=row.querySelectorAll('td'); if(cols.length===13 && !row.querySelector('td[style*="padding-left"]')){ csv+='"'+cols[0].innerText+'","'+cols[1].innerText+'","'+cols[2].innerText+'","'+cols[3].innerText+'","'+cols[4].innerText+'","'+cols[5].innerText+'","'+cols[6].innerText+'","'+cols[7].innerText+'","'+cols[8].innerText+'","'+cols[9].innerText+'","'+cols[10].innerText+'","'+cols[11].innerText+'","'+cols[12].innerText+'"\n'; } }); var link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='Mutasi_Stok.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch(e){ console.error('exportMutasiCSV error:', e); } }
 
@@ -1366,7 +1433,39 @@ function exportMutasiCSV(){ try { if(currentUserRole!=='admin')return alert('Aks
 // REVENUE
 // ============================================================
 var revenueFilter={period:'today', start:null, end:null};
-function applyRevenueFilter(mode){ try { var today=new Date(); var start=new Date(), end=new Date(); if(mode==='today'){ start=new Date(today.getFullYear(),today.getMonth(),today.getDate()); end=new Date(today.getFullYear(),today.getMonth(),today.getDate(),23,59,59); } else if(mode==='week'){ var day=today.getDay()||7; start=new Date(today.getFullYear(),today.getMonth(),today.getDate()-day+1); end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+(7-day)); } else if(mode==='month'){ start=new Date(today.getFullYear(),today.getMonth(),1); end=new Date(today.getFullYear(),today.getMonth()+1,0); } else if(mode==='all'){ start=new Date(2000,0,1); end=new Date(2100,0,1); } else if(mode==='custom'){ var s=document.getElementById('revStartDate').value; var e=document.getElementById('revEndDate').value; if(s)start=new Date(s); if(e)end=new Date(e); if(!s||!e)return; } revenueFilter.period=mode; revenueFilter.start=start; revenueFilter.end=end; renderRevenue(); } catch(e){ console.error('applyRevenueFilter error:', e); } }
+function applyRevenueFilter(mode){ 
+    try { 
+        var today = new Date(); var start = new Date(), end = new Date(); 
+        
+        if(mode === 'today'){ 
+            start = new Date(today.getFullYear(), today.getMonth(), today.getDate()); 
+            end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999); 
+        } 
+        else if(mode === 'week'){ 
+            var day = today.getDay() || 7; 
+            start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - day + 1); 
+            end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + (7 - day), 23, 59, 59, 999); 
+        } 
+        else if(mode === 'month'){ 
+            start = new Date(today.getFullYear(), today.getMonth(), 1); 
+            end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999); 
+        } 
+        else if(mode === 'all'){ 
+            start = new Date(2000, 0, 1); 
+            end = new Date(2100, 0, 1, 23, 59, 59, 999); 
+        } 
+        else if(mode === 'custom'){ 
+            var s = document.getElementById('revStartDate').value; 
+            var e = document.getElementById('revEndDate').value; 
+            if(s) start = new Date(s); 
+            if(e) { end = new Date(e); end.setHours(23, 59, 59, 999); } 
+            if(!s || !e) return; 
+        } 
+        
+        revenueFilter.period = mode; revenueFilter.start = start; revenueFilter.end = end; 
+        renderRevenue(); 
+    } catch(e){ console.error('applyRevenueFilter error:', e); } 
+}
 function renderRevenue(){ 
     try { 
         var filtered = logs.filter(function(l){ return l.type === 'JUAL'; }); 
