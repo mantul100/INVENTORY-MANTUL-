@@ -1033,33 +1033,27 @@ async function loadFromCloud(){
             inventory = data.inventory;
         }
         
-        // FITUR MERGE LOGS: Menggabungkan data cloud dan lokal secara aman untuk Multi-Item per Order ID
         if (data.logs && data.logs.length > 0) {
-            var cloudLogs = data.logs.map(function(l, index){ 
+            var cloudLogs = data.logs.map(function(l){ 
                 if(!l.orderId) l.orderId = 'LEGACY-' + Date.now().toString().slice(-8);
                 if(!l.customerName) l.customerName = '-';
-                if(!l.sku) l.sku = null;
                 if(!l.productName) l.productName = l.product || '-';
                 return l;
             });
             
-            // Gunakan kombinasi orderId + index/sku/detail agar multi-item dalam satu order tidak saling menimpa
             var logMap = {};
-            
-            // Masukkan data lokal terlebih dahulu dengan key unik baris
+            // Masukkan data lokal dulu
             logs.forEach(function(l, idx){ 
                 var uniqueKey = (l.orderId || 'ORD') + '_' + (l.sku || 'SKU') + '_' + (l.detail || '') + '_' + idx; 
                 logMap[uniqueKey] = l; 
             });
-            
-            // Masukkan/timpa dari cloud dengan key unik baris
+            // Timpa/tambahkan dari cloud
             cloudLogs.forEach(function(l, idx){ 
                 var uniqueKey = (l.orderId || 'ORD') + '_' + (l.sku || 'SKU') + '_' + (l.detail || '') + '_' + idx; 
                 logMap[uniqueKey] = l; 
             });
             
             logs = Object.values(logMap);
-            // Urutkan dari yang terbaru
             logs.sort(function(a, b){ return parseDate(b.date) - parseDate(a.date); });
         }
 
@@ -1073,7 +1067,7 @@ async function loadFromCloud(){
             applySettingsToUI();
         }
         
-        // Sinkronisasi inventory dengan catalog
+        // Sinkronisasi inventory
         for (var skuKey in inventory) {
             if (!productCatalog[skuKey]) {
                 productCatalog[skuKey] = {
