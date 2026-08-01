@@ -971,7 +971,7 @@ function runCalculator(){
 }
 
 // ============================================================
-// LOAD FROM CLOUD
+// LOAD FROM CLOUD (FIX MERGE LOGS AGAR DATA LAMA TIDAK HILANG)
 // ============================================================
 async function loadFromCloud(){
     try {
@@ -983,98 +983,37 @@ async function loadFromCloud(){
         if (data.inventory && Object.keys(data.inventory).length > 0) {
             inventory = data.inventory;
         }
+        
+        // FITUR MERGE LOGS: Menggabungkan data cloud dan data lokal tanpa duplikasi
         if (data.logs && data.logs.length > 0) {
-            logs = data.logs.map(function(l){ 
+            var cloudLogs = data.logs.map(function(l){ 
                 if(!l.orderId) l.orderId='LEGACY-'+Date.now().toString().slice(-8);
                 if(!l.customerName) l.customerName='-';
                 if(!l.sku) l.sku=null;
                 if(!l.productName) l.productName=l.product||'-';
                 return l;
             });
+            
+            // Gabungkan logs lama dan logs baru berdasarkan unique orderId + timestamp
+            var logMap = {};
+            // Masukkan data lokal dulu
+            logs.forEach(function(l){ var key = l.orderId + '_' + l.date + '_' + l.sku; logMap[key] = l; });
+            // Timpa/tambahkan dari cloud
+            cloudLogs.forEach(function(l){ var key = l.orderId + '_' + l.date + '_' + l.sku; logMap[key] = l; });
+            
+            logs = Object.values(logMap);
+            // Urutkan dari yang terbaru
+            logs.sort(function(a, b){ return parseDate(b.date) - parseDate(a.date); });
         }
+
         if (data.productCatalog && Object.keys(data.productCatalog).length > 0) {
             productCatalog = validateAndFixProductCatalog(data.productCatalog);
             saveProductCatalog();
-        } else {
-            console.warn('⚠️ productCatalog kosong dari cloud, pertahankan lokal');
         }
+        
         if (data.appSettings) {
             appSettings = data.appSettings;
             applySettingsToUI();
-        }
-        
-        // Migrasi SKU (jika diperlukan)
-        if (!isMigrated && Object.keys(productCatalog).length > 0) {
-            var firstKey = Object.keys(productCatalog)[0];
-            if (!firstKey.startsWith('M-')) {
-                var oldCatalog = productCatalog; 
-                var newCatalog = {};
-                var nameToSku = {};
-                var idx2 = 0;
-                for (var oldName in oldCatalog) {
-                    var newSku = generateSKU(idx2); idx2++;
-                    newCatalog[newSku] = {
-                        sku: newSku,
-                        name: oldName,
-                        cogs: oldCatalog[oldName].cogs || 0,
-                        variants: oldCatalog[oldName].variants || [],
-                        createdAt: oldCatalog[oldName].createdAt || Date.now(),
-                        updatedAt: oldCatalog[oldName].updatedAt || Date.now()
-                    };
-                    nameToSku[oldName] = newSku;
-                }
-                var newInventory = {};
-                for (var invName in inventory) {
-                    if (nameToSku[invName]) newInventory[nameToSku[invName]] = inventory[invName];
-                }
-                inventory = newInventory;
-                var newLogs = [];
-                for (var li=0; li<logs.length; li++) {
-                    var log = logs[li];
-                    var skuId = nameToSku[log.product] || null;
-                    if (!skuId) {
-                        for (var s in newCatalog) {
-                            if (newCatalog[s].name === log.product) { skuId = s; break; }
-                        }
-                    }
-                    if (!skuId) {
-                        var newSku2 = generateSKU(idx2); idx2++;
-                        newCatalog[newSku2] = {
-                            sku: newSku2,
-                            name: log.product || 'Unknown',
-                            cogs: 0,
-                            variants: [],
-                            createdAt: Date.now(),
-                            updatedAt: Date.now()
-                        };
-                        skuId = newSku2;
-                    }
-                    newLogs.push({
-                        orderId: log.orderId || 'LEGACY-'+Date.now().toString().slice(-8),
-                        date: log.date || '',
-                        sku: skuId,
-                        product: log.product || '',
-                        productName: log.product || log.productName || '-',
-                        type: log.type || '',
-                        qtyInput: log.qtyInput || 0,
-                        detail: log.detail || '',
-                        impactStock: log.impactStock || '',
-                        finalDeduct: log.finalDeduct || 0,
-                        grossPrice: log.grossPrice || 0,
-                        discount: log.discount || 0,
-                        cogsTotal: log.cogsTotal || 0,
-                        finalNominal: log.finalNominal || 0,
-                        netProfit: log.netProfit || 0,
-                        customerName: log.customerName || '-'
-                    });
-                }
-                logs = newLogs;
-                productCatalog = newCatalog;
-                isMigrated = true;
-                saveProductCatalog();
-            } else {
-                isMigrated = true;
-            }
         }
         
         // Sinkronisasi inventory dengan catalog
@@ -1106,21 +1045,7 @@ async function loadFromCloud(){
         console.error('❌ Load Cloud Error:', e);
         hideLoading();
         if (Object.keys(productCatalog).length === 0) {
-            var fallbackCatalog = {};
-            var idx3 = 0;
-            for (var defName in DEFAULT_PRODUCTS) {
-                var defSku = generateSKU(idx3);
-                fallbackCatalog[defSku] = {
-                    sku: defSku,
-                    name: defName,
-                    cogs: DEFAULT_PRODUCTS[defName].cogs,
-                    variants: DEFAULT_PRODUCTS[defName].variants,
-                    createdAt: Date.now(),
-                    updatedAt: Date.now()
-                };
-                idx3++;
-            }
-            productCatalog = fallbackCatalog;
+            productCatalog = DEFAULT_PRODUCTS;
         }
         populateProductDropdown();
         updatePackageOptions();
@@ -1130,7 +1055,6 @@ async function loadFromCloud(){
         showSyncBanner('error','⚠️ Gagal konek Cloud! (Data lokal tetap aman)',true);
     }
 }
-
 // ============================================================
 // SAVE TO CLOUD
 // ============================================================
