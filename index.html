@@ -1182,7 +1182,7 @@ async function loadFromCloud(){
     }
 }
 // ============================================================
-// SAVE TO CLOUD
+// SAVE TO CLOUD (FIX LIMIT LOGS MENJADI 5000 TRANSAKSI)
 // ============================================================
 function saveToCloud(){
     if(isSyncing) return;
@@ -1191,8 +1191,21 @@ function saveToCloud(){
         showLoading('💾 Menyimpan ke Cloud...');
         collectSettingsFromUI();
         fixProductCatalogBeforeSave();
-        var payload={type:'SALE', inventory:inventory||{}, logs:logs||[], productCatalog:productCatalog||{}, appSettings:appSettings||{}};
-        if(payload.logs.length>500){ console.warn('⚠️ Logs terlalu banyak ('+payload.logs.length+'), kirim 500 terakhir'); payload.logs=payload.logs.slice(0,500); }
+        
+        var payload = {
+            type: 'SALE', 
+            inventory: inventory || {}, 
+            logs: logs || [], 
+            productCatalog: productCatalog || {}, 
+            appSettings: appSettings || {}
+        };
+        
+        // LIMIT DINAIKKAN KE 5000 AGAR DATA LAMA TIDAK TERPOTONG
+        if(payload.logs.length > 5000){ 
+            console.warn('⚠️ Logs terlalu banyak ('+payload.logs.length+'), kirim 5000 terakhir'); 
+            payload.logs = payload.logs.slice(0, 5000); 
+        }
+        
         var success=false; var attempts=0; var lastError=null;
         var doFetch = function(){
             return new Promise(function(resolve, reject){
@@ -1203,6 +1216,7 @@ function saveToCloud(){
                 .catch(function(err){ clearTimeout(timeoutId); reject(err); });
             });
         };
+        
         (async function(){
             while(attempts<3 && !success){
                 attempts++;
