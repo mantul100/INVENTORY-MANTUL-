@@ -1581,24 +1581,85 @@ async function initApp(){
     } 
 }
 var auditFilter = { start: null, end: null };
+
 function applyAuditFilter(mode){
     try {
+        // Atur tombol aktif di UI
+        // Opsional: jika ada tombol filter di tab profit, sesuaikan class active-nya
         var today = new Date(); var start = new Date(), end = new Date();
-        if(mode === 'today'){ start = new Date(today.getFullYear(),today.getMonth(),today.getDate()); end = new Date(today.getFullYear(),today.getMonth(),today.getDate(),23,59,59); }
-        else if(mode === 'week'){ var day = today.getDay()||7; start = new Date(today.getFullYear(),today.getMonth(),today.getDate()-day+1); end = new Date(today.getFullYear(),today.getMonth(),today.getDate()+(7-day)); }
-        else if(mode === 'month'){ start = new Date(today.getFullYear(),today.getMonth(),1); end = new Date(today.getFullYear(),today.getMonth()+1,0); }
-        else if(mode === 'all'){ start = new Date(2000,0,1); end = new Date(2100,0,1); }
-        else if(mode === 'custom'){ var s = document.getElementById('auditStartDate').value; var e = document.getElementById('auditEndDate').value; if(s) start = new Date(s); if(e) end = new Date(e); if(!s||!e) return; }
         
-        auditFilter.start = start; auditFilter.end = end;
+        if(mode === 'today'){ 
+            start = new Date(today.getFullYear(), today.getMonth(), today.getDate()); 
+            end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59); 
+        }
+        else if(mode === 'week'){ 
+            var day = today.getDay() || 7; 
+            start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - day + 1); 
+            end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + (7 - day), 23, 59, 59); 
+        }
+        else if(mode === 'month'){ 
+            start = new Date(today.getFullYear(), today.getMonth(), 1); 
+            end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59); 
+        }
+        else if(mode === 'all'){ 
+            start = new Date(2000, 0, 1); 
+            end = new Date(2100, 0, 1, 23, 59, 59); 
+        }
+        else if(mode === 'custom'){ 
+            var s = document.getElementById('auditStartDate').value; 
+            var e = document.getElementById('auditEndDate').value; 
+            if(s) start = new Date(s); 
+            if(e) {
+                end = new Date(e);
+                end.setHours(23, 59, 59, 999); // Set ke akhir hari
+            }
+            if(!s || !e) return; 
+        }
         
-        // Filter logs untuk tabel audit
+        auditFilter.start = start; 
+        auditFilter.end = end;
+        
+        // Filter logs berdasarkan rentang tanggal audit
         filteredLogs = logs.filter(function(l){
             var d = parseDate(l.date);
             return d >= auditFilter.start && d <= auditFilter.end;
         });
+        
+        // Render ulang rekapitulasi angka di tab Jurnal (Profit)
+        renderAuditSummary(filteredLogs);
+        
+        // Render tabel data jurnal
         searchReceipt();
-    } catch(e){ console.error('applyAuditFilter error:', e); }
+    } catch(e){ 
+        console.error('applyAuditFilter error:', e); 
+    }
+}
+
+// Fungsi untuk menghitung dan menampilkan rekap ringkasan di atas tabel Jurnal
+function renderAuditSummary(dataList) {
+    try {
+        var tGross = 0, tCogs = 0, tNet = 0;
+        var uniqueOrders = new Set();
+        
+        dataList.forEach(function(l){
+            if(l.type === 'JUAL'){
+                tGross += (l.grossPrice || 0);
+                tCogs += (l.cogsTotal || 0);
+                tNet += (l.netProfit || 0);
+                uniqueOrders.add(l.orderId);
+            } else if(l.type === 'TESTER'){
+                tCogs += (l.cogsTotal || 0);
+                tNet += (l.netProfit || 0);
+            }
+        });
+        
+        document.getElementById('profGross').innerText = formatRupiah(tGross);
+        document.getElementById('profCogs').innerText = formatRupiah(tCogs);
+        document.getElementById('profNet').innerText = formatRupiah(tNet);
+        document.getElementById('profCount').innerText = uniqueOrders.size;
+    } catch(e) {
+        console.error('renderAuditSummary error:', e);
+    }
 }
 </script>
 </body>
