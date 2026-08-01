@@ -161,6 +161,33 @@ th{color:var(--gold);background:rgba(255,255,255,0.03);text-transform:uppercase;
 <div id="tabProfit" class="tab-content">
 <div class="summary-grid"><div class="stat-card"><h3>Omset Kotor</h3><div class="val" id="profGross">Rp 0</div></div><div class="stat-card"><h3>Modal HPP</h3><div class="val" id="profCogs" style="color:var(--danger)">Rp 0</div></div><div class="stat-card"><h3>Laba Bersih</h3><div class="val" id="profNet" style="color:var(--success)">Rp 0</div></div><div class="stat-card"><h3>Total Transaksi</h3><div class="val" id="profCount">0</div></div></div>
 <div class="box"><h2>📜 JURNAL AUDIT & CETAK ULANG</h2><div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;"><input type="text" id="searchReceipt" placeholder="Cari Order ID / Nama Pelanggan..." style="flex:2;padding:10px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;"><button class="btn btn-secondary" onclick="searchReceipt()" style="flex:1;padding:10px;margin:0;">🔍 Cari</button><button class="btn btn-secondary" onclick="document.getElementById('searchReceipt').value='';searchReceipt();" style="flex:0.5;padding:10px;margin:0;">✕ Reset</button></div><button class="btn btn-excel" id="exportBtn" onclick="exportBackupCSV()">Export .CSV 📊</button><div class="table-wrapper"><table><thead><tr><th>Order ID</th><th>Waktu</th><th>Pelanggan</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset</th><th>Diskon</th><th>Modal</th><th>Laba</th><th>Aksi</th></tr></thead><tbody id="auditTableBody"></tbody></table></div></div></div>
+<!-- FILTER TANGGAL & PENCARIAN JURNAL -->
+<div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center;">
+        <span style="color:var(--muted);font-size:0.8rem;">📅 Periode:</span>
+        <button class="btn btn-secondary" style="padding:4px 12px;width:auto;" onclick="applyAuditFilter('today')">Hari Ini</button>
+        <button class="btn btn-secondary" style="padding:4px 12px;width:auto;" onclick="applyAuditFilter('week')">Minggu Ini</button>
+        <button class="btn btn-secondary" style="padding:4px 12px;width:auto;" onclick="applyAuditFilter('month')">Bulan Ini</button>
+        <button class="btn btn-secondary" style="padding:4px 12px;width:auto;" onclick="applyAuditFilter('all')">All Time</button>
+        <input type="date" id="auditStartDate" onchange="applyAuditFilter('custom')" style="background:var(--input);color:var(--text);border:1px solid var(--border);padding:4px;border-radius:4px;">
+        <span style="color:var(--muted);font-size:0.8rem;">s/d</span>
+        <input type="date" id="auditEndDate" onchange="applyAuditFilter('custom')" style="background:var(--input);color:var(--text);border:1px solid var(--border);padding:4px;border-radius:4px;">
+        
+        <input type="text" id="searchReceipt" placeholder="Cari Order ID / Nama Pelanggan..." style="flex:1;min-width:180px;padding:8px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;" oninput="searchReceipt()">
+    </div>
+    
+    <div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;">
+        <button class="btn btn-excel" id="exportBtn" onclick="exportBackupCSV()" style="width:auto;margin:0;">Export .CSV 📊</button>
+    </div>
+    
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr><th>Order ID</th><th>Waktu</th><th>Pelanggan</th><th>Detail Produk</th><th>Aktivitas</th><th>Omset</th><th>Diskon</th><th>Modal</th><th>Laba</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="auditTableBody"></tbody>
+        </table>
+    </div>
+</div>
 <div id="tabMutasi" class="tab-content">
 <div class="summary-grid"><div class="stat-card"><h3>Total IN</h3><div class="val" id="mutasiTotalIN" style="color:var(--success)">0 Pcs</div></div><div class="stat-card"><h3>Total OUT</h3><div class="val" id="mutasiTotalOUT" style="color:var(--danger)">0 Pcs</div></div><div class="stat-card"><h3>Sisa Stok</h3><div class="val" id="mutasiSisaStok">0 Pcs</div></div><div class="stat-card"><h3>Total Item</h3><div class="val" id="mutasiTotalItem">0</div></div></div>
 <div class="box"><h2>📦 LAPORAN MUTASI STOK</h2><div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center;"><span style="color:var(--muted);font-size:0.8rem;">📅 Periode:</span><button class="btn btn-secondary" style="padding:4px 12px;width:auto;" onclick="applyMutasiFilter('today')">Hari Ini</button><button class="btn btn-secondary" style="padding:4px 12px;width:auto;" onclick="applyMutasiFilter('week')">Minggu Ini</button><button class="btn btn-secondary" style="padding:4px 12px;width:auto;" onclick="applyMutasiFilter('month')">Bulan Ini</button><button class="btn btn-secondary" style="padding:4px 12px;width:auto;" onclick="applyMutasiFilter('all')">All Time</button><input type="date" id="mutasiStartDate" onchange="applyMutasiFilter('custom')" style="background:var(--input);color:var(--text);border:1px solid var(--border);padding:4px;border-radius:4px;"><span style="color:var(--muted);font-size:0.8rem;">s/d</span><input type="date" id="mutasiEndDate" onchange="applyMutasiFilter('custom')" style="background:var(--input);color:var(--text);border:1px solid var(--border);padding:4px;border-radius:4px;"><input type="text" id="mutasiSearchItem" placeholder="Cari Item..." style="flex:1;min-width:120px;padding:6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;" oninput="renderMutasi()"><select id="mutasiSort" onchange="renderMutasi()" style="background:var(--input);color:var(--text);border:1px solid var(--border);padding:6px;border-radius:4px;"><option value="az">🔤 A-Z</option><option value="za">🔤 Z-A</option><option value="in_desc">📈 IN Terbanyak</option><option value="out_desc">📉 OUT Terbanyak</option></select><button class="btn btn-excel" style="padding:6px 12px;width:auto;margin:0;" onclick="exportMutasiCSV()">📥 CSV</button></div>
@@ -815,22 +842,44 @@ function downloadReceiptPDF(){ if(!lastReceiptOrder)return; showLoading('📄 Ge
 // ============================================================
 function searchReceipt(){
     try {
-        var keyword=document.getElementById('searchReceipt').value.trim().toLowerCase();
-        renderDashboard();
-        if(!keyword) return;
-        var filtered=logs.filter(function(l){ var oid=(l.orderId||'').toLowerCase(); var cust=(l.customerName||'').toLowerCase(); var pname=(l.productName||'').toLowerCase(); return oid.indexOf(keyword)!==-1||cust.indexOf(keyword)!==-1||pname.indexOf(keyword)!==-1; });
-        var auditBody=document.getElementById('auditTableBody');
-        auditBody.innerHTML='';
-        if(filtered.length===0){ auditBody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--muted);">Tidak ditemukan.</td></tr>'; return; }
-        var isAdmin=currentUserRole==='admin';
-        filtered.forEach(function(log,i){
-            var badge=log.type==='JUAL'?'<span class="badge-out">JUAL</span>':log.type==='TESTER'?'<span class="badge-tester">TESTER</span>':'<span class="badge-in">MASUK</span>';
-            var dt=formatDisplayDate(log.date); var oid=log.orderId||'N/A'; var cust=log.customerName||'-';
-            var discHtml='-';
-            if(log.type==='JUAL'&&isAdmin){ discHtml='<input type="number" value="'+log.discount+'" onblur="updateManualDiscount(this,'+i+')" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">'; } else if(log.type==='JUAL'){ discHtml=formatRupiah(log.discount); }
-            var reprintBtn=(log.type==='JUAL'||log.type==='TESTER')?'<button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;width:auto;" onclick="reprintReceipt(\''+oid+'\')">🔄 Cetak</button>':'-';
-            var deleteBtn=(isAdmin&&(log.type==='JUAL'||log.type==='TESTER'||log.type==='MASUK'))?'<button class="btn btn-delete" onclick="deleteTransaction(\''+oid+'\')">🗑️</button>':'-';
-            auditBody.innerHTML+='<tr><td><small>'+oid+'</small></td><td><small>'+dt+'</small></td><td><small>'+cust+'</small></td><td><b>'+log.productName+'</b><br><small style="color:var(--muted)">'+log.detail+'</small></td><td>'+badge+'</td><td>'+(log.type==='JUAL'?formatRupiah(log.grossPrice):(log.type==='TESTER'?'PROMOSI':'-'))+'</td><td>'+discHtml+'</td><td><span style="color:var(--danger)">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.cogsTotal):'-')+'</span></td><td><b style="'+(log.netProfit<0?'color:var(--danger)':'color:var(--success)')+'">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.netProfit):'-')+'</b></td><td>'+reprintBtn+' '+deleteBtn+'</td></tr>';
+        var keyword = document.getElementById('searchReceipt').value.trim().toLowerCase();
+        var auditBody = document.getElementById('auditTableBody');
+        auditBody.innerHTML = '';
+        
+        // Gunakan seluruh logs jika keyword kosong, atau filter jika ada keyword
+        var displayList = logs;
+        if (keyword !== '') {
+            displayList = logs.filter(function(l){ 
+                var oid = (l.orderId || '').toLowerCase(); 
+                var cust = (l.customerName || '').toLowerCase(); 
+                var pname = (l.productName || l.product || '').toLowerCase(); 
+                return oid.indexOf(keyword) !== -1 || cust.indexOf(keyword) !== -1 || pname.indexOf(keyword) !== -1; 
+            });
+        }
+        
+        if(displayList.length === 0){ 
+            auditBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);">Tidak ditemukan transaksi.</td></tr>'; 
+            return; 
+        }
+        
+        var isAdmin = (currentUserRole === 'admin');
+        displayList.forEach(function(log, i){
+            var badge = log.type === 'JUAL' ? '<span class="badge-out">JUAL</span>' : log.type === 'TESTER' ? '<span class="badge-tester">TESTER</span>' : '<span class="badge-in">MASUK</span>';
+            var dt = formatDisplayDate(log.date); 
+            var oid = log.orderId || 'N/A'; 
+            var cust = log.customerName || '-';
+            var discHtml = '-';
+            
+            if(log.type === 'JUAL' && isAdmin){ 
+                discHtml = '<input type="number" value="'+log.discount+'" onblur="updateManualDiscount(this,'+i+')" style="width:75px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px;">'; 
+            } else if(log.type === 'JUAL'){ 
+                discHtml = formatRupiah(log.discount); 
+            }
+            
+            var reprintBtn = (log.type === 'JUAL' || log.type === 'TESTER') ? '<button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;width:auto;" onclick="reprintReceipt(\''+oid+'\')">🔄 Cetak</button>' : '-';
+            var deleteBtn = (isAdmin && (log.type === 'JUAL' || log.type === 'TESTER' || log.type === 'MASUK')) ? '<button class="btn btn-delete" onclick="deleteTransaction(\''+oid+'\')">🗑️</button>' : '-';
+            
+            auditBody.innerHTML += '<tr><td><small>'+oid+'</small></td><td><small>'+dt+'</small></td><td><small>'+cust+'</small></td><td><b>'+(log.productName || log.product)+'</b><br><small style="color:var(--muted)">'+log.detail+'</small></td><td>'+badge+'</td><td>'+(log.type==='JUAL'?formatRupiah(log.grossPrice):(log.type==='TESTER'?'PROMOSI':'-'))+'</td><td>'+discHtml+'</td><td><span style="color:var(--danger)">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.cogsTotal):'-')+'</span></td><td><b style="'+(log.netProfit<0?'color:var(--danger)':'color:var(--success)')+'">'+(log.type==='JUAL'||log.type==='TESTER'?formatRupiah(log.netProfit):'-')+'</b></td><td>'+reprintBtn+' '+deleteBtn+'</td></tr>';
         });
     } catch(e){ console.error('searchReceipt error:', e); }
 }
@@ -1316,7 +1365,73 @@ function exportMutasiCSV(){ try { if(currentUserRole!=='admin')return alert('Aks
 // ============================================================
 var revenueFilter={period:'today', start:null, end:null};
 function applyRevenueFilter(mode){ try { var today=new Date(); var start=new Date(), end=new Date(); if(mode==='today'){ start=new Date(today.getFullYear(),today.getMonth(),today.getDate()); end=new Date(today.getFullYear(),today.getMonth(),today.getDate(),23,59,59); } else if(mode==='week'){ var day=today.getDay()||7; start=new Date(today.getFullYear(),today.getMonth(),today.getDate()-day+1); end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+(7-day)); } else if(mode==='month'){ start=new Date(today.getFullYear(),today.getMonth(),1); end=new Date(today.getFullYear(),today.getMonth()+1,0); } else if(mode==='all'){ start=new Date(2000,0,1); end=new Date(2100,0,1); } else if(mode==='custom'){ var s=document.getElementById('revStartDate').value; var e=document.getElementById('revEndDate').value; if(s)start=new Date(s); if(e)end=new Date(e); if(!s||!e)return; } revenueFilter.period=mode; revenueFilter.start=start; revenueFilter.end=end; renderRevenue(); } catch(e){ console.error('applyRevenueFilter error:', e); } }
-function renderRevenue(){ try { var filtered=logs.filter(function(l){ return l.type==='JUAL'; }); if(revenueFilter.start&&revenueFilter.end){ filtered=filtered.filter(function(l){ var d=parseDate(l.date); return d>=revenueFilter.start&&d<=revenueFilter.end; }); } var daily={}; filtered.forEach(function(l){ var key=formatDisplayDate(l.date); if(!daily[key]) daily[key]={gross:0, disc:0, net:0, hpp:0, profit:0}; daily[key].gross+=l.grossPrice; daily[key].disc+=l.discount; daily[key].net+=l.finalNominal; daily[key].hpp+=l.cogsTotal; daily[key].profit+=l.netProfit; }); var labels=Object.keys(daily).sort(function(a,b){ return new Date(a)-new Date(b); }); var dataGross=labels.map(function(k){ return daily[k].gross; }); var dataNet=labels.map(function(k){ return daily[k].net; }); var dataProfit=labels.map(function(k){ return daily[k].profit; }); var totalGross=dataGross.reduce(function(a,b){ return a+b; },0); var totalDisc=labels.reduce(function(a,k){ return a+daily[k].disc; },0); var totalNet=dataNet.reduce(function(a,b){ return a+b; },0); var totalProfit=dataProfit.reduce(function(a,b){ return a+b; },0); document.getElementById('revGross').innerText=formatRupiah(totalGross); document.getElementById('revDisc').innerText=formatRupiah(totalDisc); document.getElementById('revNet').innerText=formatRupiah(totalNet); document.getElementById('revProfit').innerText=formatRupiah(totalProfit); var tbody=document.getElementById('revenueTableBody'); tbody.innerHTML=''; if(labels.length===0){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);">Tidak ada data.</td></tr>'; } else { labels.forEach(function(k){ tbody.innerHTML+='<tr><td>'+k+'</td><td>'+formatRupiah(daily[k].gross)+'</td><td>'+formatRupiah(daily[k].disc)+'</td><td>'+formatRupiah(daily[k].net)+'</td><td>'+formatRupiah(daily[k].hpp)+'</td><td>'+formatRupiah(daily[k].profit)+'</td></tr>'; }); } var ctx=document.getElementById('revenueChart').getContext('2d'); if(revenueChartInstance) revenueChartInstance.destroy(); revenueChartInstance=new Chart(ctx,{type:'bar',data:{labels:labels, datasets:[{label:'Omset Bersih', data:dataNet, backgroundColor:'rgba(212,175,55,0.7)', borderRadius:4},{label:'Laba', data:dataProfit, backgroundColor:'rgba(37,211,102,0.7)', borderRadius:4}]},options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#fff'}}}, scales:{y:{beginAtZero:true, grid:{color:'#2a2a2e'}}, x:{grid:{display:false}, ticks:{color:'#fff'}}}} }); } catch(e){ console.error('renderRevenue error:', e); alert('⚠️ Error render pendapatan: '+e.message); } }
+function renderRevenue(){ 
+    try { 
+        var filtered = logs.filter(function(l){ return l.type === 'JUAL'; }); 
+        
+        // Periksa apakah filter tanggal aktif
+        if (revenueFilter.start && revenueFilter.end) {
+            filtered = filtered.filter(function(l){ 
+                var d = parseDate(l.date); 
+                return d >= revenueFilter.start && d <= revenueFilter.end; 
+            });
+        }
+        
+        var daily = {}; 
+        filtered.forEach(function(l){ 
+            var key = formatDisplayDate(l.date); 
+            if(!daily[key]) daily[key] = { gross: 0, disc: 0, net: 0, hpp: 0, profit: 0 }; 
+            daily[key].gross += (l.grossPrice || 0); 
+            daily[key].disc += (l.discount || 0); 
+            daily[key].net += (l.finalNominal || 0); 
+            daily[key].hpp += (l.cogsTotal || 0); 
+            daily[key].profit += (l.netProfit || 0); 
+        }); 
+        
+        var labels = Object.keys(daily).sort(function(a,b){ return new Date(a) - new Date(b); }); 
+        var dataNet = labels.map(function(k){ return daily[k].net; }); 
+        var dataProfit = labels.map(function(k){ return daily[k].profit; }); 
+        
+        var totalGross = labels.reduce(function(a,k){ return a + daily[k].gross; }, 0); 
+        var totalDisc = labels.reduce(function(a,k){ return a + daily[k].disc; }, 0); 
+        var totalNet = labels.reduce(function(a,k){ return a + daily[k].net; }, 0); 
+        var totalProfit = labels.reduce(function(a,k){ return a + daily[k].profit; }, 0); 
+        
+        document.getElementById('revGross').innerText = formatRupiah(totalGross); 
+        document.getElementById('revDisc').innerText = formatRupiah(totalDisc); 
+        document.getElementById('revNet').innerText = formatRupiah(totalNet); 
+        document.getElementById('revProfit').innerText = formatRupiah(totalProfit); 
+        
+        var tbody = document.getElementById('revenueTableBody'); 
+        tbody.innerHTML = ''; 
+        if(labels.length === 0){ 
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Tidak ada data pendapatan pada periode ini.</td></tr>'; 
+        } else { 
+            labels.forEach(function(k){ 
+                tbody.innerHTML += '<tr><td>'+k+'</td><td>'+formatRupiah(daily[k].gross)+'</td><td>'+formatRupiah(daily[k].disc)+'</td><td>'+formatRupiah(daily[k].net)+'</td><td>'+formatRupiah(daily[k].hpp)+'</td><td>'+formatRupiah(daily[k].profit)+'</td></tr>'; 
+            }); 
+        } 
+        
+        var ctx = document.getElementById('revenueChart').getContext('2d'); 
+        if(revenueChartInstance) revenueChartInstance.destroy(); 
+        revenueChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { 
+                labels: labels, 
+                datasets: [
+                    { label: 'Omset Bersih', data: dataNet, backgroundColor: 'rgba(212,175,55,0.7)', borderRadius: 4 },
+                    { label: 'Laba', data: dataProfit, backgroundColor: 'rgba(37,211,102,0.7)', borderRadius: 4 }
+                ] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { labels: { color: '#fff' } } }, 
+                scales: { y: { beginAtZero: true, grid: { color: '#2a2a2e' } }, x: { grid: { display: false }, ticks: { color: '#fff' } } } 
+            } 
+        }); 
+    } catch(e){ console.error('renderRevenue error:', e); }
+}
 function exportRevenueCSV(){ try { if(currentUserRole!=='admin')return alert('Akses ditolak!'); var csv="\uFEFFTanggal,Omset Kotor,Diskon,Omset Bersih,Modal,Laba\n"; var tbody=document.getElementById('revenueTableBody'); var rows=tbody.querySelectorAll('tr'); rows.forEach(function(row){ var cols=row.querySelectorAll('td'); if(cols.length===6) csv+='"'+cols[0].innerText+'","'+cols[1].innerText+'","'+cols[2].innerText+'","'+cols[3].innerText+'","'+cols[4].innerText+'","'+cols[5].innerText+'"\n'; }); var link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); link.download='Pendapatan.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch(e){ console.error('exportRevenueCSV error:', e); } }
 
 // ============================================================
@@ -1464,6 +1579,26 @@ async function initApp(){
         console.error('❌ Error initApp:', e);
         alert('⚠️ Terjadi error saat inisialisasi aplikasi:\n' + e.message + '\n\nCoba refresh halaman atau hubungi admin.');
     } 
+}
+var auditFilter = { start: null, end: null };
+function applyAuditFilter(mode){
+    try {
+        var today = new Date(); var start = new Date(), end = new Date();
+        if(mode === 'today'){ start = new Date(today.getFullYear(),today.getMonth(),today.getDate()); end = new Date(today.getFullYear(),today.getMonth(),today.getDate(),23,59,59); }
+        else if(mode === 'week'){ var day = today.getDay()||7; start = new Date(today.getFullYear(),today.getMonth(),today.getDate()-day+1); end = new Date(today.getFullYear(),today.getMonth(),today.getDate()+(7-day)); }
+        else if(mode === 'month'){ start = new Date(today.getFullYear(),today.getMonth(),1); end = new Date(today.getFullYear(),today.getMonth()+1,0); }
+        else if(mode === 'all'){ start = new Date(2000,0,1); end = new Date(2100,0,1); }
+        else if(mode === 'custom'){ var s = document.getElementById('auditStartDate').value; var e = document.getElementById('auditEndDate').value; if(s) start = new Date(s); if(e) end = new Date(e); if(!s||!e) return; }
+        
+        auditFilter.start = start; auditFilter.end = end;
+        
+        // Filter logs untuk tabel audit
+        filteredLogs = logs.filter(function(l){
+            var d = parseDate(l.date);
+            return d >= auditFilter.start && d <= auditFilter.end;
+        });
+        searchReceipt();
+    } catch(e){ console.error('applyAuditFilter error:', e); }
 }
 </script>
 </body>
