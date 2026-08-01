@@ -1020,7 +1020,7 @@ function runCalculator(){
 }
 
 // ============================================================
-// LOAD FROM CLOUD (FIX MERGE LOGS AGAR DATA LAMA TIDAK HILANG)
+// LOAD FROM CLOUD (FIX MERGE LOGS MULTI-ITEM PER ORDER ID)
 // ============================================================
 async function loadFromCloud(){
     try {
@@ -1033,22 +1033,30 @@ async function loadFromCloud(){
             inventory = data.inventory;
         }
         
-        // FITUR MERGE LOGS: Menggabungkan data cloud dan data lokal tanpa duplikasi
+        // FITUR MERGE LOGS: Menggabungkan data cloud dan lokal secara aman untuk Multi-Item per Order ID
         if (data.logs && data.logs.length > 0) {
-            var cloudLogs = data.logs.map(function(l){ 
-                if(!l.orderId) l.orderId='LEGACY-'+Date.now().toString().slice(-8);
-                if(!l.customerName) l.customerName='-';
-                if(!l.sku) l.sku=null;
-                if(!l.productName) l.productName=l.product||'-';
+            var cloudLogs = data.logs.map(function(l, index){ 
+                if(!l.orderId) l.orderId = 'LEGACY-' + Date.now().toString().slice(-8);
+                if(!l.customerName) l.customerName = '-';
+                if(!l.sku) l.sku = null;
+                if(!l.productName) l.productName = l.product || '-';
                 return l;
             });
             
-            // Gabungkan logs lama dan logs baru berdasarkan unique orderId + timestamp
+            // Gunakan kombinasi orderId + index/sku/detail agar multi-item dalam satu order tidak saling menimpa
             var logMap = {};
-            // Masukkan data lokal dulu
-            logs.forEach(function(l){ var key = l.orderId + '_' + l.date + '_' + l.sku; logMap[key] = l; });
-            // Timpa/tambahkan dari cloud
-            cloudLogs.forEach(function(l){ var key = l.orderId + '_' + l.date + '_' + l.sku; logMap[key] = l; });
+            
+            // Masukkan data lokal terlebih dahulu dengan key unik baris
+            logs.forEach(function(l, idx){ 
+                var uniqueKey = (l.orderId || 'ORD') + '_' + (l.sku || 'SKU') + '_' + (l.detail || '') + '_' + idx; 
+                logMap[uniqueKey] = l; 
+            });
+            
+            // Masukkan/timpa dari cloud dengan key unik baris
+            cloudLogs.forEach(function(l, idx){ 
+                var uniqueKey = (l.orderId || 'ORD') + '_' + (l.sku || 'SKU') + '_' + (l.detail || '') + '_' + idx; 
+                logMap[uniqueKey] = l; 
+            });
             
             logs = Object.values(logMap);
             // Urutkan dari yang terbaru
