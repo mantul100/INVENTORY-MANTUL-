@@ -284,7 +284,47 @@ function fixProductCatalogBeforeSave() {
 // FUNGSI UTILITY
 // ============================================================
 function generateFormattedDate(){ var n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0'); }
-function parseDate(s){ var d=new Date(s); if(!isNaN(d))return d; var p=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2})\.(\d{2})/); if(p)return new Date(p[3],p[2]-1,p[1],p[4],p[5]); return new Date(s); }
+function parseDate(s) {
+    if (!s) return new Date(0);
+    var str = s.toString().trim();
+    
+    // 1. Coba format standar (YYYY-MM-DD HH:mm:ss)
+    var d = new Date(str);
+    if (!isNaN(d)) return d;
+    var d2 = new Date(str.replace(' ', 'T'));
+    if (!isNaN(d2)) return d2;
+
+    // 2. Coba terjemahkan format Indonesia (Contoh: "18 Juli 2026 pukul 19.15")
+    var idMonths = {
+        'januari':0, 'februari':1, 'maret':2, 'april':3, 'mei':4, 'juni':5,
+        'juli':6, 'agustus':7, 'september':8, 'oktober':9, 'november':10, 'desember':11,
+        'jan':0, 'feb':1, 'mar':2, 'apr':3, 'jun':5, 'jul':6, 'agu':7, 'sep':8, 'okt':9, 'nov':10, 'des':11
+    };
+    
+    // Deteksi pola tanggal teks Indonesia
+    var matchId = str.toLowerCase().match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})(?:\s+(?:pukul\s+)?(\d{1,2})[\.\:](\d{1,2})(?:[\.\:](\d{1,2}))?)?/);
+    if (matchId) {
+        var date = parseInt(matchId[1]);
+        var month = idMonths[matchId[2]];
+        var year = parseInt(matchId[3]);
+        var hour = matchId[4] ? parseInt(matchId[4]) : 0;
+        var minute = matchId[5] ? parseInt(matchId[5]) : 0;
+        var second = matchId[6] ? parseInt(matchId[6]) : 0;
+        if (month !== undefined) {
+            return new Date(year, month, date, hour, minute, second);
+        }
+    }
+
+    // 3. Coba format DD/MM/YYYY (Contoh: 18/07/2026)
+    var p = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,\s*(\d{1,2})[\.\:](\d{1,2}))?/);
+    if (p) {
+        var h = p[4] ? parseInt(p[4]) : 0;
+        var m = p[5] ? parseInt(p[5]) : 0;
+        return new Date(p[3], p[2]-1, p[1], h, m, 0);
+    }
+
+    return new Date(str); // Fallback terakhir
+}
 function formatDisplayDate(s){ var d=parseDate(s); if(isNaN(d))return s; return d.toLocaleDateString('id-ID',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
 function formatRupiah(n){ return "Rp "+Math.round(n).toLocaleString('id-ID'); }
 function formatNumber(n){ return Math.round(n).toLocaleString('id-ID'); }
